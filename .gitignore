@@ -1,0 +1,23 @@
+# Dependencies / build
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Env — .env.development / .env.production / .env.example은 커밋(비밀값 없음)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
