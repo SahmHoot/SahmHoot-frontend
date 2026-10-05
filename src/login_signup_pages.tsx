@@ -1,15 +1,20 @@
 import {
-  useEffect,
   useRef,
   useState,
+  type ChangeEvent,
+  type CompositionEvent,
+  type Dispatch,
   type FormEvent,
+  type ComponentProps,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import { Link } from "react-router-dom";
 import authBg from "./assets/auth/auth-bg.jpg";
 import logoMark from "./assets/auth/logo-mark.svg";
 import mascotBook from "./assets/auth/mascot-book.webp";
 import mascotSu from "./assets/auth/mascot-su.webp";
+import { hangulToQwerty } from "./shared/utils/hangulToQwerty";
 import "./login_signup_pages.css";
 
 interface AuthLayoutProps {
@@ -73,11 +78,78 @@ function AuthField({
   );
 }
 
+function EyeIcon({ off = false }: { off?: boolean }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  );
+}
+
+function PasswordInput({
+  onValueChange,
+  ...props
+}: Omit<
+  ComponentProps<"input">,
+  "type" | "className" | "value" | "onChange"
+> & {
+  value: string;
+  onValueChange: Dispatch<SetStateAction<string>>;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  // 한글 자판 상태로 입력해도 같은 자리의 영문으로 바꿔 넣음 (ㅁ → a)
+  // 조합 중에 값을 바꾸면 IME가 글자를 중복 입력하므로 조합이 끝난 뒤 변환
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    const composing = (event.nativeEvent as InputEvent).isComposing;
+    onValueChange(composing ? value : hangulToQwerty(value));
+  };
+
+  const handleCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
+    onValueChange(hangulToQwerty(event.currentTarget.value));
+  };
+
+  return (
+    <div className="auth-password">
+      <input
+        placeholder="******"
+        required
+        {...props}
+        onChange={handleChange}
+        onCompositionEnd={handleCompositionEnd}
+        type={visible ? "text" : "password"}
+        className="auth-input auth-input--with-toggle"
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((prev) => !prev)}
+        aria-label={visible ? "비밀번호 숨기기" : "비밀번호 보기"}
+        aria-pressed={visible}
+        className="auth-toggle"
+      >
+        <EyeIcon off={visible} />
+      </button>
+    </div>
+  );
+}
+
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -114,27 +186,12 @@ export function LoginPage() {
           </AuthField>
 
           <AuthField label="비밀번호" htmlFor="password">
-            <div className="auth-password">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="******"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="auth-input auth-input--with-toggle"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
-                aria-pressed={showPassword}
-                className="auth-toggle"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
+            <PasswordInput
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onValueChange={setPassword}
+            />
           </AuthField>
 
           <label className="auth-check">
@@ -184,16 +241,15 @@ export function SignupPage() {
   const [role, setRole] = useState<Role>("PROFESSOR");
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    passwordConfirmRef.current?.setCustomValidity(
-      passwordConfirm && password !== passwordConfirm
-        ? "비밀번호가 일치하지 않습니다."
-        : "",
-    );
-  }, [password, passwordConfirm]);
+  const passwordMismatch =
+    passwordConfirm !== "" && password !== passwordConfirm;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (passwordMismatch) {
+      passwordConfirmRef.current?.focus();
+      return;
+    }
     // 회원가입·이메일 인증 API 연동은 인증 API 작업에서 진행
   };
 
@@ -261,30 +317,29 @@ export function SignupPage() {
           </AuthField>
 
           <AuthField label="비밀번호" htmlFor="password">
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
-              placeholder="******"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="auth-input"
-              required
+              onValueChange={setPassword}
             />
           </AuthField>
 
           <AuthField label="비밀번호 확인" htmlFor="pw2">
-            <input
+            <PasswordInput
               ref={passwordConfirmRef}
               id="pw2"
-              type="password"
               autoComplete="new-password"
-              placeholder="******"
               value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-              className="auth-input"
-              required
+              onValueChange={setPasswordConfirm}
+              aria-invalid={passwordMismatch}
+              aria-describedby={passwordMismatch ? "pw2-error" : undefined}
             />
+            {passwordMismatch && (
+              <p id="pw2-error" role="alert" className="auth-error">
+                비밀번호가 일치하지 않습니다.
+              </p>
+            )}
           </AuthField>
 
           <div className="auth-field">
