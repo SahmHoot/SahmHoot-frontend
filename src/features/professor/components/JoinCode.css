@@ -50,7 +50,7 @@
 
 .join-code__code {
   @apply tracking-[2.4px] text-hoot-primary;
-  font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+  font-family: "Poppins", "Noto Sans KR", sans-serif;
 }
 
 .join-code__url {

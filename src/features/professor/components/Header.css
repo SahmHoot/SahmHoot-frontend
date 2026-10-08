@@ -50,7 +50,7 @@
 
 .professor-header__brand-english {
   @apply font-bold text-hoot-primary max-[360px]:hidden;
-  font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+  font-family: "Poppins", "Noto Sans KR", sans-serif;
 }
 
 .professor-header__room-title {

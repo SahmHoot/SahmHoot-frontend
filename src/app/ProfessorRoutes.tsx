@@ -1,18 +1,18 @@
-import './ProfessorRoutes.css'
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { Header } from '../features/professor/components/Header'
-import { EndClassDialog } from '../features/professor/components/EndClassDialog'
-import { ProfessorHome } from '../features/professor/screens/ProfessorHome'
-import { CreateRoom } from '../features/professor/screens/CreateRoom'
-import { QuizSetList } from '../features/professor/screens/QuizSetList'
-import { QuizSetEditor } from '../features/professor/screens/QuizSetEditor'
-import { ProfessorRoom } from '../features/professor/screens/ProfessorRoom'
-import { QuizResults } from '../features/professor/screens/QuizResults'
-import { useProfessorDashboard } from '../features/professor/hooks/useProfessorDashboard'
+import "./ProfessorRoutes.css";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { Header } from "../features/professor/components/Header";
+import { EndClassDialog } from "../features/professor/components/EndClassDialog";
+import { ProfessorHome } from "../features/professor/screens/ProfessorHome";
+import { CreateRoom } from "../features/professor/screens/CreateRoom";
+import { QuizSetList } from "../features/professor/screens/QuizSetList";
+import { QuizSetEditor } from "../features/professor/screens/QuizSetEditor";
+import { ProfessorRoom } from "../features/professor/screens/ProfessorRoom";
+import { QuizResults } from "../features/professor/screens/QuizResults";
+import { useProfessorDashboard } from "../features/professor/hooks/useProfessorDashboard";
 
 export default function ProfessorRoutes() {
-  const professor = useProfessorDashboard()
-  const { room, sets, quiz, messages } = professor
+  const professor = useProfessorDashboard();
+  const { room, sets, quiz, messages } = professor;
 
   return (
     <div className="professor-layout">
@@ -27,11 +27,18 @@ export default function ProfessorRoutes() {
             path="create"
             element={<CreateRoom room={room} onCreate={professor.createRoom} />}
           />
-          <Route path="sets" element={<QuizSetList sets={sets} onDelete={professor.deleteSet} />} />
+          <Route
+            path="sets"
+            element={<QuizSetList sets={sets} onDelete={professor.deleteSet} />}
+          />
           <Route
             path="sets/:setId"
             element={
-              <QuizSetEditor key={professor.editorKey} sets={sets} onSave={professor.saveSet} />
+              <QuizSetEditor
+                key={professor.editorKey}
+                sets={sets}
+                onSave={professor.saveSet}
+              />
             }
           />
           <Route
@@ -75,5 +82,5 @@ export default function ProfessorRoutes() {
         />
       )}
     </div>
-  )
+  );
 }

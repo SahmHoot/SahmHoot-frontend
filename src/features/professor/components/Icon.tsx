@@ -1,22 +1,22 @@
-import './Icon.css'
-import type { DesignScreen } from '../dashboard-types'
+import "./Icon.css";
+import type { DesignScreen } from "../dashboard-types";
 
-const assets = import.meta.glob<string>('../../../assets/professor/*.svg', {
+const assets = import.meta.glob<string>("../../../assets/professor/*.svg", {
   eager: true,
-  query: '?url',
-  import: 'default',
-})
+  query: "?url",
+  import: "default",
+});
 
 export function Icon({
   screen,
-  name = 'imgFrame',
-  className = '',
-  alt = '',
+  name = "imgFrame",
+  className = "",
+  alt = "",
 }: {
-  screen: DesignScreen
-  name?: string
-  className?: string
-  alt?: string
+  screen: DesignScreen;
+  name?: string;
+  className?: string;
+  alt?: string;
 }) {
   return (
     <img
@@ -24,5 +24,5 @@ export function Icon({
       alt={alt}
       className={`professor-icon ${className}`}
     />
-  )
+  );
 }
