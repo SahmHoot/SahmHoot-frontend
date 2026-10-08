@@ -1,0 +1,17 @@
+@reference "../../../globals.css";
+
+.end-class-dialog__message {
+  @apply text-sm leading-6;
+}
+
+.end-class-dialog__actions {
+  @apply mt-6 flex justify-end gap-2;
+}
+
+.end-class-dialog__cancel-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+}
+
+.end-class-dialog__confirm-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
+}

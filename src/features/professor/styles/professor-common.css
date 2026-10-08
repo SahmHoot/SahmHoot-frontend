@@ -1,0 +1,40 @@
+@theme {
+  --color-hoot-background: #f3f6fc;
+  --color-hoot-primary: #2538d2;
+  --color-hoot-foreground: #111a33;
+  --color-hoot-muted: #66708a;
+  --color-hoot-border: #e3e8f2;
+  --color-hoot-soft: #eef2ff;
+  --color-hoot-selected: #e6ecff;
+  --color-hoot-success: #16a34a;
+  --color-hoot-danger: #e5484d;
+  --shadow-hoot-card: 0 1px 2px rgb(15 23 42 / 4%), 0 4px 16px -4px rgb(30 58 138 / 8%);
+  --shadow-hoot-primary: 0 8px 20px -6px rgb(37 56 210 / 45%);
+}
+
+.professor-layout {
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.professor-layout :where(button, a, input, textarea, select):focus-visible {
+  outline: 3px solid #8b99ff;
+  outline-offset: 3px;
+}
+
+.professor-layout button:not(:disabled),
+.professor-layout summary {
+  cursor: pointer;
+}
+
+.professor-layout :where(input, textarea)::placeholder {
+  color: rgb(102 112 138 / 80%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .professor-layout *,
+  .professor-layout *::before,
+  .professor-layout *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

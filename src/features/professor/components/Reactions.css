@@ -1,0 +1,53 @@
+@reference "../../../globals.css";
+
+.professor-reactions {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card space-y-4 p-5;
+}
+
+.professor-reactions__header {
+  @apply flex items-center justify-between;
+}
+
+.professor-reactions__title {
+  @apply text-sm font-bold;
+}
+
+.professor-reactions__participants {
+  @apply text-xs text-hoot-muted;
+}
+
+.professor-reactions__list {
+  @apply space-y-3;
+}
+
+.professor-reactions__item {
+  @apply flex items-center gap-3;
+}
+
+.professor-reactions__emoji {
+  @apply w-6 text-base;
+}
+
+.professor-reactions__track {
+  @apply h-3 flex-1 overflow-hidden rounded-full bg-[#f4f6fb];
+}
+
+.professor-reactions__fill {
+  @apply block h-full rounded-full;
+}
+
+.professor-reactions__fill.professor-reactions__fill--question {
+  @apply bg-gradient-to-r from-amber-400 to-orange-500;
+}
+
+.professor-reactions__fill.professor-reactions__fill--default {
+  @apply bg-gradient-to-r from-hoot-primary to-[#6378ff];
+}
+
+.professor-reactions__count {
+  @apply w-7 text-right text-sm;
+}
+
+.professor-reactions__question-help {
+  @apply mt-1 ml-9 text-[11px] text-orange-500;
+}

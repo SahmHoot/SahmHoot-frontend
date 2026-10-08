@@ -1,0 +1,58 @@
+@reference "../../../globals.css";
+
+.join-code {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card flex items-center;
+}
+
+.join-code.join-code--waiting {
+  @apply flex-col gap-5 p-7 text-center;
+}
+
+.join-code.join-code--create {
+  @apply flex-wrap gap-7 border-dashed border-hoot-primary/25 bg-gradient-to-r from-hoot-selected/70 to-white p-7;
+}
+
+.join-code.join-code--compact {
+  @apply flex-wrap gap-5 p-5 sm:flex-nowrap;
+}
+
+.join-code__qr {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card shrink-0;
+}
+
+.join-code__qr.join-code__qr--large {
+  @apply p-3;
+}
+
+.join-code__qr.join-code__qr--compact {
+  @apply rounded-[16.8px] p-2;
+}
+
+.join-code__details {
+  @apply min-w-0;
+}
+
+.join-code__status {
+  @apply mb-2 w-fit rounded-[9.6px] bg-white px-2 py-0.5 text-[11px] text-hoot-muted shadow-hoot-card;
+}
+
+.join-code__label {
+  @apply font-bold;
+}
+
+.join-code__label.join-code__label--large {
+  @apply text-2xl;
+}
+
+.join-code__label.join-code__label--compact {
+  @apply text-xl;
+}
+
+.join-code__code {
+  @apply tracking-[2.4px] text-hoot-primary;
+  font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+}
+
+.join-code__url {
+  @apply mt-1 text-xs text-hoot-muted;
+}

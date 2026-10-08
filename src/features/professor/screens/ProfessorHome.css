@@ -1,0 +1,70 @@
+@reference "../../../globals.css";
+
+.professor-home {
+  @apply mx-auto w-full max-w-[1280px] px-5 py-10 sm:px-8;
+}
+
+.professor-home__heading-row {
+  @apply flex items-center justify-between gap-4;
+}
+
+.professor-home__title {
+  @apply text-2xl font-black tracking-[-0.6px];
+}
+
+.professor-home__create-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8];
+}
+
+.professor-home__section-title {
+  @apply mt-8 mb-3 text-sm font-semibold text-hoot-muted;
+}
+
+.professor-home__room-card {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card relative flex flex-wrap items-center justify-between gap-5 overflow-hidden py-6 pr-6 pl-8;
+}
+
+.professor-home__room-accent {
+  @apply absolute inset-y-0 left-0 w-1.5 bg-hoot-primary;
+}
+
+.professor-home__room-title {
+  @apply flex flex-wrap items-center gap-2.5 text-lg font-bold;
+}
+
+.professor-home__status-dot {
+  @apply size-2 rounded-full bg-hoot-success;
+}
+
+.professor-home__status-label {
+  @apply text-hoot-success;
+}
+
+.professor-home__separator {
+  @apply text-hoot-muted/60;
+}
+
+.professor-home__room-meta {
+  @apply mt-2 flex flex-wrap items-center gap-3 text-sm text-hoot-muted;
+}
+
+.professor-home__join-code {
+  @apply font-semibold tracking-[1.4px] text-hoot-primary;
+  font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+}
+
+.professor-home__participants {
+  @apply inline-flex items-center gap-1;
+}
+
+.professor-home__open-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+}
+
+.professor-home__empty {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card p-8 text-sm text-hoot-muted;
+}
+
+.professor-home__sets-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 mt-6 bg-hoot-soft text-hoot-primary hover:bg-hoot-selected;
+}

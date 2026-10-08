@@ -1,0 +1,141 @@
+@reference "../../../globals.css";
+
+.professor-chat {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card flex min-w-0 flex-col overflow-hidden;
+}
+
+.professor-chat.professor-chat--compact {
+  @apply h-[calc(100dvh-113px)] min-h-[600px];
+}
+
+.professor-chat.professor-chat--expanded {
+  @apply h-[759px];
+}
+
+.professor-chat__header {
+  @apply flex min-h-[53px] shrink-0 items-center justify-between gap-4 border-b border-hoot-border px-5 py-3.5;
+}
+
+.professor-chat__title {
+  @apply text-sm font-bold;
+}
+
+.professor-chat__notice-button {
+  @apply rounded-lg p-1 hover:bg-hoot-soft;
+}
+
+.professor-chat__layout-help {
+  @apply hidden text-xs text-hoot-muted xl:block;
+}
+
+.professor-chat__notice {
+  @apply flex items-start gap-2 border-b border-hoot-primary/10 bg-hoot-selected/60 px-5 py-3 text-left text-sm text-[#1a28a8];
+}
+
+.professor-chat__notice-icon {
+  @apply mt-0.5;
+}
+
+.professor-chat__notice-author {
+  @apply block text-[11px] text-hoot-muted;
+}
+
+.professor-chat__notice-text {
+  @apply font-semibold;
+}
+
+.professor-chat__notice-caption {
+  @apply text-hoot-muted;
+}
+
+.professor-chat__messages {
+  @apply min-h-0 flex-1 space-y-4 overflow-y-auto p-5 pr-8;
+}
+
+.professor-chat__reaction-preview {
+  @apply flex flex-wrap items-center gap-5 rounded-[16.8px] border border-dashed border-hoot-primary/25 bg-hoot-soft/60 px-3 py-2;
+}
+
+.professor-chat__reaction-help {
+  @apply text-xs text-hoot-muted;
+}
+
+.professor-chat__message {
+  @apply space-y-1.5;
+}
+
+.professor-chat__author {
+  @apply flex items-center gap-1.5 text-xs font-semibold;
+}
+
+.professor-chat__author.professor-chat__author--professor {
+  @apply text-hoot-primary;
+}
+
+.professor-chat__author.professor-chat__author--student {
+  @apply text-hoot-foreground/70;
+}
+
+.professor-chat__professor-badge {
+  @apply rounded-[9.6px] bg-hoot-primary px-1.5 py-0.5 text-[10px] leading-none font-bold text-white;
+}
+
+.professor-chat__quote {
+  @apply flex items-center gap-1 overflow-hidden rounded-xl bg-[#f4f6fb] px-3 py-1.5 text-[11px] text-hoot-muted;
+}
+
+.professor-chat__quote-text {
+  @apply truncate;
+}
+
+.professor-chat__bubble {
+  @apply block w-fit max-w-full rounded-[21.6px] rounded-tl-[9.6px] px-3.5 py-2 text-left text-sm leading-[22.75px] break-words;
+}
+
+.professor-chat__bubble.professor-chat__bubble--professor {
+  @apply bg-hoot-primary text-white shadow-hoot-primary;
+}
+
+.professor-chat__bubble.professor-chat__bubble--student {
+  @apply bg-[#f4f6fb] hover:bg-hoot-soft;
+}
+
+.professor-chat__reactions {
+  @apply flex flex-wrap items-center gap-3 border-t border-hoot-border px-5 py-3 text-sm;
+}
+
+.professor-chat__reactions-caption {
+  @apply text-xs text-hoot-muted;
+}
+
+.professor-chat__reply {
+  @apply flex items-center justify-between gap-2 border-t border-hoot-border bg-hoot-soft px-3 py-2 text-xs;
+}
+
+.professor-chat__reply-text {
+  @apply truncate;
+}
+
+.professor-chat__cancel-reply {
+  @apply shrink-0 font-semibold text-hoot-primary;
+}
+
+.professor-chat__composer {
+  @apply flex gap-2 border-t border-hoot-border bg-white p-3;
+}
+
+.professor-chat__message-input {
+  @apply h-12 w-full rounded-[16.8px] border border-[#dbe2ee] px-4 text-sm shadow-hoot-card h-11 min-w-0 flex-1 bg-[#f4f6fb]/50 shadow-none;
+}
+
+.professor-chat__send-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] h-11 px-4 text-sm;
+}
+
+.professor-chat__notice-input {
+  @apply h-12 w-full rounded-[16.8px] border border-[#dbe2ee] px-4 text-sm shadow-hoot-card;
+}
+
+.professor-chat__save-notice-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-5;
+}

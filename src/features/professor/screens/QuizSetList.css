@@ -1,0 +1,93 @@
+@reference "../../../globals.css";
+
+.quiz-set-list {
+  @apply mx-auto w-full max-w-[1280px] px-5 py-10 sm:px-8;
+}
+
+.quiz-set-list__heading-row {
+  @apply flex items-center justify-between gap-4;
+}
+
+.quiz-set-list__title {
+  @apply text-2xl font-black tracking-[-0.6px];
+}
+
+.quiz-set-list__create-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8];
+}
+
+.quiz-set-list__sets {
+  @apply mt-6 space-y-3;
+}
+
+.quiz-set-list__table-header {
+  @apply hidden h-10 grid-cols-[2fr_1.5fr_1fr_132px] items-center rounded-[16.8px] bg-hoot-soft px-6 text-xs font-medium text-hoot-primary md:grid;
+}
+
+.quiz-set-list__action-label {
+  @apply sr-only;
+}
+
+.quiz-set-list__set-row {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card grid grid-cols-[1fr_auto] items-center gap-3 px-6 py-5 md:grid-cols-[2fr_1.5fr_1fr_132px] md:gap-0;
+}
+
+.quiz-set-list__set-name {
+  @apply text-[15px] font-bold hover:text-hoot-primary;
+}
+
+.quiz-set-list__set-meta {
+  @apply col-start-1 row-start-2 text-sm text-hoot-muted md:col-auto md:row-auto;
+}
+
+.quiz-set-list__visibility-cell {
+  @apply col-start-1 row-start-3 md:col-auto md:row-auto;
+}
+
+.quiz-set-list__visibility {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+}
+
+.quiz-set-list__visibility.quiz-set-list__visibility--public {
+  @apply bg-hoot-selected text-hoot-primary;
+}
+
+.quiz-set-list__visibility.quiz-set-list__visibility--private {
+  @apply bg-[#f4f6fb] text-hoot-muted;
+}
+
+.quiz-set-list__actions {
+  @apply col-start-2 row-span-3 row-start-1 flex justify-end gap-2 md:col-auto md:row-auto;
+}
+
+.quiz-set-list__edit-button {
+  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft;
+}
+
+.quiz-set-list__delete-button {
+  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50;
+}
+
+.quiz-set-list__empty {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card p-8 text-sm text-hoot-muted;
+}
+
+.quiz-set-list__help {
+  @apply mt-5 text-xs leading-5 text-hoot-muted;
+}
+
+.quiz-set-list__delete-message {
+  @apply text-sm leading-6;
+}
+
+.quiz-set-list__dialog-actions {
+  @apply mt-6 flex justify-end gap-2;
+}
+
+.quiz-set-list__cancel-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+}
+
+.quiz-set-list__confirm-delete-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
+}

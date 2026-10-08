@@ -75,6 +75,53 @@ npm run dev
 npm run build
 ```
 
+## 교수 화면 미리보기
+
+`feat/professor-dashboard` 브랜치의 교수 화면은 개발 서버에서
+`http://localhost:5173/professor`로 확인할 수 있습니다.
+기본 주소 `http://localhost:5173/`로 접속해도 교수 홈으로 이동합니다.
+
+- `src/app/ProfessorRoutes.tsx`: 교수 화면 공통 레이아웃과 라우팅
+- `src/app/ProfessorRoutes.css`: 공통 레이아웃, 본문 이동 링크, 저장 알림 스타일
+- `src/features/professor/styles/professor-common.css`: 교수 화면 공통 색상·폰트·접근성 스타일
+- `src/features/professor/screens/`: 홈, 수업 개설, 문제 세트 목록·편집, 수업 진행, 결과 화면
+- `src/features/professor/components/`: 헤더, 채팅, 입장 코드, 학생 반응, 모달 등 재사용 UI
+- `src/features/professor/hooks/useProfessorDashboard.ts`: 수업·채팅·퀴즈 상태와 타이머 관리
+- `src/features/professor/dashboard-storage.ts`: 문제 세트 로컬 저장소 읽기와 검증
+
+각 화면과 UI 컴포넌트는 같은 이름의 TSX와 CSS를 나란히 관리합니다.
+TSX에서는 CSS 클래스와 화면 상태를 연결하고, 배치·색상·폰트·반응형 스타일은
+해당 CSS에서 수정합니다. CSS의 `@apply`는 프로젝트의 Tailwind 스타일을 사용합니다.
+공통 색상·폰트·접근성 스타일은 `src/features/professor/styles/professor-common.css`에 있습니다.
+
+| Figma | 화면 파일 | 스타일 파일 |
+|---|---|---|
+| 03 | `screens/ProfessorHome.tsx` | `screens/ProfessorHome.css` |
+| 04 | `screens/CreateRoom.tsx` | `screens/CreateRoom.css` |
+| 05 | `screens/QuizSetList.tsx` | `screens/QuizSetList.css` |
+| 06 | `screens/QuizSetEditor.tsx` | `screens/QuizSetEditor.css` |
+| 07-a | `screens/ProfessorRoom.tsx` | `screens/ProfessorRoom.css` |
+| 07-b | `components/QuizQuestion.tsx` | `components/QuizQuestion.css` |
+| 07-c | `screens/QuizResults.tsx` | `screens/QuizResults.css` |
+
+표의 경로는 `src/features/professor/` 아래 기준입니다.
+`ProfessorRoom`은 대기·진행 상태에 맞춰 `QuizQuestion`을 표시합니다.
+헤더·채팅·입장 코드·모달 등 공통 UI도 같은 방식으로 CSS 파일을 따로 둡니다.
+
+- `/professor/create`: 수업 방 개설
+- `/professor/sets`: 문제 세트 목록 및 편집
+- `/professor/room`: 수업 대기, 채팅, 퀴즈 진행
+- `/professor/room/results`: 퀴즈 종료 후 결과
+
+Figma의 교수용 7개 화면을 바탕으로 만든 프론트엔드 프로토타입입니다.
+문제 세트는 현재 브라우저의 로컬 저장소에 저장되고, 수업 및 채팅 상태는
+새로고침하면 초기 예시 상태로 돌아갑니다. 입장 코드, QR, 접속 인원,
+반응, 응답 통계는 디자인의 예시 데이터이며 인증, Room/Quiz API 및
+STOMP 연결은 아직 연동하지 않았습니다.
+
+퀴즈는 선택한 세트의 첫 문항부터 설정 시간 동안 진행하고, 문항 사이에
+3초 대기 후 다음 문항으로 이동합니다. 마지막 문항이 끝나면 결과 화면을 엽니다.
+
 ## Vite Proxy 설정
 
 로컬 개발 시 Vite Proxy를 통해 Backend와 통신합니다:
