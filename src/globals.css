@@ -1,1 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=Poppins:wght@600;700&display=swap");
 @import "tailwindcss";
+
+@source "./**/*.{js,ts,jsx,tsx}";
+
+/* Figma: SUp5dpVNfMF96iK3Vd1nuv, page 169:2 (UIUX 초안 완료).
+   Semantic token names are implementation choices; values come from the design.
+   Keep Tailwind's default tokens and emit these variables even before UI usage. */
+@theme static {
+  /* Body and brand fonts; loaded above with the weights observed in Figma. */
+  --font-sans: "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+
+  /* Buttons, surfaces, text, borders, and status indicators. */
+  --color-brand: #2538d2;
+  --color-brand-secondary: #6577f0;
+  --color-brand-strong: #1a28a8;
+  --color-brand-soft: #e6ecff;
+  --color-brand-subtle: #eef2ff;
+  --color-brand-gradient-end: #5a74f2;
+  --color-surface: #ffffff;
+  --color-page: #f3f6fc;
+  --color-muted: #f4f6fb;
+  --color-text: #111a33;
+  --color-text-muted: #66708a;
+  --color-border: #e3e8f2;
+  --color-border-input: #dbe2ee;
+  --color-success: #16a34a;
+  --color-danger: #e5484d;
+
+  /* Observed radii, rounded only to remove floating-point serialization noise. */
+  --radius-control: 16.8px;
+  --radius-card: 21.6px;
+  --radius-compact: 12px;
+  --radius-bubble-tail: 9.6px;
+  /* CSS representation of Figma's fully rounded radius (33554400). */
+  --radius-pill: 9999px;
+
+  /* Inputs/cards: 214:2556, 218:1940, 269:630. */
+  --shadow-surface:
+    0 4px 16px -4px rgb(30 58 138 / 8%),
+    0 1px 2px 0 rgb(15 23 42 / 4%);
+  /* Primary button's shadow layer: 214:2573. */
+  --shadow-brand: 0 8px 20px -6px rgb(37 56 210 / 45%);
+  /* Raised link button's shadow layer: 214:2581. */
+  --shadow-raised:
+    0 12px 32px -8px rgb(30 58 138 / 16%),
+    0 2px 4px 0 rgb(15 23 42 / 4%);
+}
