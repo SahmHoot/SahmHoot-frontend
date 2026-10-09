@@ -1,0 +1,12 @@
+.student-results { padding: 28px; }
+.student-results__counter { font-size: 12px; line-height: 16px; color: var(--student-muted); font-weight: 600; }
+.student-results__counter strong, .student-results__footer strong { color: var(--student-primary); }
+.student-results h2 { font-size: 24px; font-weight: 700; letter-spacing: -.6px; line-height: 32px; margin: 16px 0 24px; }
+.student-results__footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 24px; }
+.student-results__footer p { color: var(--student-muted); font-size: 12px; }
+.student-results__footer .student-results__correct { color: #16a34a; }
+.student-results__footer .student-results__wrong { color: #e5484d; }
+.student-results__navigation { display: flex; gap: 8px; flex-shrink: 0; }
+.student-results__navigation button { min-height: 48px; }
+@media (max-width: 1100px) { .student-results__footer { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 600px) { .student-results { padding: 20px; } .student-results h2 { font-size: 20px; line-height: 28px; } .student-results__navigation { width: 100%; } .student-results__navigation button { flex: 1; } }

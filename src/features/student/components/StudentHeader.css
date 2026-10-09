@@ -1,0 +1,24 @@
+.student-header { position: sticky; top: 0; z-index: 20; background: rgb(255 255 255 / 90%); border-bottom: 1px solid var(--student-border); backdrop-filter: blur(4px); }
+.student-header__inner { height: 64px; max-width: 1135px; margin: auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.student-header--room .student-header__inner { max-width: 1255px; }
+.student-header__brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.student-header__logo { width: 32px; height: 32px; border-radius: 50%; background: var(--student-primary); display: grid; place-items: center; box-shadow: var(--student-primary-shadow); flex-shrink: 0; }
+.student-header__logo img { transform: rotate(45deg); }
+.student-header--room .student-header__logo { width: 28px; height: 28px; }
+.student-header__wordmark { font-size: 18px; font-weight: 900; letter-spacing: -.45px; white-space: nowrap; }
+.student-header__wordmark b { font-family: 'Poppins', sans-serif; color: var(--student-primary); font-weight: 700; }
+.student-header h1 { font-size: 18px; font-weight: 700; }
+.student-header__participation { display: flex; align-items: center; gap: 12px; }
+.student-header__account { position: relative; }
+.student-header__account summary { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; background: white; border: 1px solid var(--student-border); border-radius: 100px; box-shadow: var(--student-shadow); cursor: pointer; font-weight: 500; }
+.student-header__account summary::-webkit-details-marker { display: none; }
+.student-header__avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--student-soft); color: var(--student-primary); font-weight: 700; font-size: 12px; }
+.student-header__account-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 160px; padding: 16px; background: white; border: 1px solid var(--student-border); border-radius: 16px; box-shadow: var(--student-shadow); font-size: 12px; }
+@media (max-width: 600px) {
+  .student-header__inner { padding: 0 16px; }
+  .student-header h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .student-header__participation p { max-width: 100px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .student-header__participation .student-muted { display: none; }
+  .student-header__participation { gap: 8px; flex-shrink: 0; }
+  .student-header__participation .student-button { flex-shrink: 0; }
+}
