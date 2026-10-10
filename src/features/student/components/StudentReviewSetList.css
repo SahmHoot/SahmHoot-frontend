@@ -1,0 +1,9 @@
+.student-review-list { width: 100%; max-width: 720px; margin-top: 40px; display: grid; gap: 12px; }
+.student-review-list h2 { font-size: 14px; font-weight: 700; }
+.student-review-list__item { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px; }
+.student-review-list__info { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.student-review-list__icon { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--student-control-radius); background: var(--student-soft); }
+.student-review-list h3 { font-size: 15px; line-height: 22.5px; font-weight: 700; margin: 0 0 2px; }
+.student-review-list p { font-size: 12px; line-height: 16px; color: var(--student-muted); }
+.student-review-list .student-button { flex-shrink: 0; }
+@media (max-width: 480px) { .student-review-list__item { padding: 16px; gap: 8px; } .student-review-list__info { gap: 10px; } .student-review-list h3 { font-size: 13px; } }
