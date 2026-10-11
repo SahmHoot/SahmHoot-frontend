@@ -1,12 +1,10 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import RootPage from './pages/RootPage'
+import { BrowserRouter } from 'react-router-dom'
+import StudentRoutes from './app/StudentRoutes'
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<RootPage />} />
-      </Routes>
+      <StudentRoutes />
     </BrowserRouter>
   )
 }

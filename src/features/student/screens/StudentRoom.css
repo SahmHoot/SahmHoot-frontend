@@ -1,0 +1,15 @@
+.student-room { max-width: 1400px; padding: 24px 32px; margin: auto; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+.student-room--waiting { max-width: 920px; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.student-room__quiz { min-width: 0; }
+.student-room__waiting-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; border: 1px solid rgb(37 56 210 / 15%); border-radius: var(--student-radius); background: linear-gradient(90deg, var(--student-soft), white); color: var(--student-primary-dark); box-shadow: var(--student-shadow); }
+.student-room__waiting-banner p { display: flex; align-items: center; gap: 8px; }
+.student-room__waiting-banner img, .student-room__waiting-banner strong { flex-shrink: 0; }
+.student-room__waiting-banner > span { font-size: 12px; white-space: nowrap; }
+@media (max-width: 1000px) { .student-room { grid-template-columns: minmax(0, 1fr) 320px; padding: 24px; gap: 16px; } .student-room--waiting { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 800px) {
+  .student-room { grid-template-columns: minmax(0, 1fr); padding: 20px 16px; }
+  .student-room .student-chat { height: 560px; min-height: 0; }
+  .student-room--waiting .student-chat { height: calc(100dvh - 210px); min-height: 440px; }
+  .student-room__waiting-banner { padding: 14px; align-items: flex-start; flex-direction: column; gap: 8px; }
+  .student-room__waiting-banner p { font-size: 12px; flex-wrap: wrap; }
+}
