@@ -1,8 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=Poppins:wght@600;700&display=swap");
 @import "tailwindcss";
 
-@source "./**/*.{js,ts,jsx,tsx}";
-
 /* Figma: SUp5dpVNfMF96iK3Vd1nuv, page 169:2 (UIUX 초안 완료).
    Semantic token names are implementation choices; values come from the design.
    Keep Tailwind's default tokens and emit these variables even before UI usage. */
