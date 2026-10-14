@@ -42,7 +42,7 @@ export default function QuestionSetEditorPage() {
 
   return (
     <div className="min-h-screen bg-page font-sans text-text">
-      <Header user={<HeaderUserInfo displayName="강현민 교수" />} />
+      <Header user={<HeaderUserInfo displayName="강현민 교수" aria-label="강현민 교수 사용자 메뉴" className="max-[375px]:[&>span:nth-child(2)]:hidden" />} />
       <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-8 md:py-8">
         <form noValidate onSubmit={event => { event.preventDefault(); save(); }}>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -63,7 +63,7 @@ export default function QuestionSetEditorPage() {
           </div>
           {message && <p role={hasError ? 'alert' : 'status'} className={`mt-4 text-sm ${hasError ? 'text-danger' : 'text-text-muted'}`}>{message}</p>}
           {savedDraft.current !== null && savedDraft.current !== snapshot && <p className="mt-2 text-xs text-text-muted">저장하지 않은 변경사항이 있습니다.</p>}
-          <div className="mt-6 grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <div className="mt-6 grid grid-cols-1 items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
             <QuestionSidebar
               questions={questions}
               selectedId={selectedId}
