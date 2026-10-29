@@ -228,35 +228,9 @@
   line-height: 16px;
 }
 
-.auth-input--with-toggle {
-  padding-right: 52px;
-}
-
 .auth-input-row {
   display: flex;
   gap: 8px;
-}
-
-.auth-password {
-  position: relative;
-}
-
-.auth-toggle {
-  position: absolute;
-  top: 50%;
-  right: 11.87px;
-  display: flex;
-  height: 28px;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: 9.6px;
-  background: transparent;
-  color: var(--auth-muted);
-  cursor: pointer;
-  transform: translateY(-50%);
 }
 
 .auth-check {
@@ -417,10 +391,6 @@
 
 /* 터치 기기에서는 탭 후 hover 색이 남지 않도록 hover 지원 기기에서만 적용 */
 @media (hover: hover) {
-  .auth-toggle:hover {
-    background: rgba(17, 26, 51, 0.05);
-  }
-
   .auth-btn-primary:hover {
     background: rgba(37, 56, 210, 0.9);
   }
@@ -437,6 +407,10 @@
     background: var(--auth-brand-soft);
   }
 }
+
+.auth-status { margin-top: 16px !important; color: var(--auth-brand); font-size: 12px; line-height: 1.7; }
+.auth-login-link { margin-top: 20px; color: var(--auth-brand); text-align: center; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.auth-btn-side:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (min-width: 1024px) {
   .auth-aside {

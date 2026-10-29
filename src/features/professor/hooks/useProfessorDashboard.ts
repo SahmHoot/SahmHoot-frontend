@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { demoMessages, demoRoom } from '../dashboard-data'
+import { demoMessages, demoNotice, demoRoom } from '../dashboard-data'
 import type { Room, QuestionSet, ChatMessage, QuizState } from '../dashboard-types'
 import { initialQuiz } from '../dashboard-quiz'
 import { loadQuestionSets, storageKey } from '../dashboard-storage'
@@ -12,6 +12,7 @@ export function useProfessorDashboard() {
   const [room, setRoom] = useState<Room>(demoRoom)
   const [sets, setSets] = useState<QuestionSet[]>(loadQuestionSets)
   const [messages, setMessages] = useState<ChatMessage[]>(demoMessages)
+  const [notice, setNotice] = useState(demoNotice)
   const [quiz, setQuiz] = useState<QuizState>(initialQuiz)
   const [ending, setEnding] = useState(false)
   const [feedback, setFeedback] = useState('')
@@ -63,6 +64,7 @@ export function useProfessorDashboard() {
     setRoom({ name, code: demoRoom.code, participants: 0, active: true })
     setQuiz(initialQuiz)
     setMessages([])
+    setNotice(demoNotice)
   }
   const deleteSet = (id: string) => saveSets(sets.filter((set) => set.id !== id))
   const saveSet = (set: QuestionSet) => {
@@ -85,6 +87,8 @@ export function useProfessorDashboard() {
     room,
     sets,
     messages,
+    notice,
+    setNotice,
     quiz,
     setQuiz,
     ending,

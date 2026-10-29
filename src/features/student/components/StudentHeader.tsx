@@ -13,7 +13,12 @@ export default function StudentHeader({ title, nickname, onLeave }: Props) {
   return (
     <header className={`student-header ${title ? 'student-header--room' : ''}`}>
       <div className="student-header__inner">
-        <Link className="student-header__brand" to="/student" aria-label="삼훗 학생 홈">
+        <Link className="student-header__brand" to="/student" aria-label="삼훗 학생 홈" onClick={event => {
+          if (onLeave && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            event.preventDefault()
+            onLeave()
+          }
+        }}>
           <span className="student-header__logo"><img src={logo} alt="" /></span>
           {title ? <h1>{title}</h1> : <span className="student-header__wordmark">삼훗 <b>SahmHoot</b></span>}
         </Link>
@@ -25,7 +30,10 @@ export default function StudentHeader({ title, nickname, onLeave }: Props) {
         ) : (
           <details className="student-header__account">
             <summary><span className="student-header__avatar">김</span>김상윤<img src={chevron} alt="" /></summary>
-            <div className="student-header__account-menu"><p>김상윤</p><span className="student-muted">학생 계정</span></div>
+            <div className="student-header__account-menu">
+              <p>김상윤</p><span className="student-muted">학생 계정</span>
+              <Link to="/login" state={{ previewRole: 'STUDENT' }}>로그인 화면으로</Link>
+            </div>
           </details>
         )}
       </div>

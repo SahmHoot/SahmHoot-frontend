@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import StudentAnswerOptions from './StudentAnswerOptions'
 import { optionLabels } from '../data/studentFixtures'
 import type { QuizSet } from '../types/student.types'
@@ -25,6 +26,7 @@ export default function StudentQuizResults({ quiz, answers, initialIndex = 0 }: 
         <div className="student-results__navigation">
           <button className="student-button" disabled={index === 0} onClick={() => setIndex(previous => previous - 1)}>이전 문항</button>
           <button className="student-button student-button--primary" disabled={index === quiz.questions.length - 1} onClick={() => setIndex(previous => previous + 1)}>다음 문항</button>
+          <Link className="student-button" to={`/student/review/${quiz.id}`}>이 문제 복습하기</Link>
         </div>
       </div>
     </section>

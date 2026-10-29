@@ -13,12 +13,16 @@ export function QuizResults({
   messages,
   onSend,
   onClose,
+  notice,
+  onNoticeChange,
 }: {
   room: Room
   quiz: QuizState
   messages: ChatMessage[]
   onSend: (text: string, reply?: string) => void
   onClose: () => void
+  notice: string
+  onNoticeChange: (notice: string) => void
 }) {
   const [index, setIndex] = useState(0)
   if (!room.active || !quiz.set || quiz.phase !== 'results')
@@ -109,6 +113,8 @@ export function QuizResults({
         </section>
       </div>
       <Chat
+        notice={notice}
+        onNoticeChange={onNoticeChange}
         compact
         screen="results"
         messages={messages}

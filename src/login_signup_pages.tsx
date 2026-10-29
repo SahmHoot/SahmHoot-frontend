@@ -1,20 +1,18 @@
 import {
   useRef,
   useState,
-  type ChangeEvent,
-  type CompositionEvent,
-  type Dispatch,
   type FormEvent,
-  type ComponentProps,
   type ReactNode,
-  type SetStateAction,
 } from "react";
 import { Link } from "react-router-dom";
 import authBg from "./assets/auth/auth-bg.jpg";
 import logoMark from "./assets/auth/logo-mark.svg";
 import mascotBook from "./assets/auth/mascot-book.webp";
 import mascotSu from "./assets/auth/mascot-su.webp";
-import { hangulToQwerty } from "./shared/utils/hangulToQwerty";
+import type { AuthRole as Role } from "./features/auth/auth.types";
+import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
+import { PasswordInput } from "./features/auth/components/PasswordInput";
+import { useLoginPreview, useSignupPreview } from "./features/auth/hooks/useAuthPreview";
 import "./login_signup_pages.css";
 
 interface AuthLayoutProps {
@@ -78,83 +76,12 @@ function AuthField({
   );
 }
 
-function EyeIcon({ off = false }: { off?: boolean }) {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-      <circle cx="12" cy="12" r="3" />
-      {off && <path d="M3 3l18 18" />}
-    </svg>
-  );
-}
-
-function PasswordInput({
-  onValueChange,
-  ...props
-}: Omit<
-  ComponentProps<"input">,
-  "type" | "className" | "value" | "onChange"
-> & {
-  value: string;
-  onValueChange: Dispatch<SetStateAction<string>>;
-}) {
-  const [visible, setVisible] = useState(false);
-
-  // 한글 자판 상태로 입력해도 같은 자리의 영문으로 바꿔 넣음 (ㅁ → a)
-  // 조합 중에 값을 바꾸면 IME가 글자를 중복 입력하므로 조합이 끝난 뒤 변환
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    const composing = (event.nativeEvent as InputEvent).isComposing;
-    onValueChange(composing ? value : hangulToQwerty(value));
-  };
-
-  const handleCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
-    onValueChange(hangulToQwerty(event.currentTarget.value));
-  };
-
-  return (
-    <div className="auth-password">
-      <input
-        placeholder="******"
-        required
-        {...props}
-        onChange={handleChange}
-        onCompositionEnd={handleCompositionEnd}
-        type={visible ? "text" : "password"}
-        className="auth-input auth-input--with-toggle"
-      />
-      <button
-        type="button"
-        onClick={() => setVisible((prev) => !prev)}
-        aria-label={visible ? "비밀번호 숨기기" : "비밀번호 보기"}
-        aria-pressed={visible}
-        className="auth-toggle"
-      >
-        <EyeIcon off={visible} />
-      </button>
-    </div>
-  );
-}
-
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    // 로그인 API 연동은 인증 API 작업에서 진행
-  };
+  const preview = useLoginPreview();
 
   return (
     <AuthLayout
@@ -165,11 +92,12 @@ export function LoginPage() {
         height: 539,
       }}
     >
-      <form onSubmit={handleSubmit} className="auth-form">
+      <form onSubmit={preview.handleSubmit} className="auth-form">
         <h1 className="auth-title auth-title--login">
           삼훗 <span className="auth-title-en">SahmHoot</span>
         </h1>
         <p className="auth-subtitle">수업 중 실시간 소통 서비스</p>
+        <AuthPreviewPanel mode="login" role={preview.previewRole} onRoleChange={preview.setPreviewRole} />
 
         <div className="auth-fields auth-fields--login">
           <AuthField label="이메일" htmlFor="email">
@@ -181,7 +109,7 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="auth-input"
-              required
+              required={!import.meta.env.DEV}
             />
           </AuthField>
 
@@ -189,6 +117,7 @@ export function LoginPage() {
             <PasswordInput
               id="password"
               autoComplete="current-password"
+              required={!import.meta.env.DEV}
               value={password}
               onValueChange={setPassword}
             />
@@ -210,6 +139,7 @@ export function LoginPage() {
         >
           로그인
         </button>
+        {preview.feedback && <p role="status" className="auth-status">{preview.feedback}</p>}
 
         <div className="auth-divider">
           <span className="auth-divider-line" />
@@ -225,8 +155,6 @@ export function LoginPage() {
   );
 }
 
-type Role = "PROFESSOR" | "STUDENT";
-
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "PROFESSOR", label: "교수" },
   { value: "STUDENT", label: "학생" },
@@ -239,6 +167,7 @@ export function SignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [role, setRole] = useState<Role>("PROFESSOR");
+  const preview = useSignupPreview({ email, code, name, role });
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
   const passwordMismatch =
@@ -250,7 +179,7 @@ export function SignupPage() {
       passwordConfirmRef.current?.focus();
       return;
     }
-    // 회원가입·이메일 인증 API 연동은 인증 API 작업에서 진행
+    preview.finishSignup();
   };
 
   return (
@@ -265,6 +194,7 @@ export function SignupPage() {
     >
       <form onSubmit={handleSubmit} className="auth-form">
         <h1 className="auth-title">회원가입</h1>
+        <AuthPreviewPanel mode="signup" />
 
         <div className="auth-fields">
           <AuthField label="이름" htmlFor="name">
@@ -287,11 +217,15 @@ export function SignupPage() {
                 autoComplete="email"
                 placeholder="example@syu.ac.kr"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setCode("");
+                  preview.resetVerification();
+                }}
                 className="auth-input"
                 required
               />
-              <button type="button" className="auth-btn-side">
+              <button type="button" className="auth-btn-side" onClick={preview.requestCode} disabled={import.meta.env.DEV && preview.emailVerified}>
                 인증요청
               </button>
             </div>
@@ -304,14 +238,15 @@ export function SignupPage() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
+                pattern="[0-9]{6}"
                 placeholder="000000"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 className="auth-input"
                 required
               />
-              <button type="button" className="auth-btn-side">
-                확인
+              <button type="button" className="auth-btn-side" onClick={preview.verifyCode} disabled={import.meta.env.DEV && !preview.canVerify}>
+                {preview.emailVerified ? "확인 완료" : "확인"}
               </button>
             </div>
           </AuthField>
@@ -343,9 +278,8 @@ export function SignupPage() {
           </AuthField>
 
           <div className="auth-field">
-            {/* 표시 문구는 Figma 원본 그대로 유지, 보조기기에는 역할 선택으로 안내 */}
             <p aria-hidden="true" className="auth-label">
-              비밀번호 확인
+              역할 선택
             </p>
             <div
               role="radiogroup"
@@ -378,6 +312,8 @@ export function SignupPage() {
         >
           가입하기
         </button>
+        {preview.feedback && <p role="status" className="auth-status">{preview.feedback}</p>}
+        <Link to="/login" className="auth-login-link">이미 계정이 있으신가요? 로그인</Link>
       </form>
     </AuthLayout>
   );

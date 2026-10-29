@@ -40,7 +40,8 @@
   @apply flex gap-2;
 }
 
-.quiz-set-editor__visibility-button {
+.quiz-set-editor__visibility-button,
+.quiz-set-editor__cancel-button {
   @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 

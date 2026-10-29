@@ -107,6 +107,9 @@ export function Header({
               >
                 문제 세트 관리
               </Link>
+              <Link className="professor-header__menu-link" to="/login" state={{ previewRole: 'PROFESSOR' }}>
+                로그인 화면으로
+              </Link>
             </nav>
           </details>
         )}
