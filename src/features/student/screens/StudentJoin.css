@@ -1,0 +1,17 @@
+.student-join { max-width: 1280px; margin: auto; padding: 48px 32px; display: flex; align-items: center; flex-direction: column; }
+.student-join__card { width: 100%; max-width: 560px; padding: 32px; box-shadow: 0 2px 4px rgb(15 23 42 / 4%), 0 12px 32px -8px rgb(30 58 138 / 16%); }
+.student-join__card h1 { font-size: 24px; font-weight: 900; text-align: center; letter-spacing: -.6px; line-height: 32px; }
+.student-join__intro { margin: 6px 0 24px !important; text-align: center; font-size: 12px; line-height: 16px; color: var(--student-muted); }
+.student-join input { width: 100%; border: 1px solid #dbe2ee; border-radius: var(--student-control-radius); background: white; color: var(--student-ink); text-align: center; padding: 12px 16px; height: 48px; box-shadow: var(--student-shadow); min-width: 0; }
+.student-join input::placeholder { color: rgb(102 112 138 / 70%); }
+.student-join input.student-join__code { height: 56px; }
+.student-join__qr-code { min-height: 56px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; border: 1px solid rgb(37 56 210 / 25%); border-radius: var(--student-control-radius); background: var(--student-soft); color: var(--student-primary-dark); }
+.student-join__qr-code strong { font-family: 'Poppins', sans-serif; font-size: 18px; letter-spacing: 3.6px; color: var(--student-primary); }
+.student-join__label { display: block; font-size: 12px; line-height: 16px; font-weight: 600; margin: 20px 0 6px; color: rgb(17 26 51 / 80%); }
+.student-join__nickname-row { display: flex; gap: 8px; }
+.student-join__random { width: 128px; flex-shrink: 0; display: flex; gap: 6px; justify-content: center; align-items: center; border: 0; height: 48px; border-radius: var(--student-control-radius); background: #eef2ff; color: var(--student-primary); font-weight: 600 !important; }
+.student-join__random:hover { background: #e6ecff; }
+.student-join__hint { margin: 10px 0 20px !important; font-size: 11px; line-height: 16.5px; text-align: center; color: var(--student-muted); }
+.student-join__submit { height: 52px; width: 100%; font-size: 15px; }
+.student-join__error { color: #e5484d; font-size: 12px; margin-bottom: 12px !important; }
+@media (max-width: 600px) { .student-join { padding: 32px 16px; } .student-join__card { padding: 24px 20px; } .student-join__random { width: 112px; } }
