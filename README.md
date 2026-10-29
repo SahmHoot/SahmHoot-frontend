@@ -79,7 +79,9 @@ npm run build
 
 `feat/professor-dashboard` 브랜치의 교수 화면은 개발 서버에서
 `http://localhost:5173/professor`로 확인할 수 있습니다.
-기본 주소 `http://localhost:5173/`로 접속해도 교수 홈으로 이동합니다.
+기본 주소 `http://localhost:5173/`는 로그인 화면(`/login`)으로 이동합니다.
+회원가입은 `/signup`, 교수 홈은 `/professor`에서 확인할 수 있습니다.
+로그인 API 연동 전에는 교수 홈 주소로 직접 접속해 화면을 확인합니다.
 
 - `src/app/ProfessorRoutes.tsx`: 교수 화면 공통 레이아웃과 라우팅
 - `src/app/ProfessorRoutes.css`: 공통 레이아웃, 본문 이동 링크, 저장 알림 스타일
