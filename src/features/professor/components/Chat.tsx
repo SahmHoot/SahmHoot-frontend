@@ -11,16 +11,19 @@ export function Chat({
   messages,
   onSend,
   participants,
+  notice,
+  onNoticeChange,
 }: {
   compact: boolean;
   screen: "waiting" | "quiz" | "results";
   messages: ChatMessage[];
   onSend: (text: string, reply?: string) => void;
   participants: number;
+  notice: string;
+  onNoticeChange: (notice: string) => void;
 }) {
   const [text, setText] = useState("");
   const [reply, setReply] = useState<string | undefined>();
-  const [notice, setNotice] = useState("교재 42쪽 예제 먼저 보세요");
   const [editingNotice, setEditingNotice] = useState(false);
   const [noticeDraft, setNoticeDraft] = useState(notice);
   const listRef = useRef<HTMLDivElement>(null);
@@ -178,7 +181,7 @@ export function Chat({
             onSubmit={(event) => {
               event.preventDefault();
               if (noticeDraft.trim()) {
-                setNotice(noticeDraft.trim());
+                onNoticeChange(noticeDraft.trim());
                 setEditingNotice(false);
               }
             }}

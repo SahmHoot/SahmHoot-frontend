@@ -17,6 +17,8 @@ export function ProfessorRoom({
   setQuiz,
   messages,
   onSend,
+  notice,
+  onNoticeChange,
 }: {
   room: Room
   sets: QuestionSet[]
@@ -24,6 +26,8 @@ export function ProfessorRoom({
   setQuiz: (quiz: QuizState) => void
   messages: ChatMessage[]
   onSend: (text: string, reply?: string) => void
+  notice: string
+  onNoticeChange: (notice: string) => void
 }) {
   const [choosing, setChoosing] = useState(false)
   const [stopping, setStopping] = useState(false)
@@ -73,6 +77,8 @@ export function ProfessorRoom({
         )}
       </div>
       <Chat
+        notice={notice}
+        onNoticeChange={onNoticeChange}
         compact={!waiting}
         screen={waiting ? 'waiting' : 'quiz'}
         messages={messages}

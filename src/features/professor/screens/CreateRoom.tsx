@@ -43,6 +43,9 @@ export function CreateRoom({ room, onCreate }: { room: Room; onCreate: (name: st
               수업 화면 열기
             </Link>
           )}
+          <Link to="/professor" className="create-room__cancel-button">
+            {created ? '교수 홈으로' : '취소'}
+          </Link>
         </div>
       </form>
       <JoinCode room={created ? room : demoRoom} variant="create" completed={created} />

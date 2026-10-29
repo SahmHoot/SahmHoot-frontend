@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import hourglass from '../../../assets/student/hourglass.svg'
 import StudentHeader from '../components/StudentHeader'
@@ -8,6 +9,7 @@ import useStudentRoom from '../hooks/useStudentRoom'
 import { classTitle, roomQuiz } from '../data/studentFixtures'
 import { readSession, writeSession } from '../data/studentStorage'
 import type { RoomPreview, StudentSession } from '../types/student.types'
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 import './StudentRoom.css'
 
 export default function StudentRoom() {
@@ -28,6 +30,7 @@ function StudentRoomContent({ session, preview }: { session: StudentSession; pre
   const navigate = useNavigate()
   const room = useStudentRoom(session.nickname, preview)
   const waiting = room.phase === 'waiting'
+  const [leaving, setLeaving] = useState(false)
 
   function leave() {
     writeSession(null)
@@ -36,7 +39,7 @@ function StudentRoomContent({ session, preview }: { session: StudentSession; pre
 
   return (
     <div className="student-app">
-      <StudentHeader title={classTitle} nickname={session.nickname} onLeave={leave} />
+      <StudentHeader title={classTitle} nickname={session.nickname} onLeave={() => setLeaving(true)} />
       <main className={`student-room ${waiting ? 'student-room--waiting' : ''}`}>
         {waiting ? (
           <div className="student-room__waiting-banner"><p><img src={hourglass} alt="" /><strong>대기 중</strong><span>· 교수님이 문제를 내면 이 자리에 문제가 나타나고 채팅은 오른쪽으로 이동합니다</span></p><span className="student-muted">32명 접속 중</span></div>
@@ -51,6 +54,16 @@ function StudentRoomContent({ session, preview }: { session: StudentSession; pre
         )}
         <StudentChat nickname={session.nickname} expanded={waiting} messages={room.messages} reactions={room.reactions} onSend={room.sendMessage} onReact={room.sendReaction} />
       </main>
+      {leaving && (
+        <ConfirmDialog
+          title="수업에서 나갈까요?"
+          message="퀴즈 진행 상태와 채팅은 초기화됩니다. 완료한 퀴즈와 복습 답안은 이 브라우저에 유지됩니다."
+          cancelLabel="수업 계속하기"
+          confirmLabel="수업 나가기"
+          onCancel={() => setLeaving(false)}
+          onConfirm={leave}
+        />
+      )}
     </div>
   )
 }

@@ -1,0 +1,8 @@
+.auth-preview { margin-top: 20px; padding: 16px; border: 1px solid var(--auth-line); border-radius: 16.8px; background: #eef2ff; color: var(--auth-muted); font-size: 12px; line-height: 1.7; }
+.auth-preview .auth-preview__title { margin-bottom: 4px; color: var(--auth-brand); font-weight: 700; }
+.auth-preview__roles { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding: 0; border: 0; }
+.auth-preview__roles legend { margin-bottom: 6px; font-weight: 600; color: var(--auth-ink); }
+.auth-preview__roles label { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--auth-line); border-radius: 12px; background: white; color: var(--auth-ink); cursor: pointer; }
+.auth-preview__roles label:has(:checked) { border-color: var(--auth-brand); color: var(--auth-brand); font-weight: 700; }
+.auth-preview__roles input { accent-color: var(--auth-brand); }
+.auth-preview__roles label:has(:focus-visible) { outline: 3px solid #90a2ff; outline-offset: 3px; }

@@ -14,6 +14,7 @@
 .student-header__account summary::-webkit-details-marker { display: none; }
 .student-header__avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--student-soft); color: var(--student-primary); font-weight: 700; font-size: 12px; }
 .student-header__account-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 160px; padding: 16px; background: white; border: 1px solid var(--student-border); border-radius: 16px; box-shadow: var(--student-shadow); font-size: 12px; }
+.student-header__account-menu a { display: block; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--student-border); color: var(--student-primary); }
 @media (max-width: 600px) {
   .student-header__inner { padding: 0 16px; }
   .student-header h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

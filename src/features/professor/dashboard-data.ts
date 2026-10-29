@@ -1,5 +1,7 @@
 import type { ChatMessage, Question, QuestionSet, Room } from './dashboard-types'
 
+export const demoNotice = '교재 42쪽 예제 먼저 보세요'
+
 export const demoRoom: Room = {
   name: '자료구조 3주차',
   code: '482193',

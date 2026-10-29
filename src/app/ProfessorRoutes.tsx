@@ -12,7 +12,7 @@ import { useProfessorDashboard } from "../features/professor/hooks/useProfessorD
 
 export default function ProfessorRoutes() {
   const professor = useProfessorDashboard();
-  const { room, sets, quiz, messages } = professor;
+  const { room, sets, quiz, messages, notice } = professor;
 
   return (
     <div className="professor-layout">
@@ -51,6 +51,8 @@ export default function ProfessorRoutes() {
                 setQuiz={professor.setQuiz}
                 messages={messages}
                 onSend={professor.sendMessage}
+                notice={notice}
+                onNoticeChange={professor.setNotice}
               />
             }
           />
@@ -62,6 +64,8 @@ export default function ProfessorRoutes() {
                 quiz={quiz}
                 messages={messages}
                 onSend={professor.sendMessage}
+                notice={notice}
+                onNoticeChange={professor.setNotice}
                 onClose={professor.closeResults}
               />
             }

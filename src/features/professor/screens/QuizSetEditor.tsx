@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { Question, QuestionSet } from '../dashboard-types'
 import { labels } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 
 function newQuestion(): Question {
   return {
@@ -39,6 +40,8 @@ export function QuizSetEditor({
   )
   const [selectedId, setSelectedId] = useState(draft.questions[0].id)
   const [error, setError] = useState('')
+  const [cancelling, setCancelling] = useState(false)
+  const originalDraft = useRef(JSON.stringify(draft))
   const dragId = useRef<string | null>(null)
   const selectedIndex = Math.max(
     0,
@@ -116,6 +119,15 @@ export function QuizSetEditor({
           <span className="quiz-set-editor__duration-help">초 · 모든 문항에 적용 · 10~300초</span>
         </label>
         <div className="quiz-set-editor__actions">
+          <button
+            type="button"
+            className="quiz-set-editor__cancel-button"
+            onClick={() => JSON.stringify(draft) === originalDraft.current
+              ? navigate('/professor/sets')
+              : setCancelling(true)}
+          >
+            취소
+          </button>
           <button
             type="button"
             onClick={() => setDraft({ ...draft, isPublic: !draft.isPublic })}
@@ -296,6 +308,16 @@ export function QuizSetEditor({
           </fieldset>
         </section>
       </div>
+      {cancelling && (
+        <ConfirmDialog
+          title="편집을 취소할까요?"
+          message="저장하지 않은 변경 내용은 사라집니다."
+          cancelLabel="계속 편집"
+          confirmLabel="변경 내용 버리기"
+          onCancel={() => setCancelling(false)}
+          onConfirm={() => navigate('/professor/sets')}
+        />
+      )}
     </main>
   )
 }
