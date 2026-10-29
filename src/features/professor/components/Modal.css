@@ -1,0 +1,25 @@
+@reference "../../../globals.css";
+
+.professor-modal {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-[min(520px,calc(100%_-_32px))] p-7 text-hoot-foreground;
+  margin: auto;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+
+.professor-modal::backdrop {
+  background: rgb(17 26 51 / 35%);
+  backdrop-filter: blur(3px);
+}
+
+.professor-modal__header {
+  @apply mb-6 flex items-center justify-between gap-4;
+}
+
+.professor-modal__title {
+  @apply text-lg font-bold;
+}
+
+.professor-modal__close-button {
+  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft;
+}
