@@ -3,7 +3,7 @@
 수업 중 실시간 소통 서비스. 산학협력캡스톤디자인 I (2026-2), 팀 강육김권김.
 점수·순위 없이 수강생 전체의 이해도를 실시간으로 확인하는 퀴즈·익명 채팅·이모지 반응 서비스입니다.
 
-> 학생 화면은 Figma 와이어프레임을 바탕으로 구현되어 있습니다. 현재는 예시 데이터로 동작하며 인증·수업 API·실시간 서버 연결은 별도 연동이 필요합니다.
+> 로그인·회원가입, 교수 및 학생 화면은 Figma 와이어프레임을 바탕으로 구현되어 있습니다. 현재는 예시 데이터로 동작하며 인증·수업 API·실시간 서버 연결은 별도 연동이 필요합니다.
 
 ## 기술 스택
 
@@ -20,8 +20,10 @@
 
 ## 현재 범위
 
-공통 개발환경과 학생 화면(08-a, 08-b, 09-a, 09-b, 09-c, 10)을 구현했습니다.
+공통 개발환경, 로그인·회원가입, 교수 화면 및 학생 화면(08-a, 08-b, 09-a, 09-b, 09-c, 10)을 구현했습니다.
 
+- 로그인·회원가입 입력 화면과 비밀번호 입력 UX
+- 교수 수업 개설, 문제 세트 편집, 퀴즈 진행 및 결과 화면
 - 코드/QR 입장, 닉네임 변경, 대기 화면과 채팅 입력
 - 답 선택/변경, 수동·자동 제출, 정답 표시와 문항별 결과
 - 문제 모음집 복습 및 브라우저에 답안 저장
@@ -29,8 +31,7 @@
 
 다음 기능은 아직 구현하지 않았습니다:
 
-- 로그인, 회원가입 및 JWT 인증
-- 교수 화면 및 교수용 문제 모음집 편집
+- 로그인·회원가입 API 및 JWT 인증 연동
 - 실제 수업 입장·문제·답안·결과 API 연동
 - 실제 STOMP/WebSocket 연결
 - 다른 사용자와 채팅·이모지 반응 공유
@@ -74,6 +75,21 @@ npm run dev
 
 브라우저: http://localhost:5173
 
+### 공통 화면 경로
+
+기본 주소 `/`는 로그인 화면으로 이동합니다. 인증 API 연동 전에는 교수·학생 주소로 직접 접속해 화면을 확인합니다.
+
+| 주소 | 화면 |
+|---|---|
+| `/` 또는 `/login` | 로그인 |
+| `/signup` | 회원가입 |
+| `/professor` | 교수 홈 |
+| `/student` | 학생 수업 입장 |
+| `/join/482193` | 교수 화면에 표시되는 QR 입장 주소 |
+| `/health` | 백엔드 상태 확인 |
+
+`App.tsx`는 공통 경로를 관리하고, `ProfessorRoutes`와 `StudentRoutes`는 각 영역의 하위 경로를 관리합니다. 잘못된 학생 경로는 `/student`, 그 밖의 알 수 없는 주소는 `/login`으로 이동합니다.
+
 ### 학생 화면 확인
 
 학생 화면은 백엔드 없이도 확인할 수 있습니다. 기본 주소는 `/student`입니다.
@@ -81,7 +97,7 @@ npm run dev
 | 주소 | 화면 |
 |---|---|
 | `/student` 또는 `/student/join` | 입장 코드 입력과 복습 목록 |
-| `/student/join/482193` 또는 `/student/join?code=482193` | QR 링크를 통한 입장 코드 자동 입력 |
+| `/join/482193`, `/student/join/482193` 또는 `/student/join?code=482193` | QR 링크를 통한 입장 코드 자동 입력 |
 | `/student/room/482193` | 수업 참여 (먼저 해당 코드로 입장 필요) |
 | `/student/review/stack-queue` | 스택·큐 복습 |
 | `/student/review/complexity` | 복잡도 복습 |
@@ -100,6 +116,55 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## 교수 화면 미리보기
+
+`feat/professor-dashboard` 브랜치의 교수 화면은 개발 서버에서
+`http://localhost:5173/professor`로 확인할 수 있습니다.
+기본 주소 `http://localhost:5173/`는 로그인 화면(`/login`)으로 이동합니다.
+회원가입은 `/signup`, 교수 홈은 `/professor`에서 확인할 수 있습니다.
+로그인 API 연동 전에는 교수 홈 주소로 직접 접속해 화면을 확인합니다.
+
+- `src/app/ProfessorRoutes.tsx`: 교수 화면 공통 레이아웃과 라우팅
+- `src/app/ProfessorRoutes.css`: 공통 레이아웃, 본문 이동 링크, 저장 알림 스타일
+- `src/features/professor/styles/professor-common.css`: 교수 화면 공통 색상·폰트·접근성 스타일
+- `src/features/professor/screens/`: 홈, 수업 개설, 문제 세트 목록·편집, 수업 진행, 결과 화면
+- `src/features/professor/components/`: 헤더, 채팅, 입장 코드, 학생 반응, 모달 등 재사용 UI
+- `src/features/professor/hooks/useProfessorDashboard.ts`: 수업·채팅·퀴즈 상태와 타이머 관리
+- `src/features/professor/dashboard-storage.ts`: 문제 세트 로컬 저장소 읽기와 검증
+
+각 화면과 UI 컴포넌트는 같은 이름의 TSX와 CSS를 나란히 관리합니다.
+TSX에서는 CSS 클래스와 화면 상태를 연결하고, 배치·색상·폰트·반응형 스타일은
+해당 CSS에서 수정합니다. CSS의 `@apply`는 프로젝트의 Tailwind 스타일을 사용합니다.
+공통 색상·폰트·접근성 스타일은 `src/features/professor/styles/professor-common.css`에 있습니다.
+
+| Figma | 화면 파일 | 스타일 파일 |
+|---|---|---|
+| 03 | `screens/ProfessorHome.tsx` | `screens/ProfessorHome.css` |
+| 04 | `screens/CreateRoom.tsx` | `screens/CreateRoom.css` |
+| 05 | `screens/QuizSetList.tsx` | `screens/QuizSetList.css` |
+| 06 | `screens/QuizSetEditor.tsx` | `screens/QuizSetEditor.css` |
+| 07-a | `screens/ProfessorRoom.tsx` | `screens/ProfessorRoom.css` |
+| 07-b | `components/QuizQuestion.tsx` | `components/QuizQuestion.css` |
+| 07-c | `screens/QuizResults.tsx` | `screens/QuizResults.css` |
+
+표의 경로는 `src/features/professor/` 아래 기준입니다.
+`ProfessorRoom`은 대기·진행 상태에 맞춰 `QuizQuestion`을 표시합니다.
+헤더·채팅·입장 코드·모달 등 공통 UI도 같은 방식으로 CSS 파일을 따로 둡니다.
+
+- `/professor/create`: 수업 방 개설
+- `/professor/sets`: 문제 세트 목록 및 편집
+- `/professor/room`: 수업 대기, 채팅, 퀴즈 진행
+- `/professor/room/results`: 퀴즈 종료 후 결과
+
+Figma의 교수용 7개 화면을 바탕으로 만든 프론트엔드 프로토타입입니다.
+문제 세트는 현재 브라우저의 로컬 저장소에 저장되고, 수업 및 채팅 상태는
+새로고침하면 초기 예시 상태로 돌아갑니다. 입장 코드, QR, 접속 인원,
+반응, 응답 통계는 디자인의 예시 데이터이며 인증, Room/Quiz API 및
+STOMP 연결은 아직 연동하지 않았습니다.
+
+퀴즈는 선택한 세트의 첫 문항부터 설정 시간 동안 진행하고, 문항 사이에
+3초 대기 후 다음 문항으로 이동합니다. 마지막 문항이 끝나면 결과 화면을 엽니다.
 
 ## Vite Proxy 설정
 

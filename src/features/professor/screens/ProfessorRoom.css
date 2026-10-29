@@ -1,0 +1,77 @@
+@reference "../../../globals.css";
+
+.professor-room {
+  @apply mx-auto grid w-full max-w-[1400px] gap-5 px-5 py-6 sm:px-8;
+}
+
+.professor-room.professor-room--waiting {
+  @apply lg:grid-cols-[360px_1fr];
+}
+
+.professor-room.professor-room--running {
+  @apply lg:grid-cols-[minmax(0,1fr)_380px];
+}
+
+.professor-room__content {
+  @apply min-w-0 space-y-5;
+}
+
+.professor-room__set-panel {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card space-y-1 p-5;
+}
+
+.professor-room__set-title {
+  @apply text-sm font-bold;
+}
+
+.professor-room__set-description {
+  @apply text-[13px] leading-[19.5px] text-hoot-muted;
+}
+
+.professor-room__start-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-3 w-full;
+}
+
+.professor-room__set-help {
+  @apply pt-1 text-[11px] leading-[16.5px] text-hoot-muted;
+}
+
+.professor-room__set-choices {
+  @apply space-y-3;
+}
+
+.professor-room__set-choice {
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left hover:border-hoot-primary;
+}
+
+.professor-room__choice-name {
+  @apply block text-sm font-bold;
+}
+
+.professor-room__choice-meta {
+  @apply mt-1 block text-xs text-hoot-muted;
+}
+
+.professor-room__empty-message {
+  @apply text-sm text-hoot-muted;
+}
+
+.professor-room__create-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-4;
+}
+
+.professor-room__stop-message {
+  @apply text-sm;
+}
+
+.professor-room__dialog-actions {
+  @apply mt-6 flex justify-end gap-2;
+}
+
+.professor-room__continue-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+}
+
+.professor-room__stop-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
+}
