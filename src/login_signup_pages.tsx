@@ -12,7 +12,8 @@ import mascotSu from "./assets/auth/mascot-su.webp";
 import type { AuthRole as Role } from "./features/auth/auth.types";
 import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
 import { PasswordInput } from "./features/auth/components/PasswordInput";
-import { useLoginPreview, useSignupPreview } from "./features/auth/hooks/useAuthPreview";
+import { useLoginPreview } from "./features/auth/hooks/useAuthPreview";
+import { useSignup } from "./features/auth/hooks/useSignup";
 import "./login_signup_pages.css";
 
 interface AuthLayoutProps {
@@ -155,6 +156,9 @@ export function LoginPage() {
   );
 }
 
+/** 서버 SignupRequest와 같은 규칙: 영문·숫자를 포함해 8~64자. */
+const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/;
+
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "PROFESSOR", label: "교수" },
   { value: "STUDENT", label: "학생" },
@@ -167,19 +171,26 @@ export function SignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [role, setRole] = useState<Role>("PROFESSOR");
-  const preview = useSignupPreview({ email, code, name, role });
+  const signup = useSignup({ email, code, name, role });
+  const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
+
+  const passwordInvalid = password !== "" && !PASSWORD_RULE.test(password);
 
   const passwordMismatch =
     passwordConfirm !== "" && password !== passwordConfirm;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!PASSWORD_RULE.test(password)) {
+      passwordRef.current?.focus();
+      return;
+    }
     if (passwordMismatch) {
       passwordConfirmRef.current?.focus();
       return;
     }
-    preview.finishSignup();
+    signup.finishSignup(password);
   };
 
   return (
@@ -194,7 +205,6 @@ export function SignupPage() {
     >
       <form onSubmit={handleSubmit} className="auth-form">
         <h1 className="auth-title">회원가입</h1>
-        <AuthPreviewPanel mode="signup" />
 
         <div className="auth-fields">
           <AuthField label="이름" htmlFor="name">
@@ -220,12 +230,12 @@ export function SignupPage() {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setCode("");
-                  preview.resetVerification();
+                  signup.resetVerification();
                 }}
                 className="auth-input"
                 required
               />
-              <button type="button" className="auth-btn-side" onClick={preview.requestCode} disabled={import.meta.env.DEV && preview.emailVerified}>
+              <button type="button" className="auth-btn-side" onClick={signup.requestCode} disabled={signup.pending || signup.emailVerified}>
                 인증요청
               </button>
             </div>
@@ -245,19 +255,27 @@ export function SignupPage() {
                 className="auth-input"
                 required
               />
-              <button type="button" className="auth-btn-side" onClick={preview.verifyCode} disabled={import.meta.env.DEV && !preview.canVerify}>
-                {preview.emailVerified ? "확인 완료" : "확인"}
+              <button type="button" className="auth-btn-side" onClick={signup.verifyCode} disabled={signup.pending || !signup.canVerify}>
+                {signup.emailVerified ? "확인 완료" : "확인"}
               </button>
             </div>
           </AuthField>
 
           <AuthField label="비밀번호" htmlFor="password">
             <PasswordInput
+              ref={passwordRef}
               id="password"
               autoComplete="new-password"
               value={password}
               onValueChange={setPassword}
+              aria-invalid={passwordInvalid}
+              aria-describedby={passwordInvalid ? "pw-error" : undefined}
             />
+            {passwordInvalid && (
+              <p id="pw-error" role="alert" className="auth-error">
+                비밀번호는 영문·숫자를 포함해 8~64자입니다.
+              </p>
+            )}
           </AuthField>
 
           <AuthField label="비밀번호 확인" htmlFor="pw2">
@@ -309,10 +327,11 @@ export function SignupPage() {
         <button
           type="submit"
           className="auth-btn-primary auth-btn-primary--signup"
+          disabled={signup.pending}
         >
           가입하기
         </button>
-        {preview.feedback && <p role="status" className="auth-status">{preview.feedback}</p>}
+        {signup.feedback && <p role="status" className="auth-status">{signup.feedback}</p>}
         <Link to="/login" className="auth-login-link">이미 계정이 있으신가요? 로그인</Link>
       </form>
     </AuthLayout>
