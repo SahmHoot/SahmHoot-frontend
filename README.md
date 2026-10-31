@@ -160,7 +160,7 @@ Response: {"status":"UP"}
 ## 협업 규칙
 
 - 이슈는 백엔드 레포에 모읍니다. 프론트 PR에서는 `SahmHoot/SahmHoot-backend#번호`로 참조합니다.
-- 브랜치: `main`(배포본) / `develop`(기본) / `feature/{이슈번호}-{영문}` / `fix/{이슈번호}-{영문}`
+- 브랜치: `main`(배포본) / `develop`(기본) / `feat/{이슈번호}-{영문}` / `fix/{이슈번호}-{영문}`
 - 같은 이슈 작업은 두 레포에 같은 브랜치 이름을 씁니다.
 - `main`·`develop` 직접 push 금지, PR 필수. 승인은 권장이고, 공통 영역 변경은 1명 확인 후 머지
 - 커밋: `feat: 기능명 (#이슈번호)` (feat / fix / refactor / chore / docs)
