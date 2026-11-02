@@ -1,0 +1,42 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+# 같은 PR에 커밋이 연달아 올라오면 이전 실행은 취소한다
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Node 버전은 .nvmrc(24)를 그대로 따른다
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # package-lock.json 그대로 설치 (잠금 파일과 package.json이 어긋나면 실패)
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 타입 검사
+        run: npm run type-check
+
+      - name: 린트
+        run: npm run lint
+
+      - name: 빌드
+        run: npm run build
