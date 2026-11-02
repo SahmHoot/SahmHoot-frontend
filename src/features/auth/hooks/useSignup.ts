@@ -19,7 +19,7 @@ function signupErrorMessage(error: ApiError): string {
     case 'VERIFICATION_CODE_EXPIRED':
       return '인증 코드가 만료되었습니다. 인증요청을 다시 눌러 주세요.'
     case 'EMAIL_NOT_VERIFIED':
-      return '이메일 인증을 먼저 완료해 주세요.'
+      return '이메일 인증이 유효하지 않습니다. 인증요청을 다시 눌러 주세요.'
     // VERIFICATION_CODE_INVALID는 서버 message에 남은 시도 횟수가 들어 있다.
     default:
       return error.message
@@ -47,12 +47,17 @@ export function useSignup({ email, code, name, role }: {
     setFeedback('')
   }
 
-  async function run(task: () => Promise<void>) {
+  async function run(task: () => Promise<void>, resetOnVerificationError = false) {
     setPending(true)
     try {
       await task()
     } catch (error) {
-      setFeedback(signupErrorMessage(toApiError(error)))
+      const apiError = toApiError(error)
+      if (resetOnVerificationError &&
+        (apiError.code === 'EMAIL_NOT_VERIFIED' || apiError.code.startsWith('VERIFICATION_'))) {
+        resetVerification()
+      }
+      setFeedback(signupErrorMessage(apiError))
     } finally {
       setPending(false)
     }
@@ -98,7 +103,7 @@ export function useSignup({ email, code, name, role }: {
       const response = await signup({ email: normalizedEmail, code, password, name: name.trim(), role })
       saveSession(response)
       navigate(response.user.role === 'PROFESSOR' ? '/professor' : '/student', { replace: true })
-    })
+    }, true)
   }
 
   return { feedback, pending, emailVerified, canVerify, resetVerification, requestCode, verifyCode, finishSignup }

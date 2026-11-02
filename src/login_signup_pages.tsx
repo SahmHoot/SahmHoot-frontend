@@ -247,6 +247,7 @@ export function SignupPage() {
                 id="code"
                 inputMode="numeric"
                 autoComplete="one-time-code"
+                readOnly={signup.emailVerified || signup.pending}
                 maxLength={6}
                 pattern="[0-9]{6}"
                 placeholder="000000"
