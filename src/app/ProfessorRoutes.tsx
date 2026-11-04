@@ -61,7 +61,7 @@ export default function ProfessorRoutes() {
             element={
               <QuizResults
                 room={room}
-                quiz={quiz}
+                result={null}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
