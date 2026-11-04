@@ -2,7 +2,6 @@ import { clockOffsetMs } from './serverClock'
 import type {
   ProfessorQuizMessage,
   QuestionOpenedMessage,
-  QuestionType,
   QuizResult,
   RunChoice,
 } from './types'
@@ -13,7 +12,6 @@ export interface ActiveQuestion {
   runQuestionId: number
   questionNo: number
   totalQuestions: number
-  questionType: QuestionType
   content: string
   choices: RunChoice[]
   closesAt: string
@@ -83,7 +81,6 @@ export function professorQuizReducer(
             runQuestionId: message.runQuestionId,
             questionNo: message.questionNo,
             totalQuestions: message.totalQuestions,
-            questionType: message.questionType,
             content: message.content,
             choices: message.choices,
             closesAt: message.closesAt,

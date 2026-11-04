@@ -81,7 +81,9 @@ export function QuizResults({
                   <span
                     className={`quiz-results__option-label ${correct ? 'quiz-results__option-label--correct' : ''}`}
                   >
-                    <span className="quiz-results__option-number">{choiceLabel(choice)}</span>
+                    <span className="quiz-results__option-number">
+                      {choiceLabel(choice, question.choices.length)}
+                    </span>
                     {choice.content}
                   </span>
                   <div

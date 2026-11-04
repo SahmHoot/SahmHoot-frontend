@@ -1,10 +1,8 @@
 export const labels = ['①', '②', '③', '④']
 
-/** 선택지 앞 표시. OX는 내용이 곧 표시이고, 객관식은 순서 번호를 쓴다. */
-export function choiceLabel(choice: { orderNo: number; content: string }): string {
-  return choice.content === 'O' || choice.content === 'X'
-    ? choice.content
-    : labels[choice.orderNo - 1]
+/** 선택지 앞 표시. 서버가 OX는 2개, 객관식은 4개만 허용하므로 개수로 구분한다. */
+export function choiceLabel(choice: { orderNo: number; content: string }, choiceCount: number) {
+  return choiceCount === 2 ? choice.content : labels[choice.orderNo - 1]
 }
 
 /** 인원 수를 합이 100이 되는 정수 백분율로 바꾼다. 응답이 없으면 모두 0이다. */

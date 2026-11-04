@@ -64,7 +64,7 @@ export function QuizQuestion({
                   className="quiz-question__option-number"
                   data-option-index={index}
                 >
-                  {choiceLabel(choice)}
+                  {choiceLabel(choice, quiz.choices.length)}
                 </span>
                 <span className="quiz-question__option-text">
                   {choice.content}

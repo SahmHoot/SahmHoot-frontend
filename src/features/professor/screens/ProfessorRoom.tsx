@@ -1,5 +1,5 @@
 import './ProfessorRoom.css'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import type { ProfessorQuizState } from '../../quiz/professorQuizReducer'
 import type { QuestionSetSummary } from '../../quiz/types'
@@ -26,7 +26,7 @@ export function ProfessorRoom({
   room: Room
   quiz: ProfessorQuizState
   quizReady: boolean
-  onLoadQuestionSets: () => Promise<QuestionSetSummary[]>
+  onLoadQuestionSets: () => Promise<QuestionSetSummary[] | null>
   onStartQuiz: (questionSetId: number) => void
   onStopQuiz: () => void
   messages: ChatMessage[]
@@ -38,15 +38,21 @@ export function ProfessorRoom({
   const [stopping, setStopping] = useState(false)
   /** 시작 창의 세트 목록. null이면 불러오는 중이다. */
   const [startableSets, setStartableSets] = useState<QuestionSetSummary[] | null>(null)
+  const waiting = quiz.phase === 'waiting'
+  // 다른 탭의 시작·중단처럼 서버 메시지로 단계가 바뀌면, 이전 단계의 창은 더 이상 쓸 수 없다.
+  useEffect(() => {
+    setChoosing(false)
+    setStopping(false)
+  }, [waiting])
   if (!room.active) return <Navigate to="/professor" replace />
   if (quiz.phase === 'results') return <Navigate to="/professor/room/results" replace />
-  const waiting = quiz.phase === 'waiting'
   const openSetChooser = () => {
     setChoosing(true)
     setStartableSets(null)
-    void onLoadQuestionSets().then((sets) =>
-      setStartableSets(sets.filter((set) => set.questionCount > 0)),
-    )
+    void onLoadQuestionSets().then((sets) => {
+      if (sets) setStartableSets(sets.filter((set) => set.questionCount > 0))
+      else setChoosing(false)
+    })
   }
   return (
     <main
@@ -105,6 +111,7 @@ export function ProfessorRoom({
               <button
                 key={item.id}
                 type="button"
+                disabled={!quizReady}
                 className="professor-room__set-choice"
                 onClick={() => {
                   onStartQuiz(item.id)

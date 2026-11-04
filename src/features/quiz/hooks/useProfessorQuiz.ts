@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { getAccessToken } from '../../auth/session'
 import { toApiError } from '../../auth/api'
 import {
@@ -59,51 +59,55 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
 
   const runId = quiz.phase === 'waiting' ? null : quiz.runId
 
-  /** 시작 창에 보여 줄 세트. 실패하면 오류를 알리고 빈 목록을 돌려준다. */
-  const loadQuestionSets = useCallback(async (): Promise<QuestionSetSummary[]> => {
+  /** 시작 창에 보여 줄 세트. 실패하면 오류를 알리고 null을 돌려준다. */
+  const loadQuestionSets = useCallback(async (): Promise<QuestionSetSummary[] | null> => {
     try {
       return await fetchMyQuestionSets()
     } catch (error) {
       onError(toApiError(error).message)
-      return []
+      return null
     }
   }, [onError])
 
-  const start = useCallback(
-    async (questionSetId: number) => {
-      if (roomId === null) {
+  /** 시작·중단·결과 닫기를 보낸다. 버튼을 연달아 눌러도 요청은 한 번에 하나만 나간다. */
+  const requesting = useRef(false)
+  const send = useCallback(
+    async (request: () => Promise<unknown>) => {
+      if (requesting.current) {
         return
       }
+      requesting.current = true
       try {
-        await startQuiz(roomId, questionSetId)
+        await request()
       } catch (error) {
         onError(toApiError(error).message)
+      } finally {
+        requesting.current = false
       }
     },
-    [roomId, onError],
+    [onError],
+  )
+
+  const start = useCallback(
+    async (questionSetId: number) => {
+      if (roomId !== null) {
+        await send(() => startQuiz(roomId, questionSetId))
+      }
+    },
+    [roomId, send],
   )
 
   const stop = useCallback(async () => {
-    if (roomId === null || runId === null) {
-      return
+    if (roomId !== null && runId !== null) {
+      await send(() => abortQuiz(roomId, runId))
     }
-    try {
-      await abortQuiz(roomId, runId)
-    } catch (error) {
-      onError(toApiError(error).message)
-    }
-  }, [roomId, runId, onError])
+  }, [roomId, runId, send])
 
   const closeResults = useCallback(async () => {
-    if (roomId === null) {
-      return
+    if (roomId !== null) {
+      await send(() => closeQuizResults(roomId))
     }
-    try {
-      await closeQuizResults(roomId)
-    } catch (error) {
-      onError(toApiError(error).message)
-    }
-  }, [roomId, onError])
+  }, [roomId, send])
 
   return {
     quiz,
