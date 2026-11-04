@@ -1,8 +1,4 @@
-import type { QuizState } from './dashboard-types'
-
 export const labels = ['①', '②', '③', '④']
-
-export const initialQuiz: QuizState = { phase: 'waiting', index: 0, remaining: 0, set: null }
 
 /** 선택지 앞 표시. OX는 내용이 곧 표시이고, 객관식은 순서 번호를 쓴다. */
 export function choiceLabel(choice: { orderNo: number; content: string }): string {

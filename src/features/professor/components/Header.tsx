@@ -1,6 +1,7 @@
 import "./Header.css";
 import { Link, useLocation } from "react-router-dom";
-import type { DesignScreen, Room, QuizState } from "../dashboard-types";
+import type { DesignScreen, Room } from "../dashboard-types";
+import type { ProfessorQuizState } from "../../quiz/professorQuizReducer";
 import { Icon } from "./Icon";
 import { Status } from "./Status";
 
@@ -10,7 +11,7 @@ export function Header({
   onEnd,
 }: {
   room: Room;
-  quiz: QuizState;
+  quiz: ProfessorQuizState;
   onEnd: () => void;
 }) {
   const { pathname } = useLocation();

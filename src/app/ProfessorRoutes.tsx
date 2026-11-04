@@ -46,9 +46,11 @@ export default function ProfessorRoutes() {
             element={
               <ProfessorRoom
                 room={room}
-                sets={sets}
                 quiz={quiz}
-                setQuiz={professor.setQuiz}
+                quizReady={professor.quizReady}
+                onLoadQuestionSets={professor.loadStartableQuestionSets}
+                onStartQuiz={(questionSetId) => void professor.startQuiz(questionSetId)}
+                onStopQuiz={() => void professor.stopQuiz()}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
@@ -61,12 +63,12 @@ export default function ProfessorRoutes() {
             element={
               <QuizResults
                 room={room}
-                result={null}
+                result={quiz.phase === 'results' ? quiz.result : null}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
                 onNoticeChange={professor.setNotice}
-                onClose={professor.closeResults}
+                onClose={() => void professor.closeResults()}
               />
             }
           />
