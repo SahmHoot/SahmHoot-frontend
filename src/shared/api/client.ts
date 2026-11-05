@@ -1,6 +1,8 @@
 import axios from 'axios'
 
 const TOKEN_KEY = 'sahmhoot.accessToken'
+/** 이 탭에서 sessionStorage 세션을 로그아웃했다는 표시. 다른 탭의 localStorage 토큰으로 넘어가지 않게 한다. */
+const SIGNED_OUT_KEY = 'sahmhoot.signedOut'
 
 export const apiClient = axios.create({
   baseURL: '/api',
@@ -17,20 +19,28 @@ export const apiClient = axios.create({
 export const tokenStorage = {
   get(): string | null {
     try {
-      return sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY)
+      const sessionToken = sessionStorage.getItem(TOKEN_KEY)
+      if (sessionToken !== null) return sessionToken
+      if (sessionStorage.getItem(SIGNED_OUT_KEY) !== null) return null
+      return localStorage.getItem(TOKEN_KEY)
     } catch {
       return null
     }
   },
   set(token: string, persistent: boolean): void {
     tokenStorage.clear()
+    sessionStorage.removeItem(SIGNED_OUT_KEY)
     ;(persistent ? localStorage : sessionStorage).setItem(TOKEN_KEY, token)
   },
-  /** 이 탭이 쓰는 토큰만 지운다. */
+  /** 이 탭이 쓰는 토큰만 지운다. 여러 번 불러도 다른 탭의 토큰은 지우지 않는다. */
   clear(): void {
     try {
-      if (sessionStorage.getItem(TOKEN_KEY) !== null) sessionStorage.removeItem(TOKEN_KEY)
-      else localStorage.removeItem(TOKEN_KEY)
+      if (sessionStorage.getItem(TOKEN_KEY) !== null) {
+        sessionStorage.removeItem(TOKEN_KEY)
+        sessionStorage.setItem(SIGNED_OUT_KEY, '1')
+      } else if (sessionStorage.getItem(SIGNED_OUT_KEY) === null) {
+        localStorage.removeItem(TOKEN_KEY)
+      }
     } catch { /* 저장소를 못 쓰면 지울 토큰도 없다. */ }
   },
   /** 이 탭이 localStorage 토큰을 쓰는데 다른 탭이 그 토큰을 바꾸거나 지웠을 때 부른다. 해제 함수를 돌려준다. */
@@ -38,7 +48,7 @@ export const tokenStorage = {
     const handle = (event: StorageEvent) => {
       if (event.key !== TOKEN_KEY || event.storageArea !== localStorage) return
       try {
-        if (sessionStorage.getItem(TOKEN_KEY) !== null) return
+        if (sessionStorage.getItem(TOKEN_KEY) !== null || sessionStorage.getItem(SIGNED_OUT_KEY) !== null) return
       } catch { /* sessionStorage를 못 쓰면 localStorage 토큰을 쓰는 탭이다. */ }
       listener()
     }
@@ -49,7 +59,7 @@ export const tokenStorage = {
 
 let unauthorizedHandler: (() => void) | null = null
 
-/** 토큰을 붙인 요청이 401 UNAUTHORIZED를 받으면 부를 함수. 앱에서 한 번 등록한다. */
+/** 토큰을 붙인 요청이 401 UNAUTHORIZED를 받으면 부를 함수. 토큰 삭제도 이 함수가 맡는다. 앱에서 한 번 등록한다. */
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler
 }
@@ -71,7 +81,6 @@ apiClient.interceptors.response.use(undefined, (error: unknown) => {
     (error.response.data as { code?: unknown } | undefined)?.code === 'UNAUTHORIZED' &&
     token !== null &&
     error.config?.headers.Authorization === `Bearer ${token}`) {
-    tokenStorage.clear()
     unauthorizedHandler?.()
   }
   return Promise.reject(error)

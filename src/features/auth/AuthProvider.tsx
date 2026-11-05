@@ -24,6 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [status, setStatus] = useState<AuthStatus>(() => (getAccessToken() ? 'loading' : 'signedOut'))
+  // 확인 중에 토큰이 바뀌면 값을 올려 이전 /users/me 응답을 버린다.
+  const [validation, setValidation] = useState(0)
 
   const expire = useCallback(() => {
     clearSession()
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     if (getAccessToken()) {
       setStatus('loading')
+      setValidation((n) => n + 1)
       return
     }
     void disconnectStomp()
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [status])
+  }, [status, validation])
 
   const signIn = useCallback((response: AuthResponse, keepLoggedIn: boolean) => {
     saveSession(response, keepLoggedIn)
