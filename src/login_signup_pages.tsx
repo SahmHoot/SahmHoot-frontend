@@ -4,7 +4,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import authBg from "./assets/auth/auth-bg.jpg";
 import logoMark from "./assets/auth/logo-mark.svg";
 import mascotBook from "./assets/auth/mascot-book.webp";
@@ -12,7 +12,9 @@ import mascotSu from "./assets/auth/mascot-su.webp";
 import type { AuthRole as Role } from "./features/auth/auth.types";
 import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
 import { PasswordInput } from "./features/auth/components/PasswordInput";
-import { useLoginPreview } from "./features/auth/hooks/useAuthPreview";
+import { useAuth } from "./features/auth/AuthProvider";
+import { useLogin } from "./features/auth/hooks/useLogin";
+import { homePath } from "./features/auth/session";
 import { useSignup } from "./features/auth/hooks/useSignup";
 import "./login_signup_pages.css";
 
@@ -82,7 +84,10 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
-  const preview = useLoginPreview();
+  const { user } = useAuth();
+  const preview = useLogin({ email, password });
+
+  if (user && !preview.signedInHere) return <Navigate to={homePath(user.role)} replace />;
 
   return (
     <AuthLayout
@@ -137,6 +142,7 @@ export function LoginPage() {
         <button
           type="submit"
           className="auth-btn-primary auth-btn-primary--login"
+          disabled={preview.pending}
         >
           로그인
         </button>

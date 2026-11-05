@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import logo from '../../../assets/student/brand-mark.svg'
 import chevron from '../../../assets/student/chevron-down.svg'
+import { useAuth } from '../../auth/AuthProvider'
 import './StudentHeader.css'
 
 interface Props {
@@ -10,6 +11,9 @@ interface Props {
 }
 
 export default function StudentHeader({ title, nickname, onLeave }: Props) {
+  const { user, signOut } = useAuth()
+  // 개발용 화면 미리보기에는 로그인 사용자가 없어서 시안의 이름을 보여 준다.
+  const displayName = user?.name ?? '김상윤'
   return (
     <header className={`student-header ${title ? 'student-header--room' : ''}`}>
       <div className="student-header__inner">
@@ -29,10 +33,10 @@ export default function StudentHeader({ title, nickname, onLeave }: Props) {
           </div>
         ) : (
           <details className="student-header__account">
-            <summary><span className="student-header__avatar">김</span>김상윤<img src={chevron} alt="" /></summary>
+            <summary><span className="student-header__avatar">{Array.from(displayName)[0]}</span>{displayName}<img src={chevron} alt="" /></summary>
             <div className="student-header__account-menu">
-              <p>김상윤</p><span className="student-muted">학생 계정</span>
-              <Link to="/login" state={{ previewRole: 'STUDENT' }}>로그인 화면으로</Link>
+              <p>{displayName}</p><span className="student-muted">학생 계정</span>
+              <button type="button" onClick={signOut}>로그아웃</button>
             </div>
           </details>
         )}
