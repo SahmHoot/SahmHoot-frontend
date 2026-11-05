@@ -45,10 +45,13 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(undefined, (error: unknown) => {
   // 로그인 실패(INVALID_CREDENTIALS)도 401이므로 code가 UNAUTHORIZED일 때만 세션을 끝낸다.
+  // 그사이 다시 로그인했다면 늦게 온 이전 토큰의 401이 새 토큰을 지우지 않도록 같은 토큰일 때만 처리한다.
+  const token = tokenStorage.get()
   if (axios.isAxiosError(error) &&
     error.response?.status === 401 &&
     (error.response.data as { code?: unknown } | undefined)?.code === 'UNAUTHORIZED' &&
-    error.config?.headers.Authorization) {
+    token !== null &&
+    error.config?.headers.Authorization === `Bearer ${token}`) {
     tokenStorage.clear()
     unauthorizedHandler?.()
   }
