@@ -85,7 +85,7 @@ export function LoginPage() {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   const { user } = useAuth();
-  const preview = useLogin({ email, password });
+  const preview = useLogin({ email, password, keepLoggedIn });
 
   if (user && !preview.signedInHere) return <Navigate to={homePath(user.role)} replace />;
 

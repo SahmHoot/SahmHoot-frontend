@@ -13,7 +13,7 @@ export type AuthStatus = 'loading' | 'signedIn' | 'signedOut'
 interface AuthContextValue {
   status: AuthStatus
   user: AuthUser | null
-  signIn: (response: AuthResponse) => void
+  signIn: (response: AuthResponse, keepLoggedIn: boolean) => void
   signOut: () => void
 }
 
@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [status])
 
-  const signIn = useCallback((response: AuthResponse) => {
-    saveSession(response)
+  const signIn = useCallback((response: AuthResponse, keepLoggedIn: boolean) => {
+    saveSession(response, keepLoggedIn)
     setUser(response.user)
     setStatus('signedIn')
   }, [])

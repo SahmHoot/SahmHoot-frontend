@@ -18,7 +18,7 @@ function loginErrorMessage(error: ApiError): string {
   }
 }
 
-export function useLogin({ email, password }: { email: string; password: string }) {
+export function useLogin({ email, password, keepLoggedIn }: { email: string; password: string; keepLoggedIn: boolean }) {
   const navigate = useNavigate()
   const location = useLocation()
   const auth = useAuth()
@@ -48,7 +48,7 @@ export function useLogin({ email, password }: { email: string; password: string 
     login(normalizedEmail, password)
       .then((response) => {
         setSignedInHere(true)
-        auth.signIn(response)
+        auth.signIn(response, keepLoggedIn)
         navigate(takeReturnTo() ?? homePath(response.user.role), { replace: true })
       })
       .catch((error: unknown) => {

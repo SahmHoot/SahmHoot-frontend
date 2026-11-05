@@ -5,9 +5,9 @@ import type { AuthRole } from './auth.types'
 const RETURN_TO_KEY = 'sahmhoot.returnTo'
 const PREVIEW_ROLE_KEY = 'sahmhoot.previewRole'
 
-/** 가입·로그인 응답의 토큰을 보관한다. */
-export function saveSession(response: AuthResponse): void {
-  tokenStorage.set(response.accessToken)
+/** 가입·로그인 응답의 토큰을 보관한다. keepLoggedIn이 false면 탭을 닫을 때 지워진다. */
+export function saveSession(response: AuthResponse, keepLoggedIn: boolean): void {
+  tokenStorage.set(response.accessToken, keepLoggedIn)
   clearPreviewRole()
 }
 

@@ -103,7 +103,8 @@ export function useSignup({ email, code, name, role }: {
     }
     void run(async () => {
       const response = await signup({ email: normalizedEmail, code, password, name: name.trim(), role })
-      auth.signIn(response)
+      // 가입 화면에는 '로그인 상태 유지' 선택이 없어 기본으로 유지한다.
+      auth.signIn(response, true)
       navigate(takeReturnTo() ?? homePath(response.user.role), { replace: true })
     }, true)
   }

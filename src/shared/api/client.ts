@@ -9,21 +9,26 @@ export const apiClient = axios.create({
   },
 })
 
-/** 로그인 토큰. 14일 유지(ACC-04)를 위해 localStorage에 둔다. */
+/**
+ * 로그인 토큰. '로그인 상태 유지'를 고르면 localStorage에 두어 14일 유지하고(ACC-04),
+ * 고르지 않으면 sessionStorage에 두어 탭을 닫을 때 지운다.
+ */
 export const tokenStorage = {
   get(): string | null {
     try {
-      return localStorage.getItem(TOKEN_KEY)
+      return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY)
     } catch {
       return null
     }
   },
-  set(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token)
+  set(token: string, persistent: boolean): void {
+    tokenStorage.clear()
+    ;(persistent ? localStorage : sessionStorage).setItem(TOKEN_KEY, token)
   },
   clear(): void {
     try {
       localStorage.removeItem(TOKEN_KEY)
+      sessionStorage.removeItem(TOKEN_KEY)
     } catch { /* 저장소를 못 쓰면 지울 토큰도 없다. */ }
   },
 }
