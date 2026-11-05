@@ -12,11 +12,12 @@ export const apiClient = axios.create({
 /**
  * 로그인 토큰. '로그인 상태 유지'를 고르면 localStorage에 두어 14일 유지하고(ACC-04),
  * 고르지 않으면 sessionStorage에 두어 탭을 닫을 때 지운다.
+ * 이 탭만의 sessionStorage 토큰을 먼저 쓰므로, 다른 탭의 로그인·로그아웃이 이 탭의 세션을 바꾸지 않는다.
  */
 export const tokenStorage = {
   get(): string | null {
     try {
-      return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY)
+      return sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY)
     } catch {
       return null
     }
@@ -25,11 +26,24 @@ export const tokenStorage = {
     tokenStorage.clear()
     ;(persistent ? localStorage : sessionStorage).setItem(TOKEN_KEY, token)
   },
+  /** 이 탭이 쓰는 토큰만 지운다. */
   clear(): void {
     try {
-      localStorage.removeItem(TOKEN_KEY)
-      sessionStorage.removeItem(TOKEN_KEY)
+      if (sessionStorage.getItem(TOKEN_KEY) !== null) sessionStorage.removeItem(TOKEN_KEY)
+      else localStorage.removeItem(TOKEN_KEY)
     } catch { /* 저장소를 못 쓰면 지울 토큰도 없다. */ }
+  },
+  /** 이 탭이 localStorage 토큰을 쓰는데 다른 탭이 그 토큰을 바꾸거나 지웠을 때 부른다. 해제 함수를 돌려준다. */
+  onSharedChange(listener: () => void): () => void {
+    const handle = (event: StorageEvent) => {
+      if (event.key !== TOKEN_KEY || event.storageArea !== localStorage) return
+      try {
+        if (sessionStorage.getItem(TOKEN_KEY) !== null) return
+      } catch { /* sessionStorage를 못 쓰면 localStorage 토큰을 쓰는 탭이다. */ }
+      listener()
+    }
+    window.addEventListener('storage', handle)
+    return () => window.removeEventListener('storage', handle)
   },
 }
 

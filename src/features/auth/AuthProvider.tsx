@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { setUnauthorizedHandler } from '../../shared/api/client'
+import { setUnauthorizedHandler, tokenStorage } from '../../shared/api/client'
 import { configureStomp, disconnectStomp } from '../../shared/stomp'
 import { fetchMe } from './api'
 import type { AuthResponse, AuthUser } from './api'
@@ -40,6 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     configureStomp({ getToken: getAccessToken, onUnauthorized: expire })
     return () => setUnauthorizedHandler(null)
   }, [expire])
+
+  // 다른 탭에서 같은 저장소의 계정을 바꾸거나 로그아웃하면 이 탭의 사용자 정보도 다시 맞춘다.
+  useEffect(() => tokenStorage.onSharedChange(() => {
+    setUser(null)
+    if (getAccessToken()) {
+      setStatus('loading')
+      return
+    }
+    void disconnectStomp()
+    setStatus('signedOut')
+    navigate('/login', { replace: true })
+  }), [navigate])
 
   useEffect(() => {
     if (status !== 'loading') return
