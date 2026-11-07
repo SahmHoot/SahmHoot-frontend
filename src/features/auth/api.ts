@@ -62,6 +62,11 @@ export async function fetchMe(): Promise<AuthUser> {
   return data
 }
 
+/** HTTP 401 응답인지. 응답 본문 형식과 관계없이 상태 코드로만 본다. */
+export function isUnauthorized(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 401
+}
+
 export function toApiError(error: unknown): ApiError {
   if (isAxiosError(error)) {
     const data: unknown = error.response?.data
