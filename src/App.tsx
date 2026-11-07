@@ -17,8 +17,9 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/professor/*" element={<RequireAuth role="PROFESSOR"><ProfessorRoutes /></RequireAuth>} />
-          <Route path="/student/*" element={<RequireAuth role="STUDENT"><StudentRoutes /></RequireAuth>} />
-          <Route path="/join/:code" element={<RequireAuth role="STUDENT"><StudentJoin /></RequireAuth>} />
+          {/* 수업 참여와 QR 입장은 역할과 관계없이 연다. 교수도 다른 교수의 수업에는 참여자로 들어간다(ACC-06). */}
+          <Route path="/student/*" element={<RequireAuth><StudentRoutes /></RequireAuth>} />
+          <Route path="/join/:code" element={<RequireAuth><StudentJoin /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>

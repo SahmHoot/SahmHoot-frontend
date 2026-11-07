@@ -4,20 +4,20 @@ import type { AuthRole } from '../auth.types'
 import { useAuth } from '../AuthProvider'
 import { getPreviewRole, homePath, saveReturnTo } from '../session'
 
-/** 로그인한 해당 역할 사용자만 들여보낸다. 다른 역할이면 그 역할의 홈으로 보낸다. */
-export function RequireAuth({ role, children }: { role: AuthRole; children: ReactNode }) {
+/** 로그인한 사용자만 들여보낸다. role을 주면 그 역할만 들여보내고, 다른 역할이면 그 역할의 홈으로 보낸다. */
+export function RequireAuth({ role, children }: { role?: AuthRole; children: ReactNode }) {
   const { status, user } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') return null
   if (status === 'signedOut') {
     const previewRole = getPreviewRole()
-    if (previewRole === role) return children
+    if (previewRole && (!role || previewRole === role)) return children
     if (previewRole) return <Navigate to={homePath(previewRole)} replace />
     saveReturnTo(location.pathname + location.search)
     return <Navigate to="/login" replace />
   }
-  if (user && user.role !== role) return <Navigate to={homePath(user.role)} replace />
+  if (role && user && user.role !== role) return <Navigate to={homePath(user.role)} replace />
   return children
 }
 
