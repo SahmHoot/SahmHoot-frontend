@@ -4,7 +4,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import authBg from "./assets/auth/auth-bg.jpg";
 import logoMark from "./assets/auth/logo-mark.svg";
 import mascotBook from "./assets/auth/mascot-book.webp";
@@ -12,7 +12,9 @@ import mascotSu from "./assets/auth/mascot-su.webp";
 import type { AuthRole as Role } from "./features/auth/auth.types";
 import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
 import { PasswordInput } from "./features/auth/components/PasswordInput";
-import { useLoginPreview } from "./features/auth/hooks/useAuthPreview";
+import { useAuth } from "./features/auth/AuthProvider";
+import { useLogin } from "./features/auth/hooks/useLogin";
+import { homePath } from "./features/auth/session";
 import { useSignup } from "./features/auth/hooks/useSignup";
 import "./login_signup_pages.css";
 
@@ -80,9 +82,13 @@ function AuthField({
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
+  // 02 화면 목록: 로그인 상태 유지 기본 켜짐. QR로 새 탭이 열려도 다시 로그인하지 않게 한다(ACC-04).
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
 
-  const preview = useLoginPreview();
+  const { user } = useAuth();
+  const preview = useLogin({ email, password, keepLoggedIn });
+
+  if (user && !preview.signedInHere) return <Navigate to={homePath(user.role)} replace />;
 
   return (
     <AuthLayout
@@ -137,6 +143,7 @@ export function LoginPage() {
         <button
           type="submit"
           className="auth-btn-primary auth-btn-primary--login"
+          disabled={preview.pending}
         >
           로그인
         </button>

@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { confirmVerificationCode, sendVerificationCode, signup, toApiError } from '../api'
 import type { ApiError } from '../api'
 import type { AuthRole } from '../auth.types'
-import { saveSession } from '../session'
+import { useAuth } from '../AuthProvider'
+import { homePath, takeReturnTo } from '../session'
 
 /** 05 API 명세 5절 에러 코드별 안내. 없으면 서버 message를 그대로 쓴다. */
 function signupErrorMessage(error: ApiError): string {
@@ -33,6 +34,7 @@ export function useSignup({ email, code, name, role }: {
   role: AuthRole
 }) {
   const navigate = useNavigate()
+  const auth = useAuth()
   const [requestedEmail, setRequestedEmail] = useState('')
   const [verifiedEmail, setVerifiedEmail] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -101,8 +103,9 @@ export function useSignup({ email, code, name, role }: {
     }
     void run(async () => {
       const response = await signup({ email: normalizedEmail, code, password, name: name.trim(), role })
-      saveSession(response)
-      navigate(response.user.role === 'PROFESSOR' ? '/professor' : '/student', { replace: true })
+      // 가입 화면에는 '로그인 상태 유지' 선택이 없어 기본으로 유지한다.
+      auth.signIn(response, true)
+      navigate(takeReturnTo() ?? homePath(response.user.role), { replace: true })
     }, true)
   }
 

@@ -9,7 +9,7 @@ export function AuthPreviewPanel(props: Props) {
   return (
     <aside className="auth-preview" aria-label="화면 미리보기">
       <p className="auth-preview__title">화면 미리보기 모드</p>
-      <p>계정 입력 없이 역할을 선택하고 로그인 버튼을 누르면 해당 화면으로 이동해요.</p>
+      <p>이메일을 비워 두고 역할을 선택한 뒤 로그인 버튼을 누르면 해당 화면으로 이동해요. 이메일을 입력하면 실제 계정으로 로그인해요.</p>
       <fieldset className="auth-preview__roles">
         <legend>미리보기 역할</legend>
         {(['PROFESSOR', 'STUDENT'] as const).map(role => (

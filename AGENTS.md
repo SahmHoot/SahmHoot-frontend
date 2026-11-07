@@ -68,7 +68,7 @@ npm run build
 - 답안은 **마감 전까지 바꿀 수 있다.** 제출했다고 선택지를 잠그지 않는다.
 - 남은 시간은 **서버 시각 기준**이다. 브라우저 로컬 타이머만 믿지 않는다.
 - 채팅 메시지는 1~300자다.
-- 방 주인(교수)과 참가자(학생)는 화면이 다르다. 교수는 답안을 제출하지 않는다.
+- 방 주인과 참가자는 화면이 다르다. 방 주인은 답안을 제출하지 않는다. 역할은 홈 화면과 메뉴 노출만 결정하므로, 교수 계정도 다른 교수의 방에서는 참가자다(ACC-06).
 
 ### 코드
 - `src/main.tsx` 진입점, `src/App.tsx` 라우트, `src/pages/` 페이지, `src/features/{auth,user,room,questionset,quiz}/` 기능별 화면·훅·API, `src/shared/{api,stomp,components,hooks,types}/` 공통.
