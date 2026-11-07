@@ -28,7 +28,8 @@ export const tokenStorage = {
     }
   },
   set(token: string, persistent: boolean): void {
-    tokenStorage.clear()
+    // 이 탭의 세션 값만 정리한다. 다른 탭이 쓰는 localStorage 토큰은 유지 로그인일 때만 교체한다.
+    sessionStorage.removeItem(TOKEN_KEY)
     sessionStorage.removeItem(SIGNED_OUT_KEY)
     ;(persistent ? localStorage : sessionStorage).setItem(TOKEN_KEY, token)
   },
