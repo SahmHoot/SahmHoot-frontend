@@ -82,7 +82,8 @@ function AuthField({
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
+  // 02 화면 목록: 로그인 상태 유지 기본 켜짐. QR로 새 탭이 열려도 다시 로그인하지 않게 한다(ACC-04).
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
 
   const { user } = useAuth();
   const preview = useLogin({ email, password, keepLoggedIn });
