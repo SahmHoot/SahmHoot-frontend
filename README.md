@@ -77,7 +77,7 @@ npm run dev
 
 ### 공통 화면 경로
 
-기본 주소 `/`는 로그인 상태이면 역할별 홈(`/professor` 또는 `/student`)으로, 아니면 로그인 화면으로 이동합니다. `/professor/*`는 교수, `/student/*`와 `/join/*`은 학생 계정으로 로그인해야 열리며, 로그인하지 않고 접속하면 로그인 후 그 주소로 돌아옵니다.
+기본 주소 `/`는 로그인 상태이면 역할별 홈(`/professor` 또는 `/student`)으로, 아니면 로그인 화면으로 이동합니다. `/professor/*`는 교수 계정으로 로그인해야 열립니다. `/student/*`와 `/join/*`은 역할과 관계없이 로그인하면 열립니다(교수도 다른 교수의 수업에 QR로 참여할 수 있음, ACC-06). 로그인하지 않고 접속하면 로그인 후 그 주소로 돌아옵니다.
 
 | 주소 | 화면 |
 |---|---|
@@ -106,9 +106,10 @@ npm run dev
 
 ### 로그인과 토큰
 
-- 로그인 토큰은 **로그인 상태 유지**를 체크하면 localStorage(14일 유지), 체크하지 않으면 sessionStorage(탭을 닫으면 로그아웃)에 저장합니다.
+- 로그인 토큰은 **로그인 상태 유지**(기본 체크)를 그대로 두면 localStorage(14일 유지), 체크를 해제하면 sessionStorage(탭을 닫으면 로그아웃)에 저장합니다. 체크를 해제한 로그인은 다른 탭이 쓰는 localStorage 토큰을 바꾸지 않습니다.
 - `shared/api/client.ts`의 `apiClient`가 모든 요청에 `Authorization: Bearer` 헤더를 붙입니다. 기능 코드에서 따로 붙이지 않습니다.
 - 토큰을 붙인 요청이 401 `UNAUTHORIZED`를 받으면 토큰을 지우고 로그인 화면으로 이동합니다. 로그인 실패(`INVALID_CREDENTIALS`)는 로그인 화면에 안내만 표시합니다.
+- 저장된 토큰을 확인할 때(`/users/me`) 서버에 연결하지 못하면 로그아웃으로 처리하지 않습니다. 토큰과 현재 주소를 유지한 채 연결 안내와 **다시 시도** 버튼을 표시합니다.
 - 로그인 사용자는 `features/auth/AuthProvider.tsx`의 `useAuth()`로 읽습니다.
 - 로컬 확인용 계정: 백엔드를 `local` 프로파일과 `app.seed.enabled=true`로 실행하면 `professor@local.test`, `student1@local.test`(비밀번호 `Test1234!`)가 생성됩니다. 자세한 내용은 백엔드 README의 로컬 시드 데이터 항목을 따릅니다.
 
