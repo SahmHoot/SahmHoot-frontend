@@ -1,8 +1,9 @@
 import './ProfessorRoom.css'
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import type { Room, QuizState, QuestionSet, ChatMessage } from '../dashboard-types'
-import { initialQuiz } from '../dashboard-quiz'
+import { Navigate } from 'react-router-dom'
+import type { Room, QuizState, ChatMessage } from '../dashboard-types'
+import { initialQuiz, startQuiz } from '../dashboard-quiz'
+import { RoomSetPicker } from '../components/RoomSetPicker'
 import { Icon } from '../components/Icon'
 import { QuizQuestion } from '../components/QuizQuestion'
 import { JoinCode } from '../components/JoinCode'
@@ -12,7 +13,6 @@ import { Modal } from '../components/Modal'
 
 export function ProfessorRoom({
   room,
-  sets,
   quiz,
   setQuiz,
   messages,
@@ -21,7 +21,6 @@ export function ProfessorRoom({
   onNoticeChange,
 }: {
   room: Room
-  sets: QuestionSet[]
   quiz: QuizState
   setQuiz: (quiz: QuizState) => void
   messages: ChatMessage[]
@@ -48,7 +47,7 @@ export function ProfessorRoom({
             <section className="professor-room__set-panel">
               <h2 className="professor-room__set-title">문제 세트</h2>
               <p className="professor-room__set-description">
-                세트를 골라 시작하면 1번부터 자동 진행 · 문제당 시간은 세트 설정값
+                세트를 골라 시작하면 1번부터 자동 진행 · 각 문항의 제한시간 적용
               </p>
               <button
                 type="button"
@@ -87,39 +86,10 @@ export function ProfessorRoom({
       />
       {choosing && (
         <Modal title="출제할 문제 세트 선택" onClose={() => setChoosing(false)}>
-          <div className="professor-room__set-choices">
-            {sets
-              .filter((item) => item.questions.length > 0)
-              .map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="professor-room__set-choice"
-                  onClick={() => {
-                    setQuiz({
-                      phase: 'running',
-                      index: 0,
-                      remaining: item.seconds,
-                      set: structuredClone(item),
-                    })
-                    setChoosing(false)
-                  }}
-                >
-                  <span className="professor-room__choice-name">{item.name}</span>
-                  <span className="professor-room__choice-meta">
-                    {item.questions.length}문항 · 문제당 {item.seconds}초
-                  </span>
-                </button>
-              ))}
-            {sets.length === 0 && (
-              <>
-                <p className="professor-room__empty-message">먼저 문제 세트를 만들어 주세요.</p>
-                <Link to="/professor/sets/new" className="professor-room__create-button">
-                  새 세트 만들기
-                </Link>
-              </>
-            )}
-          </div>
+          <RoomSetPicker onSelect={(selected) => {
+            setQuiz(startQuiz(selected))
+            setChoosing(false)
+          }} />
         </Modal>
       )}
       {stopping && (

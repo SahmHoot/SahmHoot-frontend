@@ -16,6 +16,43 @@
   @apply mx-auto w-full max-w-[1280px] px-5 py-10 sm:px-8 py-8;
 }
 
+.quiz-set-editor__form {
+  @apply min-w-0 border-0 p-0 disabled:opacity-70;
+}
+
+.quiz-set-editor__recovery {
+  @apply mb-5 space-y-3 rounded-[16.8px] border border-hoot-border bg-white p-5 text-sm;
+}
+
+.quiz-set-editor__recovery details,
+.quiz-set-editor__recovery li {
+  @apply my-3;
+}
+
+.quiz-set-editor__recovery summary {
+  @apply cursor-pointer font-semibold text-hoot-primary;
+}
+
+.quiz-set-editor__recovery-text {
+  @apply whitespace-pre-wrap break-words;
+}
+
+.quiz-set-editor__description-label {
+  @apply mt-5 mb-2 block text-xs text-hoot-muted;
+}
+
+.quiz-set-editor__description-input {
+  @apply min-h-20 w-full rounded-[16.8px] border border-hoot-border bg-white p-4 text-sm;
+}
+
+.quiz-set-editor__public-help {
+  @apply mt-3 text-sm text-hoot-muted;
+}
+
+.quiz-set-editor__delete-button {
+  @apply mt-3 rounded-xl border border-hoot-danger/25 px-3 py-2 text-xs font-semibold text-hoot-danger hover:bg-red-50;
+}
+
 .quiz-set-editor__toolbar {
   @apply flex flex-wrap items-center justify-between gap-4;
 }

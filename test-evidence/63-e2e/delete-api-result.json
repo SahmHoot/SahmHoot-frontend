@@ -1,0 +1,10 @@
+[
+  {
+    "status": 409,
+    "body": {
+      "status": 409,
+      "code": "QUESTION_SET_IN_USE",
+      "message": "퀴즈에 사용된 문제 세트는 삭제할 수 없습니다."
+    }
+  }
+]
