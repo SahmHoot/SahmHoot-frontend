@@ -1,5 +1,5 @@
 import "./QuizQuestion.css";
-import type { Question, QuestionSet, QuizState } from "../dashboard-types";
+import type { RoomQuestion, RoomQuestionSet, QuizState } from "../dashboard-types";
 import { labels } from "../dashboard-quiz";
 import { Icon } from "./Icon";
 
@@ -11,8 +11,8 @@ export function QuizQuestion({
   onStop,
 }: {
   quiz: QuizState;
-  question: Question;
-  set: QuestionSet;
+  question: RoomQuestion;
+  set: RoomQuestionSet;
   participants: number;
   onStop: () => void;
 }) {
