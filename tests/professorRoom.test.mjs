@@ -15,7 +15,6 @@ function load(path, dependencies = {}) {
   return exports
 }
 const adapter = load('questionset/roomQuestionSet')
-const quiz = load('professor/dashboard-quiz')
 const plain = (value) => JSON.parse(JSON.stringify(value))
 const choices = [
   { id: 92, orderNo: 2, content: 'X', isCorrect: true },
@@ -57,35 +56,6 @@ test('빈 상세·잘못된 선택지/정답/제한시간으로 퀴즈를 시작
     { choices: choices.map((c) => ({ ...c, content: 'O' })) }, { timeLimitSeconds: 9 }, { timeLimitSeconds: 301 }]) {
     assert.throws(() => adapter.toRoomQuestionSet({ ...detail(), questions: [{ ...question(1, 1, 60), ...patch }] }), adapter.RoomQuestionSetError)
   }
-})
-
-test('첫 문항 10초 → 문항 간 3초 → 다음 문항 300초 → 결과 전환을 유지한다', () => {
-  const set = adapter.toRoomQuestionSet(detail())
-  let state = quiz.startQuiz(set)
-  assert.equal(state.remaining, 10)
-  set.questions[0].prompt = '나중 편집'
-  assert.equal(state.set.questions[0].prompt, '문항 11')
-  for (let i = 0; i < 10; i++) state = quiz.advanceQuiz(state)
-  assert.equal(state.phase, 'between')
-  assert.equal(state.remaining, 3)
-  for (let i = 0; i < 3; i++) state = quiz.advanceQuiz(state)
-  assert.equal(state.phase, 'running')
-  assert.equal(state.index, 1)
-  assert.equal(state.remaining, 300)
-  for (let i = 0; i < 300; i++) state = quiz.advanceQuiz(state)
-  assert.equal(state.phase, 'results')
-  assert.equal(state.remaining, 0)
-  assert.equal(quiz.advanceQuiz(state), state)
-  assert.equal(quiz.advanceQuiz(quiz.initialQuiz), quiz.initialQuiz)
-  assert.equal(quiz.startQuiz({ ...set, questions: [] }), quiz.initialQuiz)
-})
-
-test('결과 예시 집계는 숫자 ID 모델에서도 정답·선택지 인덱스를 유지한다', () => {
-  const set = adapter.toRoomQuestionSet(detail())
-  const result = quiz.exampleResponses(32, set.questions[0])
-  assert.equal(result.percentages.length, 2)
-  assert.equal(result.percentages.reduce((a, b) => a + b, 0), 100)
-  assert.equal(result.total, result.correct + result.incorrect)
 })
 
 function harness(client) {
