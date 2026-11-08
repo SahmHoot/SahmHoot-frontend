@@ -92,3 +92,7 @@
 .professor-header__menu-link {
   @apply block rounded-xl px-3 py-2 hover:bg-hoot-soft;
 }
+
+.professor-header__menu-button {
+  @apply w-full text-left;
+}

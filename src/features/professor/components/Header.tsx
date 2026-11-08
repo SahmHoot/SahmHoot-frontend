@@ -1,5 +1,6 @@
 import "./Header.css";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../auth/AuthProvider";
 import type { DesignScreen, Room } from "../dashboard-types";
 import type { ProfessorQuizState } from "../../quiz/professorQuizReducer";
 import { Icon } from "./Icon";
@@ -15,6 +16,9 @@ export function Header({
   onEnd: () => void;
 }) {
   const { pathname } = useLocation();
+  const { user, signOut } = useAuth();
+  // 개발용 화면 미리보기에는 로그인 사용자가 없어서 시안의 이름을 보여 준다.
+  const displayName = user?.name ?? "강현민";
   const live = pathname.startsWith("/professor/room");
   const result = pathname.endsWith("/results");
   const screen: DesignScreen = live
@@ -81,8 +85,8 @@ export function Header({
         ) : (
           <details className="professor-header__account">
             <summary className="professor-header__account-toggle">
-              <span className="professor-header__avatar">강</span>
-              <span>강현민 교수</span>
+              <span className="professor-header__avatar">{Array.from(displayName)[0]}</span>
+              <span>{displayName} 교수</span>
               <Icon screen={screen} name="imgFrame1" />
             </summary>
             <nav aria-label="교수 메뉴" className="professor-header__menu">
@@ -108,9 +112,13 @@ export function Header({
               >
                 문제 세트 관리
               </Link>
-              <Link className="professor-header__menu-link" to="/login" state={{ previewRole: 'PROFESSOR' }}>
-                로그인 화면으로
-              </Link>
+              <button
+                type="button"
+                className="professor-header__menu-link professor-header__menu-button"
+                onClick={signOut}
+              >
+                로그아웃
+              </button>
             </nav>
           </details>
         )}

@@ -1,123 +1,87 @@
 import './QuizSetEditor.css'
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import type { Question, QuestionSet } from '../dashboard-types'
+import { newQuestion } from '../../questionset/editorDraft'
+import type { EditorQuestion } from '../../questionset/editorDraft'
+import { useQuestionSetEditor } from '../../questionset/useQuestionSetEditor'
+import { EditorRecoveryPanel } from '../../questionset/EditorRecoveryPanel'
 import { labels } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 
-function newQuestion(): Question {
-  return {
-    id: crypto.randomUUID(),
-    title: '새 문항',
-    prompt: '',
-    type: 'multiple',
-    options: ['', '', '', ''],
-    answer: 0,
-  }
-}
-
-export function QuizSetEditor({
-  sets,
-  onSave,
-}: {
-  sets: QuestionSet[]
-  onSave: (set: QuestionSet) => void
-}) {
+export function QuizSetEditor() {
   const { setId } = useParams()
   const navigate = useNavigate()
-  const existing = sets.find((set) => set.id === setId)
-  const [draft, setDraft] = useState<QuestionSet>(() =>
-    existing
-      ? structuredClone(existing)
-      : {
-          id: crypto.randomUUID(),
-          name: '',
-          seconds: 15,
-          isPublic: false,
-          questions: [newQuestion()],
-        },
-  )
-  const [selectedId, setSelectedId] = useState(draft.questions[0].id)
-  const [error, setError] = useState('')
+  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError,
+    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
+    serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => navigate('/professor/sets', { replace: true }))
   const [cancelling, setCancelling] = useState(false)
-  const originalDraft = useRef(JSON.stringify(draft))
+  const [removing, setRemoving] = useState<string | null>(null)
   const dragId = useRef<string | null>(null)
   const selectedIndex = Math.max(
     0,
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
-  const update = (patch: Partial<Question>) =>
+  const blocked = saving || Boolean(recovery && !recoveryResolved)
+  const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload || creationUnknown ? null : serverDraft}
+    resolved={recoveryResolved} disabled={saving || loading} onRestore={restore} onUseServer={useServer} />
+  const update = (patch: Partial<EditorQuestion>) =>
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((item) =>
         item.id === question.id ? { ...item, ...patch } : item,
       ),
     }))
-  if (!existing && setId !== 'new')
+  if (loading || needsReload || creationUnknown)
     return (
       <main className="quiz-set-editor__not-found">
-        <h1 className="quiz-set-editor__not-found-title">문제 세트를 찾을 수 없습니다.</h1>
+        <h1 className="quiz-set-editor__not-found-title">문제 세트 편집</h1>
+        {loading ? <p role="status">문제 세트를 불러오는 중입니다.</p> : <p role="alert" className="quiz-set-editor__error">{error}</p>}
+        {recoveryPanel}
+        {creationUnknown && <>
+          <button type="button" disabled={saving} onClick={() => void checkCreation()} className="quiz-set-editor__back-button">생성 결과 다시 확인</button>
+          <p>후보 내용을 확인한 뒤 생성된 세트를 선택해 주세요. 다른 세트일 수 있으므로 자동으로 연결하지 않습니다.</p>
+          {creationCandidates.map((item) => <div key={item.id}>
+            <Link to={`/professor/sets/${item.id}`}>{item.title} (#{item.id}) 확인</Link>
+            <button type="button" disabled={saving} onClick={() => selectCreatedSet(item.id)}>이 세트에 초안 연결</button>
+          </div>)}
+        </>}
+        {!loading && !creationUnknown && (
+          <button type="button" onClick={reload} className="quiz-set-editor__back-button">다시 불러오기</button>
+        )}
         <Link className="quiz-set-editor__back-button" to="/professor/sets">
           목록으로 돌아가기
         </Link>
       </main>
     )
-  const save = () => {
-    if (!draft.name.trim()) {
-      setError('세트 이름을 입력해 주세요.')
-      return
-    }
-    if (!Number.isInteger(draft.seconds) || draft.seconds < 10 || draft.seconds > 300) {
-      setError('문제당 시간을 10~300초 사이의 정수로 입력해 주세요.')
-      return
-    }
-    const incomplete = draft.questions.findIndex(
-      (item) => !item.prompt.trim() || item.options.some((option) => !option.trim()),
-    )
-    if (incomplete !== -1) {
-      setSelectedId(draft.questions[incomplete].id)
-      setError(`${incomplete + 1}번 문항의 문제 내용과 모든 선택지를 입력해 주세요.`)
-      return
-    }
-    onSave({
-      ...draft,
-      name: draft.name.trim(),
-      questions: draft.questions.map((item) => ({
-        ...item,
-        prompt: item.prompt.trim(),
-        title: item.title.trim() || item.prompt.trim(),
-        options: item.options.map((option) => option.trim()),
-      })),
-    })
-    navigate('/professor/sets')
-  }
   return (
-    <main className="quiz-set-editor">
+    <main className="quiz-set-editor" aria-busy={saving}>
+      {recoveryPanel}
+      <fieldset disabled={blocked} className="quiz-set-editor__form">
       <div className="quiz-set-editor__toolbar">
         <input
           aria-label="세트 이름"
-          maxLength={100}
+          maxLength={50}
           placeholder="새 세트 이름"
           value={draft.name}
           onChange={(event) => setDraft({ ...draft, name: event.target.value })}
           className="quiz-set-editor__name-input"
         />
-        <label className="quiz-set-editor__duration-label">
+        {question && <label className="quiz-set-editor__duration-label">
           <Icon screen="editor" name="imgFrame2" />
-          문제당 시간
+          {selectedIndex + 1}번 제한시간
           <input
             aria-label="문제당 시간(초)"
             type="number"
             min={10}
             max={300}
-            value={draft.seconds}
-            onChange={(event) => setDraft({ ...draft, seconds: Number(event.target.value) })}
+            value={question.seconds}
+            onChange={(event) => update({ seconds: Number(event.target.value) })}
             className="quiz-set-editor__duration-input"
           />
-          <span className="quiz-set-editor__duration-help">초 · 모든 문항에 적용 · 10~300초</span>
-        </label>
+          <span className="quiz-set-editor__duration-help">초 · 선택한 문항에 적용 · 10~300초</span>
+        </label>}
         <div className="quiz-set-editor__actions">
           <button
             type="button"
@@ -135,11 +99,18 @@ export function QuizSetEditor({
           >
             {draft.isPublic ? '비공개 전환' : '공개 전환'}
           </button>
-          <button type="button" onClick={save} className="quiz-set-editor__save-button">
-            저장
+          <button type="button" onClick={() => void save()} className="quiz-set-editor__save-button">
+            {saving ? '저장 중…' : '저장'}
           </button>
         </div>
       </div>
+      <label className="quiz-set-editor__description-label" htmlFor="set-description">세트 설명</label>
+      <textarea id="set-description" value={draft.description} maxLength={1000} aria-describedby="set-description-help"
+        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+        className="quiz-set-editor__description-input" placeholder="세트 설명을 입력하세요 (선택)" />
+      <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
+      {draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
+      {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
       {error && (
         <p role="alert" className="quiz-set-editor__error">
           {error}
@@ -151,7 +122,7 @@ export function QuizSetEditor({
           {draft.questions.map((item, index) => (
             <div
               key={item.id}
-              draggable
+              draggable={!blocked}
               onDragStart={(event) => {
                 dragId.current = item.id
                 event.dataTransfer.effectAllowed = 'move'
@@ -160,6 +131,7 @@ export function QuizSetEditor({
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault()
+                if (blocked) return
                 const source = draft.questions.findIndex((entry) => entry.id === dragId.current)
                 if (source < 0 || source === index) return
                 const questions = [...draft.questions]
@@ -180,7 +152,7 @@ export function QuizSetEditor({
                 >
                   {index + 1}
                 </span>
-                <span className="quiz-set-editor__question-name">{item.title || '새 문항'}</span>
+                <span className="quiz-set-editor__question-name">{item.prompt || '새 문항'}</span>
               </button>
             </div>
           ))}
@@ -202,7 +174,7 @@ export function QuizSetEditor({
             <button
               type="button"
               className="quiz-set-editor__reorder-button"
-              disabled={selectedIndex === 0}
+              disabled={!question || selectedIndex === 0}
               onClick={() => {
                 const questions = [...draft.questions]
                 ;[questions[selectedIndex - 1], questions[selectedIndex]] = [
@@ -218,7 +190,7 @@ export function QuizSetEditor({
             <button
               type="button"
               className="quiz-set-editor__reorder-button"
-              disabled={selectedIndex === draft.questions.length - 1}
+              disabled={!question || selectedIndex === draft.questions.length - 1}
               onClick={() => {
                 const questions = [...draft.questions]
                 ;[questions[selectedIndex + 1], questions[selectedIndex]] = [
@@ -232,8 +204,9 @@ export function QuizSetEditor({
             </button>
           </p>
         </aside>
-        <section className="quiz-set-editor__question-panel">
+        {question ? <section className="quiz-set-editor__question-panel">
           <h2 className="quiz-set-editor__question-title">{selectedIndex + 1}번 문항 편집</h2>
+          <button type="button" className="quiz-set-editor__delete-button" onClick={() => setRemoving(question.id)}>문항 삭제</button>
           <label htmlFor="question-prompt" className="quiz-set-editor__prompt-label">
             문제 내용
           </label>
@@ -241,7 +214,7 @@ export function QuizSetEditor({
             id="question-prompt"
             value={question.prompt}
             maxLength={500}
-            onChange={(event) => update({ prompt: event.target.value, title: event.target.value })}
+            onChange={(event) => update({ prompt: event.target.value })}
             placeholder="문제 내용을 입력하세요"
             className="quiz-set-editor__prompt-input"
           />
@@ -306,8 +279,19 @@ export function QuizSetEditor({
               ))}
             </div>
           </fieldset>
-        </section>
+        </section> : <section className="quiz-set-editor__question-panel"><p>문항이 없습니다. 문항 추가 버튼으로 새 문항을 작성해 주세요.</p></section>}
       </div>
+      </fieldset>
+      {removing && (
+        <ConfirmDialog title="문항을 삭제할까요?" message="저장 버튼을 누르면 서버에서도 삭제됩니다."
+          cancelLabel="취소" confirmLabel="문항 삭제" onCancel={() => setRemoving(null)}
+          onConfirm={() => {
+            const questions = draft.questions.filter((item) => item.id !== removing)
+            setDraft({ ...draft, questions })
+            setSelectedId(questions[0]?.id ?? '')
+            setRemoving(null)
+          }} />
+      )}
       {cancelling && (
         <ConfirmDialog
           title="편집을 취소할까요?"

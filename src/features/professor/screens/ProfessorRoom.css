@@ -41,7 +41,11 @@
 }
 
 .professor-room__set-choice {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left hover:border-hoot-primary;
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left hover:border-hoot-primary disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.professor-room__set-error {
+  @apply text-sm text-hoot-danger;
 }
 
 .professor-room__choice-name {

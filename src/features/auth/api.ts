@@ -50,6 +50,23 @@ export async function signup(request: SignupRequest): Promise<AuthResponse> {
   return data
 }
 
+/** 05 #4 로그인. 이메일·비밀번호가 틀리면 401 INVALID_CREDENTIALS. */
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>('/auth/login', { email, password })
+  return data
+}
+
+/** 05 #5 내 정보. 토큰이 없거나 틀리면 401 UNAUTHORIZED. */
+export async function fetchMe(): Promise<AuthUser> {
+  const { data } = await apiClient.get<AuthUser>('/users/me')
+  return data
+}
+
+/** HTTP 401 응답인지. 응답 본문 형식과 관계없이 상태 코드로만 본다. */
+export function isUnauthorized(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 401
+}
+
 export function toApiError(error: unknown): ApiError {
   if (isAxiosError(error)) {
     const data: unknown = error.response?.data
