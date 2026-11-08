@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react'
-import { getAccessToken } from '../../auth/session'
 import { toApiError } from '../../auth/api'
 import {
-  configureStomp,
   connectStomp,
   onStompErrorMessage,
   subscribe,
@@ -42,9 +40,14 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
       }
     }
 
+    // 토큰·만료 처리 설정은 AuthProvider(#44)가 맡고, 여기서는 연결만 시작한다.
     // 연결은 탭에 하나만 만들어지고, 화면을 떠나도 끊지 않는다(shared/stomp 규칙).
-    configureStomp({ getToken: getAccessToken })
-    connectStomp()
+    try {
+      connectStomp()
+    } catch {
+      // 로그인 없이 보는 개발용 미리보기에서는 설정 전에 이 화면이 그려질 수 있다.
+      onError('로그인한 뒤에 퀴즈를 진행할 수 있습니다.')
+    }
     const unsubscribeQuiz = subscribe(`/topic/rooms/${roomId}/quiz`, handleMessage)
     const unsubscribeStats = subscribe(`/user/queue/rooms/${roomId}/stats`, handleMessage)
     const removeErrorListener = onStompErrorMessage((error) => onError(error.message))
