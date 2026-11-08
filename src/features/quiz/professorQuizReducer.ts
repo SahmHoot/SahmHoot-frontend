@@ -1,0 +1,194 @@
+import { clockOffsetMs } from './serverClock'
+import type {
+  ProfessorQuizMessage,
+  QuestionOpenedMessage,
+  QuizResult,
+  RoomStateResponse,
+  RunChoice,
+} from './types'
+
+/** 진행 중인 문항. 정답은 일부러 담지 않아 화면에 나갈 수 없게 한다(QZ-05). */
+export interface ActiveQuestion {
+  runId: number
+  runQuestionId: number
+  questionNo: number
+  totalQuestions: number
+  content: string
+  choices: RunChoice[]
+  closesAt: string
+  answeredCount: number
+  clockOffsetMs: number
+}
+
+/**
+ * 교수 화면 상태. DB 상태가 아니라 메시지에서 파생한 화면 상태다.
+ * - waiting: 대기
+ * - question: 문항 진행 중. 남은 시간이 0이면 화면은 "마감 중"을 표시한다
+ * - between: 문항이 닫힌 뒤 다음 문항·결과까지 3초
+ * - results: 결과 화면
+ */
+export type ProfessorQuizState =
+  | { phase: 'waiting' }
+  | ({ phase: 'question' } & ActiveQuestion)
+  | ({ phase: 'between'; nextOpensAt: string; isLast: boolean } & ActiveQuestion)
+  | { phase: 'results'; runId: number; result: QuizResult }
+
+export type ProfessorQuizAction =
+  | { kind: 'message'; message: ProfessorQuizMessage; receivedAt: number }
+  | { kind: 'snapshot'; snapshot: RoomStateResponse; receivedAt: number }
+  | { kind: 'reset' }
+
+export const initialProfessorQuiz: ProfessorQuizState = { phase: 'waiting' }
+
+const MESSAGE_TYPES: ReadonlySet<string> = new Set<ProfessorQuizMessage['type']>([
+  'QUESTION_OPENED',
+  'QUESTION_CLOSED',
+  'QUIZ_FINISHED',
+  'QUIZ_CANCELED',
+  'ROOM_WAITING',
+  'ANSWER_PROGRESS',
+])
+
+/** 채널에서 받은 값을 메시지로 바꾼다. 모르는 type은 null로 돌려 무시한다(06 4절). */
+export function toProfessorQuizMessage(body: unknown): ProfessorQuizMessage | null {
+  if (typeof body !== 'object' || body === null) {
+    return null
+  }
+  const { type } = body as { type?: unknown }
+  return typeof type === 'string' && MESSAGE_TYPES.has(type)
+    ? (body as ProfessorQuizMessage)
+    : null
+}
+
+/**
+ * 메시지를 화면 상태로 바꾼다. 재연결이나 중복 수신으로 같은 메시지가 다시 와도
+ * 이미 지나간 단계로 돌아가지 않도록 회차·문항·진행 순서를 확인한다(06 1절).
+ */
+export function professorQuizReducer(
+  state: ProfessorQuizState,
+  action: ProfessorQuizAction,
+): ProfessorQuizState {
+  if (action.kind === 'reset') {
+    return initialProfessorQuiz
+  }
+  if (action.kind === 'snapshot') {
+    return fromSnapshot(action.snapshot, action.receivedAt)
+  }
+  const { message, receivedAt } = action
+
+  switch (message.type) {
+    case 'QUESTION_OPENED':
+      return isStaleOpen(state, message)
+        ? state
+        : {
+            phase: 'question',
+            runId: message.runId,
+            runQuestionId: message.runQuestionId,
+            questionNo: message.questionNo,
+            totalQuestions: message.totalQuestions,
+            content: message.content,
+            choices: message.choices,
+            closesAt: message.closesAt,
+            answeredCount: 0,
+            clockOffsetMs: clockOffsetMs(message.sentAt, receivedAt),
+          }
+
+    case 'QUESTION_CLOSED':
+      if (state.phase !== 'question' || state.runQuestionId !== message.runQuestionId) {
+        return state
+      }
+      return {
+        ...state,
+        phase: 'between',
+        nextOpensAt: message.nextOpensAt,
+        isLast: message.isLast,
+        clockOffsetMs: clockOffsetMs(message.sentAt, receivedAt),
+      }
+
+    case 'QUIZ_FINISHED':
+      // 이미 다음 회차를 보고 있는데 이전 회차의 늦은 결과가 오면 되돌아가지 않는다.
+      if (state.phase !== 'waiting' && message.runId < state.runId) {
+        return state
+      }
+      if (state.phase === 'results' && state.runId === message.runId) {
+        return state
+      }
+      return { phase: 'results', runId: message.runId, result: message.result }
+
+    case 'QUIZ_CANCELED':
+      return state.phase !== 'waiting' && state.runId === message.runId
+        ? initialProfessorQuiz
+        : state
+
+    case 'ROOM_WAITING':
+      return initialProfessorQuiz
+
+    case 'ANSWER_PROGRESS':
+      // 마감 직전에 낸 답의 집계가 마감 뒤에 도착할 수 있어 between에서도 반영한다.
+      if (
+        (state.phase === 'question' || state.phase === 'between') &&
+        state.runQuestionId === message.runQuestionId
+      ) {
+        return { ...state, answeredCount: message.answeredCount }
+      }
+      return state
+  }
+}
+
+/**
+ * 이미 지나간 문항이거나, 결과까지 끝난 회차의 늦은 메시지이거나, 현재보다 이전 회차의 메시지인지 확인한다.
+ * 회차 ID는 늘어나기만 하므로 현재보다 작으면 이전 회차다.
+ */
+function isStaleOpen(state: ProfessorQuizState, message: QuestionOpenedMessage): boolean {
+  if (state.phase === 'waiting') {
+    return false
+  }
+  if (message.runId < state.runId) {
+    return true
+  }
+  if (state.runId !== message.runId) {
+    return false
+  }
+  return state.phase === 'results' || message.questionNo <= state.questionNo
+}
+
+/**
+ * 새로고침·재연결 때 받은 state로 화면 상태를 다시 만든다. 그 시점의 서버 상태가 기준이라 이전 상태는 버린다.
+ * state의 정답(correctChoiceId)은 옮기지 않는다(QZ-05).
+ */
+function fromSnapshot(snapshot: RoomStateResponse, receivedAt: number): ProfessorQuizState {
+  const { quiz } = snapshot
+  if (!quiz) {
+    return initialProfessorQuiz
+  }
+  if (quiz.phase === 'RESULT') {
+    return quiz.result ? { phase: 'results', runId: quiz.runId, result: quiz.result } : initialProfessorQuiz
+  }
+  const question = quiz.currentQuestion
+  if (!question) {
+    return initialProfessorQuiz
+  }
+  const active: ActiveQuestion = {
+    runId: quiz.runId,
+    runQuestionId: question.runQuestionId,
+    questionNo: question.questionNo,
+    totalQuestions: quiz.totalQuestions,
+    content: question.content,
+    choices: question.choices,
+    closesAt: question.closesAt,
+    // 서버는 QUESTION 단계에서만 응답 인원을 준다. 3초 대기 중에 새로고침하면 다음 문항까지 0으로 보인다.
+    answeredCount:
+      snapshot.progress?.runQuestionId === question.runQuestionId ? snapshot.progress.answeredCount : 0,
+    clockOffsetMs: clockOffsetMs(snapshot.serverTime, receivedAt),
+  }
+  if (quiz.phase === 'FEEDBACK' && quiz.nextOpensAt) {
+    // state에는 isLast가 없어 마지막 문항인지로 판단한다.
+    return {
+      ...active,
+      phase: 'between',
+      nextOpensAt: quiz.nextOpensAt,
+      isLast: question.questionNo === quiz.totalQuestions,
+    }
+  }
+  return { ...active, phase: 'question' }
+}

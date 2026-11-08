@@ -45,7 +45,9 @@ export default function ProfessorRoutes() {
               <ProfessorRoom
                 room={room}
                 quiz={quiz}
-                setQuiz={professor.setQuiz}
+                quizReady={professor.quizReady}
+                onStartQuiz={(questionSetId) => void professor.startQuiz(questionSetId)}
+                onStopQuiz={() => void professor.stopQuiz()}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
@@ -58,18 +60,23 @@ export default function ProfessorRoutes() {
             element={
               <QuizResults
                 room={room}
-                quiz={quiz}
+                result={quiz.phase === 'results' ? quiz.result : null}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
                 onNoticeChange={professor.setNotice}
-                onClose={professor.closeResults}
+                onClose={() => void professor.closeResults()}
               />
             }
           />
           <Route path="*" element={<Navigate to="/professor" replace />} />
         </Routes>
       </div>
+      {professor.feedback && (
+        <div role="status" className="professor-layout__feedback">
+          {professor.feedback}
+        </div>
+      )}
       {professor.ending && (
         <EndClassDialog
           roomName={room.name}

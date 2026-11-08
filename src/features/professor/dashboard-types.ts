@@ -31,6 +31,8 @@ export interface RoomQuestionSet extends Omit<QuestionSet, 'id' | 'seconds' | 'q
 }
 
 export interface Room {
+  /** 서버의 수업 ID. 수업 API 연동(#38) 전의 프로토타입 수업에는 없다. */
+  id?: number
   name: string
   code: string
   participants: number
@@ -46,9 +48,3 @@ export interface ChatMessage {
 }
 
 export type DesignScreen = 'home' | 'create' | 'sets' | 'editor' | 'waiting' | 'quiz' | 'results'
-export type QuizState = {
-  phase: 'waiting' | 'running' | 'between' | 'results'
-  index: number
-  remaining: number
-  set: RoomQuestionSet | null
-}

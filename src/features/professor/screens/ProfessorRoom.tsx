@@ -1,10 +1,10 @@
 import './ProfessorRoom.css'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import type { Room, QuizState, ChatMessage } from '../dashboard-types'
-import { initialQuiz, startQuiz } from '../dashboard-quiz'
-import { RoomSetPicker } from '../components/RoomSetPicker'
+import type { ProfessorQuizState } from '../../quiz/professorQuizReducer'
+import type { Room, ChatMessage } from '../dashboard-types'
 import { Icon } from '../components/Icon'
+import { RoomSetPicker } from '../components/RoomSetPicker'
 import { QuizQuestion } from '../components/QuizQuestion'
 import { JoinCode } from '../components/JoinCode'
 import { Reactions } from '../components/Reactions'
@@ -14,15 +14,19 @@ import { Modal } from '../components/Modal'
 export function ProfessorRoom({
   room,
   quiz,
-  setQuiz,
+  quizReady,
+  onStartQuiz,
+  onStopQuiz,
   messages,
   onSend,
   notice,
   onNoticeChange,
 }: {
   room: Room
-  quiz: QuizState
-  setQuiz: (quiz: QuizState) => void
+  quiz: ProfessorQuizState
+  quizReady: boolean
+  onStartQuiz: (questionSetId: number) => void
+  onStopQuiz: () => void
   messages: ChatMessage[]
   onSend: (text: string, reply?: string) => void
   notice: string
@@ -30,11 +34,14 @@ export function ProfessorRoom({
 }) {
   const [choosing, setChoosing] = useState(false)
   const [stopping, setStopping] = useState(false)
+  const waiting = quiz.phase === 'waiting'
+  // 다른 탭의 시작·중단처럼 서버 메시지로 단계가 바뀌면, 이전 단계의 창은 더 이상 쓸 수 없다.
+  useEffect(() => {
+    setChoosing(false)
+    setStopping(false)
+  }, [waiting])
   if (!room.active) return <Navigate to="/professor" replace />
   if (quiz.phase === 'results') return <Navigate to="/professor/room/results" replace />
-  const waiting = quiz.phase === 'waiting'
-  const set = quiz.set
-  const question = set?.questions[quiz.index]
   return (
     <main
       className={`professor-room ${waiting ? 'professor-room--waiting' : 'professor-room--running'}`}
@@ -47,32 +54,30 @@ export function ProfessorRoom({
             <section className="professor-room__set-panel">
               <h2 className="professor-room__set-title">문제 세트</h2>
               <p className="professor-room__set-description">
-                세트를 골라 시작하면 1번부터 자동 진행 · 각 문항의 제한시간 적용
+                세트를 골라 시작하면 1번부터 자동 진행 · 제한시간은 문항별 설정값
               </p>
               <button
                 type="button"
                 onClick={() => setChoosing(true)}
+                disabled={!quizReady}
                 className="professor-room__start-button"
               >
                 <Icon screen="waiting" name="imgFrame3" />
                 퀴즈 시작
               </button>
               <p className="professor-room__set-help">
-                누르면 세트 선택 창이 열립니다 · 한 수업에서 여러 번 가능
+                {quizReady
+                  ? '누르면 세트 선택 창이 열립니다 · 한 수업에서 여러 번 가능'
+                  : '서버의 수업에 연결되면 시작할 수 있습니다'}
               </p>
             </section>
           </>
         ) : (
-          question &&
-          set && (
-            <QuizQuestion
-              quiz={quiz}
-              question={question}
-              set={set}
-              participants={room.participants}
-              onStop={() => setStopping(true)}
-            />
-          )
+          <QuizQuestion
+            quiz={quiz}
+            participants={room.participants}
+            onStop={() => setStopping(true)}
+          />
         )}
       </div>
       <Chat
@@ -86,10 +91,13 @@ export function ProfessorRoom({
       />
       {choosing && (
         <Modal title="출제할 문제 세트 선택" onClose={() => setChoosing(false)}>
-          <RoomSetPicker onSelect={(selected) => {
-            setQuiz(startQuiz(selected))
-            setChoosing(false)
-          }} />
+          {/* 목록·빈 세트·조회 실패 처리는 #63의 선택 창을 그대로 쓰고, 고른 세트 ID로 서버에 시작을 요청한다. */}
+          <RoomSetPicker
+            onSelect={(selected) => {
+              onStartQuiz(selected.id)
+              setChoosing(false)
+            }}
+          />
         </Modal>
       )}
       {stopping && (
@@ -109,7 +117,7 @@ export function ProfessorRoom({
               type="button"
               className="professor-room__stop-button"
               onClick={() => {
-                setQuiz(initialQuiz)
+                onStopQuiz()
                 setStopping(false)
               }}
             >
