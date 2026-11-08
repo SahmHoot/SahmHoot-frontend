@@ -6,13 +6,12 @@ import {
   subscribe,
   useStompStatus,
 } from '../../../shared/stomp'
-import { abortQuiz, closeQuizResults, fetchMyQuestionSets, startQuiz } from '../api'
+import { abortQuiz, closeQuizResults, startQuiz } from '../api'
 import {
   initialProfessorQuiz,
   professorQuizReducer,
   toProfessorQuizMessage,
 } from '../professorQuizReducer'
-import type { QuestionSetSummary } from '../types'
 
 /**
  * 교수 화면의 퀴즈 상태를 서버 메시지와 맞춘다.
@@ -62,16 +61,6 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
 
   const runId = quiz.phase === 'waiting' ? null : quiz.runId
 
-  /** 시작 창에 보여 줄 세트. 실패하면 오류를 알리고 null을 돌려준다. */
-  const loadQuestionSets = useCallback(async (): Promise<QuestionSetSummary[] | null> => {
-    try {
-      return await fetchMyQuestionSets()
-    } catch (error) {
-      onError(toApiError(error).message)
-      return null
-    }
-  }, [onError])
-
   /** 시작·중단·결과 닫기를 보낸다. 버튼을 연달아 눌러도 요청은 한 번에 하나만 나간다. */
   const requesting = useRef(false)
   const send = useCallback(
@@ -91,13 +80,21 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
     [onError],
   )
 
+  const ready = roomId !== null && stompStatus === 'connected'
+
   const start = useCallback(
     async (questionSetId: number) => {
-      if (roomId !== null) {
-        await send(() => startQuiz(roomId, questionSetId))
+      if (roomId === null) {
+        return
       }
+      // 끊긴 채 시작하면 QUESTION_OPENED를 놓쳐 서버만 진행된다. 세트 선택 창이 열린 뒤 끊긴 경우도 막는다.
+      if (!ready) {
+        onError('실시간 연결이 끊겨 시작하지 못했습니다. 연결된 뒤 다시 시도해 주세요.')
+        return
+      }
+      await send(() => startQuiz(roomId, questionSetId))
     },
-    [roomId, send],
+    [roomId, ready, send, onError],
   )
 
   const stop = useCallback(async () => {
@@ -114,8 +111,7 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
 
   return {
     quiz,
-    ready: roomId !== null && stompStatus === 'connected',
-    loadQuestionSets,
+    ready,
     start,
     stop,
     closeResults,

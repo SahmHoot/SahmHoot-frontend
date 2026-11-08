@@ -45,7 +45,6 @@ export function useProfessorDashboard() {
     setNotice,
     quiz: professorQuiz.quiz,
     quizReady: professorQuiz.ready,
-    loadStartableQuestionSets: professorQuiz.loadQuestionSets,
     startQuiz: professorQuiz.start,
     stopQuiz: professorQuiz.stop,
     closeResults: professorQuiz.closeResults,

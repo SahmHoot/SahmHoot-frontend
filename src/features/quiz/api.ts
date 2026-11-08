@@ -1,11 +1,5 @@
 import { apiClient } from '../../shared/api/client'
-import type { QuestionSetSummary, StartQuizResponse } from './types'
-
-/** 내 문제 세트 목록. 퀴즈 시작 창에서 쓴다. */
-export async function fetchMyQuestionSets(): Promise<QuestionSetSummary[]> {
-  const { data } = await apiClient.get<QuestionSetSummary[]>('/question-sets/mine')
-  return data
-}
+import type { StartQuizResponse } from './types'
 
 /** 05 #23 퀴즈 시작. 화면 전환은 응답이 아니라 QUESTION_OPENED 메시지로 한다. */
 export async function startQuiz(roomId: number, questionSetId: number): Promise<StartQuizResponse> {

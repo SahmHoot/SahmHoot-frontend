@@ -1,10 +1,10 @@
 import './ProfessorRoom.css'
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import type { ProfessorQuizState } from '../../quiz/professorQuizReducer'
-import type { QuestionSetSummary } from '../../quiz/types'
 import type { Room, ChatMessage } from '../dashboard-types'
 import { Icon } from '../components/Icon'
+import { RoomSetPicker } from '../components/RoomSetPicker'
 import { QuizQuestion } from '../components/QuizQuestion'
 import { JoinCode } from '../components/JoinCode'
 import { Reactions } from '../components/Reactions'
@@ -15,7 +15,6 @@ export function ProfessorRoom({
   room,
   quiz,
   quizReady,
-  onLoadQuestionSets,
   onStartQuiz,
   onStopQuiz,
   messages,
@@ -26,7 +25,6 @@ export function ProfessorRoom({
   room: Room
   quiz: ProfessorQuizState
   quizReady: boolean
-  onLoadQuestionSets: () => Promise<QuestionSetSummary[] | null>
   onStartQuiz: (questionSetId: number) => void
   onStopQuiz: () => void
   messages: ChatMessage[]
@@ -36,8 +34,6 @@ export function ProfessorRoom({
 }) {
   const [choosing, setChoosing] = useState(false)
   const [stopping, setStopping] = useState(false)
-  /** 시작 창의 세트 목록. null이면 불러오는 중이다. */
-  const [startableSets, setStartableSets] = useState<QuestionSetSummary[] | null>(null)
   const waiting = quiz.phase === 'waiting'
   // 다른 탭의 시작·중단처럼 서버 메시지로 단계가 바뀌면, 이전 단계의 창은 더 이상 쓸 수 없다.
   useEffect(() => {
@@ -46,14 +42,6 @@ export function ProfessorRoom({
   }, [waiting])
   if (!room.active) return <Navigate to="/professor" replace />
   if (quiz.phase === 'results') return <Navigate to="/professor/room/results" replace />
-  const openSetChooser = () => {
-    setChoosing(true)
-    setStartableSets(null)
-    void onLoadQuestionSets().then((sets) => {
-      if (sets) setStartableSets(sets.filter((set) => set.questionCount > 0))
-      else setChoosing(false)
-    })
-  }
   return (
     <main
       className={`professor-room ${waiting ? 'professor-room--waiting' : 'professor-room--running'}`}
@@ -70,7 +58,7 @@ export function ProfessorRoom({
               </p>
               <button
                 type="button"
-                onClick={openSetChooser}
+                onClick={() => setChoosing(true)}
                 disabled={!quizReady}
                 className="professor-room__start-button"
               >
@@ -103,34 +91,13 @@ export function ProfessorRoom({
       />
       {choosing && (
         <Modal title="출제할 문제 세트 선택" onClose={() => setChoosing(false)}>
-          <div className="professor-room__set-choices">
-            {startableSets === null && (
-              <p className="professor-room__empty-message">문제 세트를 불러오는 중입니다.</p>
-            )}
-            {startableSets?.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                disabled={!quizReady}
-                className="professor-room__set-choice"
-                onClick={() => {
-                  onStartQuiz(item.id)
-                  setChoosing(false)
-                }}
-              >
-                <span className="professor-room__choice-name">{item.title}</span>
-                <span className="professor-room__choice-meta">{item.questionCount}문항</span>
-              </button>
-            ))}
-            {startableSets?.length === 0 && (
-              <>
-                <p className="professor-room__empty-message">먼저 문제 세트를 만들어 주세요.</p>
-                <Link to="/professor/sets/new" className="professor-room__create-button">
-                  새 세트 만들기
-                </Link>
-              </>
-            )}
-          </div>
+          {/* 목록·빈 세트·조회 실패 처리는 #63의 선택 창을 그대로 쓰고, 고른 세트 ID로 서버에 시작을 요청한다. */}
+          <RoomSetPicker
+            onSelect={(selected) => {
+              onStartQuiz(selected.id)
+              setChoosing(false)
+            }}
+          />
         </Modal>
       )}
       {stopping && (

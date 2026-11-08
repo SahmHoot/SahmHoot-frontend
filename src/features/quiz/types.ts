@@ -6,16 +6,6 @@
 
 export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE'
 
-/** GET /api/question-sets/mine 항목. */
-export interface QuestionSetSummary {
-  id: number
-  title: string
-  visibility: 'PRIVATE' | 'PUBLIC'
-  questionCount: number
-  used: boolean
-  updatedAt: string
-}
-
 /** POST /api/rooms/{roomId}/quiz-runs 응답. 문제 내용은 QUESTION_OPENED로 받는다. */
 export interface StartQuizResponse {
   runId: number

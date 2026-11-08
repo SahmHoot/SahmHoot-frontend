@@ -46,7 +46,6 @@ export default function ProfessorRoutes() {
                 room={room}
                 quiz={quiz}
                 quizReady={professor.quizReady}
-                onLoadQuestionSets={professor.loadStartableQuestionSets}
                 onStartQuiz={(questionSetId) => void professor.startQuiz(questionSetId)}
                 onStopQuiz={() => void professor.stopQuiz()}
                 messages={messages}
