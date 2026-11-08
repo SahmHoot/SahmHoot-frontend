@@ -14,7 +14,7 @@ export function QuizSetEditor() {
   const navigate = useNavigate()
   const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
-    serverDraft, restore, useServer } = useQuestionSetEditor(setId, () => navigate('/professor/sets', { replace: true }))
+    serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => navigate('/professor/sets', { replace: true }))
   const [cancelling, setCancelling] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
   const dragId = useRef<string | null>(null)
@@ -24,7 +24,7 @@ export function QuizSetEditor() {
   )
   const question = draft.questions[selectedIndex]
   const blocked = saving || Boolean(recovery && !recoveryResolved)
-  const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload ? null : serverDraft}
+  const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload || creationUnknown ? null : serverDraft}
     resolved={recoveryResolved} disabled={saving || loading} onRestore={restore} onUseServer={useServer} />
   const update = (patch: Partial<EditorQuestion>) =>
     setDraft((current) => ({
@@ -39,6 +39,14 @@ export function QuizSetEditor() {
         <h1 className="quiz-set-editor__not-found-title">문제 세트 편집</h1>
         {loading ? <p role="status">문제 세트를 불러오는 중입니다.</p> : <p role="alert" className="quiz-set-editor__error">{error}</p>}
         {recoveryPanel}
+        {creationUnknown && <>
+          <button type="button" disabled={saving} onClick={() => void checkCreation()} className="quiz-set-editor__back-button">생성 결과 다시 확인</button>
+          <p>후보 내용을 확인한 뒤 생성된 세트를 선택해 주세요. 다른 세트일 수 있으므로 자동으로 연결하지 않습니다.</p>
+          {creationCandidates.map((item) => <div key={item.id}>
+            <Link to={`/professor/sets/${item.id}`}>{item.title} (#{item.id}) 확인</Link>
+            <button type="button" disabled={saving} onClick={() => selectCreatedSet(item.id)}>이 세트에 초안 연결</button>
+          </div>)}
+        </>}
         {!loading && !creationUnknown && (
           <button type="button" onClick={reload} className="quiz-set-editor__back-button">다시 불러오기</button>
         )}
@@ -97,9 +105,10 @@ export function QuizSetEditor() {
         </div>
       </div>
       <label className="quiz-set-editor__description-label" htmlFor="set-description">세트 설명</label>
-      <textarea id="set-description" value={draft.description}
+      <textarea id="set-description" value={draft.description} maxLength={1000} aria-describedby="set-description-help"
         onChange={(event) => setDraft({ ...draft, description: event.target.value })}
         className="quiz-set-editor__description-input" placeholder="세트 설명을 입력하세요 (선택)" />
+      <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
       {draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
       {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
       {error && (

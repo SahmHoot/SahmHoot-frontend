@@ -28,6 +28,7 @@ function fakeApi() {
     calls.push([method, ...plain(args)])
     return { id: method === 'updateQuestion' ? args[1] : ++id }
   }]))
+  client.getMyQuestionSets = async () => []
   return { client, calls }
 }
 
@@ -167,7 +168,8 @@ test('문항 생성 응답 유실 시 재조회 전 saveEditor가 후속 POST를
 })
 
 // 기존 의존성만으로 실제 편집기 훅을 실행한다. API·라우터 경계만 대체한다.
-function editorHarness(routeId, client, state = null, userId = 63) {
+let harnessUserId = 63000
+function editorHarness(routeId, client, state = null, userId = ++harnessUserId) {
   const slots = []
   let index = 0
   let effects = []
@@ -462,4 +464,192 @@ test('저장 오류 복구 GET의 401도 초안을 보존하고 로그인 이동
   assert.equal(state.recovery.draft.name, '복구 GET 이전 초안')
   state.restore()
   assert.equal(returned.render().draft.name, '복구 GET 이전 초안')
+})
+
+test('설명은 공백 포함 원문 기준 1000 UTF-16 단위까지 허용하고 그대로 전송한다', async () => {
+  for (const description of ['가'.repeat(1000), 'a'.repeat(1000), '😀'.repeat(500), ' '.repeat(1000)]) {
+    const value = { ...draft(), description }
+    assert.equal(model.validateDraft(value), null)
+    assert(model.validateDraft({ ...value, description: description + '가' }))
+    const { client, calls } = fakeApi()
+    await saveEditor(value, { questionIds: [], creating: false }, client)
+    assert.equal(calls[0][1].description, description)
+  }
+})
+
+for (const status of [400, 405, 429, 500]) test(`세트 POST ${status}: 초안 보존, 목록 왕복, 명시적 복원 후 재시도`, async () => {
+  const { client, calls } = fakeApi()
+  const create = client.createQuestionSet
+  client.createQuestionSet = async () => { calls.push(['failedCreate']); throw Object.assign(new Error('HTTP 실패'), { status }) }
+  const userId = ++harnessUserId
+  const editor = editorHarness('new', client, null, userId)
+  const submitted = { ...draft(), description: '가'.repeat(1000) }
+  editor.render().setDraft(submitted)
+  await editor.render().save()
+  const failed = editor.render()
+  assert.equal(failed.creationUnknown, false)
+  assert.equal(failed.recovery.draft.description, submitted.description)
+  assert.match(failed.error, /HTTP 실패/)
+  assert.equal(calls.length, 1)
+  // 목록을 방문한 뒤 state 없이 동일 편집기로 돌아온다.
+  const returned = editorHarness('new', client, null, userId)
+  let state = returned.render()
+  assert.equal(state.recovery.draft.description, submitted.description)
+  state.restore()
+  state = returned.render()
+  client.createQuestionSet = create
+  client.getQuestionSet = async () => detailOf([question(102)])
+  await state.save()
+  assert.equal(returned.finished, 1)
+  assert.equal(calls.filter(([name]) => name === 'createQuestionSet').length, 1)
+})
+
+for (const status of [0, 502, 504]) test(`세트 POST ${status}: 결과 불명은 목록 조회만 허용하고 재POST하지 않는다`, async () => {
+  const { client, calls } = fakeApi()
+  client.createQuestionSet = async () => { calls.push(['create']); throw Object.assign(new Error('결과 불명'), { status }) }
+  const userId = ++harnessUserId
+  const editor = editorHarness('new', client, null, userId)
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  let state = editor.render()
+  assert.equal(state.creationUnknown, true)
+  await state.checkCreation()
+  state = editor.render()
+  assert.equal(state.creationUnknown, true)
+  // 초기 빈 초안을 서버 상태로 오인해 보관 초안을 삭제하거나 복원하지 않는다.
+  state.restore()
+  state.useServer()
+  assert.equal(editor.render().recoveryResolved, false)
+  assert.equal(recovery.interruptedDraft(userId, 'new').draft.name, '세트')
+  await state.save()
+  const returned = editorHarness('new', client, null, userId)
+  assert.equal(returned.render().recovery.draft.name, '세트')
+  await returned.render().save()
+  assert.equal(calls.length, 1)
+})
+
+test('세트 POST 500: 커밋 후보가 있으면 자동 연결/재생성하지 않고 사용자가 선택한다', async () => {
+  const { client, calls } = fakeApi()
+  let committed = false
+  client.getMyQuestionSets = async () => committed ? [{ id: 201, title: '세트' }] : []
+  client.createQuestionSet = async () => { committed = true; calls.push(['create']); throw Object.assign(new Error('500'), { status: 500 }) }
+  const editor = editorHarness('new', client)
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  let state = editor.render()
+  assert.equal(state.creationUnknown, true)
+  assert.equal(state.creationCandidates[0].id, 201)
+  await state.save()
+  assert.equal(calls.length, 1)
+  state.selectCreatedSet(201)
+  assert.equal(editor.navigations.at(-1).path, '/professor/sets/201')
+  assert.equal(editor.navigations.at(-1).options.state.questionSetRecovery.draft.name, '세트')
+})
+
+test('세트 POST 500: 재조회 실패 후 확인 버튼으로 복구하고 초안을 유지한다', async () => {
+  const { client } = fakeApi()
+  let reads = 0
+  client.getMyQuestionSets = async () => { if (++reads === 2) throw new Error('조회 실패'); return [] }
+  client.createQuestionSet = async () => { throw Object.assign(new Error('500'), { status: 500 }) }
+  const editor = editorHarness('new', client)
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  assert.equal(editor.render().creationUnknown, true)
+  await editor.render().checkCreation()
+  assert.equal(editor.render().creationUnknown, false)
+  assert.equal(editor.render().draft.name, '세트')
+})
+
+for (const committed of [false, true]) test(`문항 POST 500: 커밋 ${committed} 재조회로 확인하며 중복을 방지한다`, async () => {
+  const { client, calls } = fakeApi()
+  let failed = false
+  client.getQuestionSet = async () => detailOf(failed && committed ? [question(202)] : [])
+  client.addQuestion = async () => { failed = true; calls.push(['failedQuestion']); throw Object.assign(new Error('500'), { status: 500 }) }
+  const editor = editorHarness('101', client)
+  await editor.settle()
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  let state = editor.render()
+  assert.equal(Boolean(state.recovery.uncertainQuestionId), committed)
+  assert.equal(state.recovery.draft.questions[0].prompt, '문제')
+  state.restore()
+  state = editor.render()
+  assert.equal(state.recoveryResolved, !committed)
+  if (committed) {
+    state.useServer()
+    state = editor.render()
+    assert.equal(state.draft.questions[0].serverId, 202)
+  }
+  client.addQuestion = async () => { calls.push(['retryQuestion']); return { id: 203 } }
+  client.getQuestionSet = async () => detailOf([question(committed ? 202 : 203)])
+  await state.save()
+  assert.equal(editor.finished, 1)
+  assert.equal(calls.filter(([name]) => name === 'retryQuestion').length, committed ? 0 : 1)
+})
+
+for (const status of [0, 502, 504]) test(`문항 POST ${status}: 재조회에 항목이 없어도 결과 불명을 유지한다`, async () => {
+  const { client, calls } = fakeApi()
+  client.getQuestionSet = async () => detailOf([])
+  client.addQuestion = async () => { calls.push(['post']); throw Object.assign(new Error('불명'), { status }) }
+  const editor = editorHarness('101', client)
+  await editor.settle()
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  const state = editor.render()
+  assert(state.recovery.uncertainQuestionId)
+  state.restore()
+  await editor.render().save()
+  assert.equal(calls.filter(([name]) => name === 'post').length, 1)
+})
+
+test('1001자 설명은 훅에서도 API 호출 전에 거절하고 입력을 유지한다', async () => {
+  const { client, calls } = fakeApi()
+  let reads = 0
+  client.getMyQuestionSets = async () => { reads++; return [] }
+  const editor = editorHarness('new', client)
+  editor.render().setDraft({ ...draft(), description: '가'.repeat(1001) })
+  await editor.render().save()
+  assert.equal(editor.render().draft.description.length, 1001)
+  assert.match(editor.render().error, /1000/)
+  assert.equal(reads, 0)
+  assert.equal(calls.length, 0)
+})
+
+test('문항 500 뒤 상세 조회 실패도 나중에 재조회하면 초안을 복원할 수 있다', async () => {
+  const { client } = fakeApi()
+  let failed = false
+  let readFails = true
+  client.getQuestionSet = async () => {
+    if (failed && readFails) throw new Error('조회 실패')
+    return detailOf([])
+  }
+  client.addQuestion = async () => { failed = true; throw Object.assign(new Error('500'), { status: 500 }) }
+  const editor = editorHarness('101', client)
+  await editor.settle()
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  assert.equal(editor.render().needsReload, true)
+  readFails = false
+  editor.render().reload()
+  let state = await editor.settle()
+  assert.equal(state.recovery.uncertainQuestionId, undefined)
+  state.restore()
+  assert.equal(editor.render().recoveryResolved, true)
+  assert.equal(editor.render().draft.questions[0].prompt, '문제')
+})
+
+test('세트 500 검증 GET의 401은 로그인 이동을 덮어쓰지 않고 초안을 보존한다', async () => {
+  const { client } = fakeApi()
+  const userId = ++harnessUserId
+  let reads = 0
+  client.getMyQuestionSets = async () => {
+    if (++reads > 1) throw Object.assign(new Error('로그인 필요'), { status: 401 })
+    return []
+  }
+  client.createQuestionSet = async () => { throw Object.assign(new Error('500'), { status: 500 }) }
+  const editor = editorHarness('new', client, null, userId)
+  editor.render().setDraft(draft())
+  await editor.render().save()
+  assert.equal(editor.navigations.length, 0)
+  assert.equal(recovery.interruptedDraft(userId, 'new').draft.name, '세트')
 })

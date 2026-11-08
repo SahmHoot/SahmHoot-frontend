@@ -18,8 +18,9 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const { user } = useAuth()
   const [initialRecovery] = useState(() => isNew || validId ? interruptedDraft(user?.id, routeId)
     ?? recoveryFromRoute(location.state, validId ? Number(routeId) : undefined) : null)
+  const [creationCandidates, setCreationCandidates] = useState<Awaited<ReturnType<typeof api.getMyQuestionSets>>>([])
   const existing = !isNew || initialRecovery?.setId !== undefined
-  const [draft, setDraft] = useState<EditorDraft>(() => ({ name: '', description: '', isPublic: false, questions: [newQuestion()] }))
+  const [draft, setDraft] = useState<EditorDraft>(() => initialRecovery && !existing ? structuredClone(initialRecovery.draft) : ({ name: '', description: '', isPublic: false, questions: [newQuestion()] }))
   const [selectedId, setSelectedId] = useState(draft.questions[0]?.id ?? '')
   const [loading, setLoading] = useState(existing)
   const [saving, setSaving] = useState(false)
@@ -41,6 +42,12 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     checkpoint.current.questionIds = detail.questions.map((question) => question.id)
     checkpoint.current.visibility = detail.visibility
     checkpoint.current.pendingQuestionId = undefined
+    setRecovery((current) => {
+      if (!current?.confirmedQuestionFailure) return current
+      const knownIds = new Set([...current.originalQuestionIds, ...Object.values(current.createdIds)])
+      return detail.questions.some((question) => !knownIds.has(question.id)) ? current
+        : { ...current, uncertainQuestionId: undefined }
+    })
     setServerDraft(next)
     setDraft(next)
     setSelectedId(next.questions[0]?.id ?? '')
@@ -86,9 +93,13 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     const originalQuestionIds = [...checkpoint.current.questionIds]
     let recovered: EditorRecovery | undefined
     let complete = false
+    let creationBaseline: number[] | undefined
     setSaving(true)
     setError('')
     try {
+      if (checkpoint.current.setId === undefined) {
+        creationBaseline = (await api.getMyQuestionSets()).map((item) => item.id)
+      }
       const savedId = await saveEditor(submitted, checkpoint.current, api)
       // 최종 상세 조회까지 완료된 뒤 이동한다.
       install(await api.getQuestionSet(savedId))
@@ -98,7 +109,8 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
       const failure = api.toQuestionSetApiError(cause)
       const fields = failure.fieldErrors?.map((field) => field.message).join(' ') ?? ''
       const message = `${failure.message} ${fields}`.trim()
-      const rejected = [400, 401, 403, 404, 409, 422].includes(failure.status)
+      const rejected = failure.status >= 400 && failure.status < 500
+      const confirmedFailure = rejected || failure.status === 500
       if (rejected) checkpoint.current.pendingQuestionId = undefined
       if (failure.status === 401) {
         // AuthProvider가 이미 편집기를 언마운트했어도 보존한다.
@@ -113,11 +125,18 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
       }
       if (checkpoint.current.setId !== undefined) {
         recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        recovered.confirmedQuestionFailure = confirmedFailure
         setRecovery(recovered)
         setRecoveryResolved(false)
         setNeedsReload(true)
         try {
-          install(await api.getQuestionSet(checkpoint.current.setId))
+          const detail = await api.getQuestionSet(checkpoint.current.setId)
+          // 500도 커밋 후 오류일 수 있다. 알 수 없는 새 ID가 없을 때만 재생성을 허용한다.
+          const knownIds = new Set([...originalQuestionIds, ...Object.values(checkpoint.current.createdIds ?? {})])
+          if (confirmedFailure && !detail.questions.some((question) => !knownIds.has(question.id))) {
+            recovered.uncertainQuestionId = undefined
+          }
+          install(detail)
           setError(`${message} 서버 상태를 다시 불러왔습니다. 저장 전 초안은 별도로 보관했습니다. 내용을 비교하고 복구 방법을 선택해 주세요.`)
         } catch (reloadCause: unknown) {
           if (api.toQuestionSetApiError(reloadCause).status === 401) {
@@ -126,19 +145,46 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
           }
           setError(`${message} 서버 상태를 확인하지 못했습니다. 재조회 후 다시 편집할 수 있습니다.`)
         }
-      } else if (rejected) {
+      } else if (rejected || !checkpoint.current.creating) {
         checkpoint.current.creating = false
+        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        setRecovery(recovered)
+        setRecoveryResolved(true)
         setError(message)
       } else {
         recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        recovered.creationBaseline = creationBaseline
+        recovered.creationFailed = failure.status === 500
         setRecovery(recovered)
         setCreationUnknown(true)
-        setError('세트 생성 결과를 확인할 수 없습니다. 중복 생성을 막기 위해 자동 재시도와 재저장을 중단했습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.')
+        if (failure.status === 500) {
+          try {
+            const candidates = (await api.getMyQuestionSets()).filter((item) => !creationBaseline?.includes(item.id))
+            setCreationCandidates(candidates)
+            if (creationBaseline && candidates.length === 0) {
+              checkpoint.current.creating = false
+              recovered.creationUnknown = false
+              setCreationUnknown(false)
+              setRecoveryResolved(true)
+            }
+          } catch (reloadCause: unknown) {
+            if (api.toQuestionSetApiError(reloadCause).status === 401) {
+              rememberInterruptedDraft(user?.id, routeId, recovered)
+              return
+            }
+            // 재조회 실패 시 확인 버튼으로 다시 조회한다.
+          }
+        }
+        setError(`${message} 초안을 보관했습니다. 생성 후보가 있으면 내용을 확인하여 선택해 주세요. 새 세트가 없다고 확인된 500 실패는 다시 저장할 수 있습니다.`)
       }
     } finally {
       await unlock()
       working.current = false
       setSaving(false)
+    }
+    if (recovered) {
+      rememberInterruptedDraft(user?.id, routeId, recovered)
+      rememberInterruptedDraft(user?.id, String(recovered.setId ?? 'new'), recovered)
     }
     if (!mounted.current) return
     if (complete) onSaved()
@@ -148,6 +194,33 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     }
   }
 
+  const checkCreation = async () => {
+    if (working.current || !recovery) return
+    working.current = true
+    setSaving(true)
+    try {
+      const candidates = (await api.getMyQuestionSets()).filter((item) => !recovery.creationBaseline?.includes(item.id))
+      setCreationCandidates(candidates)
+      if (recovery.creationFailed && recovery.creationBaseline && candidates.length === 0) {
+        checkpoint.current.creating = false
+        const next = { ...recovery, creationUnknown: false }
+        setRecovery(next)
+        setCreationUnknown(false)
+        setDraft(structuredClone(recovery.draft))
+        setRecoveryResolved(true)
+        rememberInterruptedDraft(user?.id, routeId, next)
+        setError('서버에 새 세트가 없음을 확인했습니다. 초안을 확인한 뒤 다시 저장해 주세요.')
+      }
+    } catch (cause: unknown) { setError(api.toQuestionSetApiError(cause).message) }
+    finally { working.current = false; setSaving(false) }
+  }
+  const selectCreatedSet = (id: number) => {
+    if (working.current || !recovery || !creationCandidates.some((item) => item.id === id)) return
+    const next = { ...recovery, setId: id, creationUnknown: false }
+    rememberInterruptedDraft(user?.id, routeId, next)
+    rememberInterruptedDraft(user?.id, String(id), next)
+    navigate(recoveryPath(next), { replace: true, state: { questionSetRecovery: next } })
+  }
   const reload = () => {
     if (working.current) return
     setLoading(true)
@@ -155,7 +228,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setLoadAttempt((attempt) => attempt + 1)
   }
   const restore = () => {
-    if (working.current || !recovery || !serverDraft || needsReload) return
+    if (working.current || !recovery || !serverDraft || needsReload || creationUnknown) return
     const plan = planRecovery(recovery, serverDraft)
     if (!plan.restored) return
     setDraft(plan.restored)
@@ -163,12 +236,12 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setRecoveryResolved(true)
   }
   const useServer = () => {
-    if (working.current || !serverDraft || needsReload) return
+    if (working.current || !serverDraft || needsReload || creationUnknown) return
     setDraft(structuredClone(serverDraft))
     setSelectedId(serverDraft.questions[0]?.id ?? '')
     setRecoveryResolved(true)
     forgetInterruptedDraft(user?.id, routeId)
   }
   return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError,
-    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer }
+    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet }
 }

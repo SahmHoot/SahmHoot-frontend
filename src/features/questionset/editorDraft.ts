@@ -48,6 +48,8 @@ export function questionRequest(question: EditorQuestion): QuestionWriteRequest 
 
 export function validateDraft(draft: EditorDraft): { message: string; questionId?: string } | null {
   if (!draft.name.trim() || draft.name.length > 50) return { message: '세트 이름은 1~50자로 입력해 주세요.' }
+  // textarea와 같은 UTF-16 길이로 전송할 원문(공백 포함)을 검증한다.
+  if (draft.description.length > 1000) return { message: '세트 설명은 1000자 이하로 입력해 주세요.' }
   for (const [index, question] of draft.questions.entries()) {
     let message = ''
     if (!question.prompt.trim() || question.prompt.length > 500) message = '문제 내용은 1~500자로 입력해 주세요.'

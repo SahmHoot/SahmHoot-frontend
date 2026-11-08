@@ -3,6 +3,9 @@ import { questionRequest } from './editorDraft'
 import type { SaveCheckpoint } from './saveEditor'
 
 export interface EditorRecovery {
+  confirmedQuestionFailure?: boolean
+  creationBaseline?: number[]
+  creationFailed?: boolean
   version: 1
   setId?: number
   draft: EditorDraft
@@ -12,7 +15,7 @@ export interface EditorRecovery {
   creationUnknown: boolean
 }
 
-// 401의 로그인 이동은 route state를 버린다. 같은 탭의 재로그인 동안만,
+// 목록 이동이나 401의 로그인 이동은 route state를 버릴 수 있다. 같은 탭에서,
 // 계정별로 초안을 보관하며 토큰이나 인증 저장소에는 접근하지 않는다.
 const interruptedDrafts = new Map<string, EditorRecovery>()
 
@@ -25,6 +28,12 @@ export function rememberInterruptedDraft(userId: number | undefined, routeId: st
 }
 
 export function forgetInterruptedDraft(userId: number | undefined, routeId: string | undefined): void {
+  const saved = interruptedDraft(userId, routeId)
+  if (saved?.setId !== undefined) {
+    for (const [key, value] of interruptedDrafts) {
+      if (key.startsWith(`${userId}:`) && value.setId === saved.setId) interruptedDrafts.delete(key)
+    }
+  }
   interruptedDrafts.delete(`${userId}:${routeId}`)
 }
 
