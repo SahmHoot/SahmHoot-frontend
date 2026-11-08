@@ -36,6 +36,7 @@ interface Registration {
   destination: string
   handler: MessageHandler
   subscription?: StompSubscription
+  onReady?: () => void
 }
 
 const ERRORS_DESTINATION = '/user/queue/errors'
@@ -49,6 +50,7 @@ let config: StompConfig | null = null
 let client: Client | null = null
 let status: StompStatus = 'idle'
 let nextId = 0
+let nextReceipt = 0
 
 const registrations = new Map<number, Registration>()
 const statusListeners = new Set<(status: StompStatus) => void>()
@@ -84,10 +86,17 @@ export async function disconnectStomp(): Promise<void> {
 /**
  * 목적지를 구독한다. 재연결하면 자동으로 다시 구독한다.
  * 돌려받은 함수를 부르면 구독을 해제한다.
+ *
+ * onReady를 넘기면 SUBSCRIBE에 receipt 헤더를 붙이고, 서버가 구독을 등록했다는 RECEIPT를 받을 때마다
+ * (연결·재연결마다 한 번) 부른다. 서버가 RECEIPT를 보내지 않으면 불리지 않는다.
  */
-export function subscribe(destination: string, handler: MessageHandler): () => void {
+export function subscribe(
+  destination: string,
+  handler: MessageHandler,
+  onReady?: () => void,
+): () => void {
   const id = nextId++
-  const registration: Registration = { destination, handler }
+  const registration: Registration = { destination, handler, onReady }
   registrations.set(id, registration)
   if (client?.connected) {
     attach(client, registration)
@@ -195,9 +204,24 @@ function createClient(cfg: StompConfig): Client {
 }
 
 function attach(target: Client, registration: Registration): void {
-  registration.subscription = target.subscribe(registration.destination, (message) =>
-    registration.handler(parse(message), message),
+  const { onReady } = registration
+  const headers: Record<string, string> = {}
+  if (onReady) {
+    const receipt = `sub-${nextReceipt++}`
+    headers.receipt = receipt
+    target.watchForReceipt(receipt, () => {
+      // 그사이 구독을 해제했거나 다시 연결했으면 이 RECEIPT는 지난 구독의 것이다.
+      if (client === target && registration.subscription === subscription) {
+        onReady()
+      }
+    })
+  }
+  const subscription = target.subscribe(
+    registration.destination,
+    (message) => registration.handler(parse(message), message),
+    headers,
   )
+  registration.subscription = subscription
 }
 
 async function stopUnauthorized(target: Client): Promise<void> {
