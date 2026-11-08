@@ -65,7 +65,15 @@
 }
 
 .quiz-set-list__delete-button {
-  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50;
+  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.quiz-set-list__retry-button {
+  @apply mt-3 rounded-xl border border-hoot-border px-3 py-2 font-semibold text-hoot-primary hover:bg-hoot-soft;
+}
+
+.quiz-set-list__error {
+  @apply mt-3 text-sm text-hoot-danger;
 }
 
 .quiz-set-list__empty {
