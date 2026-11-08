@@ -2,11 +2,14 @@ import type { ChatMessage, Question, QuestionSet, Room } from './dashboard-types
 
 export const demoNotice = '교재 42쪽 예제 먼저 보세요'
 
-export const demoRoom: Room = {
-  name: '자료구조 3주차',
-  code: '482193',
-  participants: 32,
-  active: true,
+/** 고른 방이 없을 때. 수업 화면은 active가 false면 교수 홈으로 돌아간다. */
+export const noRoom: Room = {
+  id: null,
+  name: '',
+  code: '',
+  joinUrl: null,
+  participants: 0,
+  active: false,
 }
 
 const stackQuestions: Question[] = [

@@ -16,8 +16,12 @@ export interface QuestionSet {
 }
 
 export interface Room {
+  /** 서버 방 ID. 고른 방이 없으면 null. */
+  id: number | null
   name: string
   code: string
+  /** 개설 응답의 입장 주소. 목록에서 연 방은 응답에 없어서 null. */
+  joinUrl: string | null
   participants: number
   active: boolean
 }

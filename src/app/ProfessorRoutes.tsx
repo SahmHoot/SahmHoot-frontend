@@ -22,7 +22,7 @@ export default function ProfessorRoutes() {
       <Header room={room} quiz={quiz} onEnd={() => professor.setEnding(true)} />
       <div id="professor-content" tabIndex={-1}>
         <Routes>
-          <Route index element={<ProfessorHome room={room} />} />
+          <Route index element={<ProfessorHome onOpen={professor.openRoom} />} />
           <Route
             path="create"
             element={<CreateRoom room={room} onCreate={professor.createRoom} />}
@@ -81,7 +81,9 @@ export default function ProfessorRoutes() {
       {professor.ending && (
         <EndClassDialog
           roomName={room.name}
-          onCancel={() => professor.setEnding(false)}
+          pending={professor.endPending}
+          error={professor.endError}
+          onCancel={professor.cancelEnding}
           onConfirm={professor.endRoom}
         />
       )}

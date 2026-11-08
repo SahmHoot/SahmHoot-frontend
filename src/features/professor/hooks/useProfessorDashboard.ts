@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { demoMessages, demoNotice, demoRoom } from '../dashboard-data'
+import { toApiError } from '../../auth/api'
+import { closeRoom, createRoom as requestCreateRoom } from '../../room/api'
+import type { RoomSummaryResponse } from '../../room/room.types'
+import { demoMessages, demoNotice, noRoom } from '../dashboard-data'
 import type { Room, QuestionSet, ChatMessage, QuizState } from '../dashboard-types'
 import { initialQuiz } from '../dashboard-quiz'
 import { loadQuestionSets, storageKey } from '../dashboard-storage'
@@ -9,12 +12,14 @@ import { loadQuestionSets, storageKey } from '../dashboard-storage'
 export function useProfessorDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [room, setRoom] = useState<Room>(demoRoom)
+  const [room, setRoom] = useState<Room>(noRoom)
   const [sets, setSets] = useState<QuestionSet[]>(loadQuestionSets)
   const [messages, setMessages] = useState<ChatMessage[]>(demoMessages)
   const [notice, setNotice] = useState(demoNotice)
   const [quiz, setQuiz] = useState<QuizState>(initialQuiz)
   const [ending, setEnding] = useState(false)
+  const [endPending, setEndPending] = useState(false)
+  const [endError, setEndError] = useState('')
   const [feedback, setFeedback] = useState('')
   const quizRoute =
     location.pathname === '/professor/room' || location.pathname === '/professor/room/'
@@ -60,11 +65,32 @@ export function useProfessorDashboard() {
       ...current,
       { id: crypto.randomUUID(), author: '강현민 교수', professor: true, text, reply },
     ])
-  const createRoom = (name: string) => {
-    setRoom({ name, code: demoRoom.code, participants: 0, active: true })
+  /** 서버에 방을 만든다. 실패하면 오류를 그대로 던져 개설 화면이 안내한다. */
+  const createRoom = async (title: string) => {
+    const created = await requestCreateRoom(title)
+    setRoom({
+      id: created.id,
+      name: created.title,
+      code: created.joinCode,
+      joinUrl: created.joinUrl,
+      participants: 0,
+      active: true,
+    })
     setQuiz(initialQuiz)
     setMessages([])
     setNotice(demoNotice)
+  }
+  const openRoom = (summary: RoomSummaryResponse) => {
+    setRoom({
+      id: summary.id,
+      name: summary.title,
+      code: summary.joinCode,
+      joinUrl: null,
+      participants: summary.onlineCount,
+      active: true,
+    })
+    setQuiz(initialQuiz)
+    navigate('/professor/room')
   }
   const deleteSet = (id: string) => saveSets(sets.filter((set) => set.id !== id))
   const saveSet = (set: QuestionSet) => {
@@ -77,8 +103,26 @@ export function useProfessorDashboard() {
     setQuiz(initialQuiz)
     navigate('/professor/room')
   }
-  const endRoom = () => {
-    setRoom({ ...room, active: false })
+  const cancelEnding = () => {
+    if (endPending) return
+    setEnding(false)
+    setEndError('')
+  }
+  const endRoom = async () => {
+    if (endPending) return
+    if (room.id !== null) {
+      setEndPending(true)
+      setEndError('')
+      try {
+        await closeRoom(room.id)
+      } catch (error) {
+        setEndError(toApiError(error).message)
+        return
+      } finally {
+        setEndPending(false)
+      }
+    }
+    setRoom(noRoom)
     setQuiz(initialQuiz)
     setEnding(false)
     navigate('/professor')
@@ -93,9 +137,13 @@ export function useProfessorDashboard() {
     setQuiz,
     ending,
     setEnding,
+    endPending,
+    endError,
+    cancelEnding,
     feedback,
     editorKey: location.pathname,
     createRoom,
+    openRoom,
     deleteSet,
     saveSet,
     sendMessage,

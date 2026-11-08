@@ -2,6 +2,13 @@ import "./JoinCode.css";
 import type { Room } from "../dashboard-types";
 import { Icon } from "./Icon";
 
+/** 화면에 보일 입장 주소. 개설 응답의 주소를 쓰고, 목록에서 연 방은 이 앱의 /join 경로로 만든다. */
+function joinAddress(room: Room): string {
+  if (!room.code) return "";
+  const url = room.joinUrl ?? `${window.location.origin}/join/${room.code}`;
+  return url.replace(/^https?:\/\//, "");
+}
+
 export function JoinCode({
   room,
   variant,
@@ -13,6 +20,7 @@ export function JoinCode({
 }) {
   const large = variant === "waiting";
   const create = variant === "create";
+  const address = joinAddress(room);
   return (
     <section
       aria-label="수업 입장 정보"
@@ -24,7 +32,7 @@ export function JoinCode({
         <Icon
           screen={variant}
           name="imgFrame2"
-          alt={`입장 코드 ${room.code} 수업 QR 코드`}
+          alt={room.code ? `입장 코드 ${room.code} 수업 QR 코드` : "수업 QR 코드 자리"}
         />
       </div>
       <div className="join-code__details">
@@ -36,9 +44,9 @@ export function JoinCode({
         <p
           className={`join-code__label ${large || create ? "join-code__label--large" : "join-code__label--compact"}`}
         >
-          입장 코드 <span className="join-code__code">{room.code}</span>
+          입장 코드 <span className="join-code__code">{room.code || "------"}</span>
         </p>
-        <p className="join-code__url">sahmhoot.app/join/{room.code}</p>
+        {address && <p className="join-code__url">{address}</p>}
       </div>
     </section>
   );
