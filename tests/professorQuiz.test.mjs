@@ -86,6 +86,18 @@ test('중복·늦은·다른 회차 메시지는 이미 지난 단계로 되돌�
   assert.equal(quiz.professorQuizReducer(first, { kind: 'reset' }), quiz.initialProfessorQuiz)
 })
 
+test('이전 회차의 늦은 열림·결과 메시지는 다음 회차 화면을 되돌리지 않는다', () => {
+  const nextRun = run(quiz.initialProfessorQuiz, open(1, 8, 500), closed(500), open(2, 8, 501))
+  assert.equal(nextRun.runId, 8)
+  assert.equal(run(nextRun, open(1, 7, 100)), nextRun, '이전 회차의 열림은 무시한다')
+  assert.equal(run(nextRun, finished(7)), nextRun, '이전 회차의 결과는 무시한다')
+  const results = run(nextRun, finished(8))
+  assert.equal(run(results, finished(7)), results, '결과를 보는 중에도 이전 회차의 결과는 무시한다')
+  assert.equal(run(results, open(1, 7, 100)), results)
+  assert.equal(run(results, open(1, 9, 600)).runId, 9, '더 새로운 회차는 받아들인다')
+  assert.equal(run(quiz.initialProfessorQuiz, finished(7)).runId, 7, '대기 중에는 기준이 없어 그대로 받는다')
+})
+
 test('모르는 메시지는 무시한다', () => {
   for (const body of [{ type: 'REACTION_STATS' }, { type: 'ROOM_ENDED' }, 'x', null]) {
     assert.equal(quiz.toProfessorQuizMessage(body), null)

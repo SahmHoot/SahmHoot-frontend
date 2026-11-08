@@ -106,6 +106,10 @@ export function professorQuizReducer(
       }
 
     case 'QUIZ_FINISHED':
+      // 이미 다음 회차를 보고 있는데 이전 회차의 늦은 결과가 오면 되돌아가지 않는다.
+      if (state.phase !== 'waiting' && message.runId < state.runId) {
+        return state
+      }
       if (state.phase === 'results' && state.runId === message.runId) {
         return state
       }
@@ -131,9 +135,18 @@ export function professorQuizReducer(
   }
 }
 
-/** 같은 회차에서 이미 지나간 문항이거나, 결과까지 끝난 회차의 늦은 메시지인지 확인한다. */
+/**
+ * 이미 지나간 문항이거나, 결과까지 끝난 회차의 늦은 메시지이거나, 현재보다 이전 회차의 메시지인지 확인한다.
+ * 회차 ID는 늘어나기만 하므로 현재보다 작으면 이전 회차다.
+ */
 function isStaleOpen(state: ProfessorQuizState, message: QuestionOpenedMessage): boolean {
-  if (state.phase === 'waiting' || state.runId !== message.runId) {
+  if (state.phase === 'waiting') {
+    return false
+  }
+  if (message.runId < state.runId) {
+    return true
+  }
+  if (state.runId !== message.runId) {
     return false
   }
   return state.phase === 'results' || message.questionNo <= state.questionNo
