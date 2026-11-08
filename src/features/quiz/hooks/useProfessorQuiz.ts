@@ -17,6 +17,9 @@ import {
 import { compareServerTime } from '../serverClock'
 import type { ProfessorQuizMessage } from '../types'
 
+/** state 조회가 일시적으로 실패했을 때 다시 시도하기 전 기다리는 시간. */
+const SYNC_RETRY_DELAYS_MS = [1_000, 2_000]
+
 /**
  * 교수 화면의 퀴즈 상태를 서버 메시지와 맞춘다.
  *
@@ -60,7 +63,9 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
      * 스냅샷 이전 메시지(sentAt ≤ serverTime)는 이미 스냅샷에 담겨 있어 다시 반영하면 화면이 되돌아간다.
      * 같은 절차를 공통 모듈로 만드는 일은 #64가 맡는다.
      */
-    const sync = () => {
+    let retryTimer: number | undefined
+    const sync = (attempt = 0) => {
+      window.clearTimeout(retryTimer)
       const syncId = ++latestSync
       pending = pending ?? []
       getRoomState(roomId)
@@ -75,11 +80,17 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
         })
         .catch((error: unknown) => {
           if (disposed || syncId !== latestSync) return
-          // 조회에 실패해도 그동안 받은 메시지는 버리지 않고 반영한다.
+          const failure = toApiError(error)
+          // 서버에 닿지 못했거나 서버 오류면 1초, 2초 뒤 다시 조회한다. 그동안 받은 메시지는 계속 모은다.
+          if ((failure.status === 0 || failure.status >= 500) && attempt < SYNC_RETRY_DELAYS_MS.length) {
+            retryTimer = window.setTimeout(() => sync(attempt + 1), SYNC_RETRY_DELAYS_MS[attempt])
+            return
+          }
+          // 끝내 실패해도 그동안 받은 메시지는 버리지 않고 반영한다.
           const buffered = pending ?? []
           pending = null
           buffered.forEach((received) => dispatch({ kind: 'message', ...received }))
-          onError(toApiError(error).message)
+          onError(failure.message)
         })
     }
 
@@ -95,13 +106,14 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
     const unsubscribeStats = subscribe(`/user/queue/rooms/${roomId}/stats`, handleMessage)
     const removeErrorListener = onStompErrorMessage((error) => onError(error.message))
     // 구독이 (다시) 걸린 뒤 불린다. 이미 연결돼 있으면 바로 조회한다.
-    const removeConnectedListener = onStompConnected(sync)
+    const removeConnectedListener = onStompConnected(() => sync())
     if (getStompStatus() === 'connected') {
       sync()
     }
 
     return () => {
       disposed = true
+      window.clearTimeout(retryTimer)
       removeConnectedListener()
       unsubscribeQuiz()
       unsubscribeStats()
@@ -138,14 +150,15 @@ export function useProfessorQuiz(roomId: number | null, onError: (message: strin
       if (roomId === null) {
         return
       }
-      // 끊긴 채 시작하면 QUESTION_OPENED를 놓쳐 서버만 진행된다. 세트 선택 창이 열린 뒤 끊긴 경우도 막는다.
-      if (!ready) {
+      // 끊긴 채 시작하면 QUESTION_OPENED를 놓쳐 서버만 진행된다. 세트 상세를 불러오는 사이에 끊길 수 있어
+      // 렌더 시점의 ready가 아니라 지금 연결 상태를 다시 읽는다.
+      if (getStompStatus() !== 'connected') {
         onError('실시간 연결이 끊겨 시작하지 못했습니다. 연결된 뒤 다시 시도해 주세요.')
         return
       }
       await send(() => startQuiz(roomId, questionSetId))
     },
-    [roomId, ready, send, onError],
+    [roomId, send, onError],
   )
 
   const stop = useCallback(async () => {
