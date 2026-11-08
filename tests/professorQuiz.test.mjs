@@ -105,3 +105,45 @@ test('선택지 표시는 개수로 OX와 객관식을 구분한다', () => {
   assert.equal(display.choiceLabel({ orderNo: 1, content: 'O' }, 4), '①')
   assert.equal(display.choiceLabel({ orderNo: 1, content: 'O' }, 2), 'O')
 })
+
+const snapshot = (quiz, extra = {}) => ({ serverTime: '2026-11-05T10:00:00.000500Z', quiz, ...extra })
+const current = (no, closedAt = null) => ({ runQuestionId: 100 + no, questionNo: no, questionType: 'MULTIPLE_CHOICE', timeLimitSeconds: 10,
+  content: `문항 ${no}`, choices: [{ id: 1, orderNo: 1, content: 'a' }], openedAt: at, closesAt: '2026-11-05T10:00:10Z', closedAt,
+  correctChoiceId: closedAt ? 1 : null })
+const restore = (state, snap) => quiz.professorQuizReducer(state, { kind: 'snapshot', snapshot: snap, receivedAt: Date.parse('2026-11-05T10:00:00Z') - 2000 })
+
+test('새로고침하면 state로 대기·문항·3초·결과 화면을 다시 그린다', () => {
+  const inQuestion = run(quiz.initialProfessorQuiz, open(1))
+  assert.equal(restore(inQuestion, snapshot(null)).phase, 'waiting')
+
+  const question = restore(quiz.initialProfessorQuiz, snapshot(
+    { runId: 7, questionSetTitle: 's', totalQuestions: 3, phase: 'QUESTION', currentQuestion: current(2), nextOpensAt: null, result: null },
+    { progress: { runQuestionId: 102, answeredCount: 4 } }))
+  assert.equal(question.phase, 'question')
+  assert.equal(question.questionNo, 2)
+  assert.equal(question.answeredCount, 4)
+  assert.equal(question.clockOffsetMs, 2000)
+
+  const between = restore(quiz.initialProfessorQuiz, snapshot(
+    { runId: 7, questionSetTitle: 's', totalQuestions: 3, phase: 'FEEDBACK', currentQuestion: current(3, at), nextOpensAt: '2026-11-05T10:00:03Z', result: null }))
+  assert.equal(between.phase, 'between')
+  assert.equal(between.isLast, true)
+  assert.equal(between.answeredCount, 0)
+  assert.equal(JSON.stringify(between).includes('correctChoiceId'), false, 'state의 정답은 옮기지 않는다')
+
+  const result = { questions: [] }
+  const results = restore(question, snapshot(
+    { runId: 7, questionSetTitle: 's', totalQuestions: 3, phase: 'RESULT', currentQuestion: null, nextOpensAt: null, result }))
+  assert.equal(results.phase, 'results')
+  assert.equal(results.result, result)
+
+  // 스냅샷 뒤 다음 메시지는 평소처럼 이어서 반영된다.
+  assert.equal(run(question, closed(102)).phase, 'between')
+})
+
+test('서버 시각은 밀리초 아래까지 비교한다', () => {
+  assert.equal(clock.compareServerTime('2026-11-05T10:00:00.000400Z', '2026-11-05T10:00:00.000500Z') < 0, true)
+  assert.equal(clock.compareServerTime('2026-11-05T10:00:00.0005Z', '2026-11-05T10:00:00.000500Z'), 0)
+  assert.equal(clock.compareServerTime('2026-11-05T10:00:01Z', '2026-11-05T10:00:00.999999Z') > 0, true)
+  assert.equal(clock.compareServerTime('2026-11-05T10:00:00Z', '2026-11-05T10:00:00.000001Z') < 0, true)
+})

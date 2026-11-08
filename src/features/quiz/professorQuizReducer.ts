@@ -3,6 +3,7 @@ import type {
   ProfessorQuizMessage,
   QuestionOpenedMessage,
   QuizResult,
+  RoomStateResponse,
   RunChoice,
 } from './types'
 
@@ -34,6 +35,7 @@ export type ProfessorQuizState =
 
 export type ProfessorQuizAction =
   | { kind: 'message'; message: ProfessorQuizMessage; receivedAt: number }
+  | { kind: 'snapshot'; snapshot: RoomStateResponse; receivedAt: number }
   | { kind: 'reset' }
 
 export const initialProfessorQuiz: ProfessorQuizState = { phase: 'waiting' }
@@ -68,6 +70,9 @@ export function professorQuizReducer(
 ): ProfessorQuizState {
   if (action.kind === 'reset') {
     return initialProfessorQuiz
+  }
+  if (action.kind === 'snapshot') {
+    return fromSnapshot(action.snapshot, action.receivedAt)
   }
   const { message, receivedAt } = action
 
@@ -132,4 +137,45 @@ function isStaleOpen(state: ProfessorQuizState, message: QuestionOpenedMessage):
     return false
   }
   return state.phase === 'results' || message.questionNo <= state.questionNo
+}
+
+/**
+ * 새로고침·재연결 때 받은 state로 화면 상태를 다시 만든다. 그 시점의 서버 상태가 기준이라 이전 상태는 버린다.
+ * state의 정답(correctChoiceId)은 옮기지 않는다(QZ-05).
+ */
+function fromSnapshot(snapshot: RoomStateResponse, receivedAt: number): ProfessorQuizState {
+  const { quiz } = snapshot
+  if (!quiz) {
+    return initialProfessorQuiz
+  }
+  if (quiz.phase === 'RESULT') {
+    return quiz.result ? { phase: 'results', runId: quiz.runId, result: quiz.result } : initialProfessorQuiz
+  }
+  const question = quiz.currentQuestion
+  if (!question) {
+    return initialProfessorQuiz
+  }
+  const active: ActiveQuestion = {
+    runId: quiz.runId,
+    runQuestionId: question.runQuestionId,
+    questionNo: question.questionNo,
+    totalQuestions: quiz.totalQuestions,
+    content: question.content,
+    choices: question.choices,
+    closesAt: question.closesAt,
+    // 서버는 QUESTION 단계에서만 응답 인원을 준다. 3초 대기 중에 새로고침하면 다음 문항까지 0으로 보인다.
+    answeredCount:
+      snapshot.progress?.runQuestionId === question.runQuestionId ? snapshot.progress.answeredCount : 0,
+    clockOffsetMs: clockOffsetMs(snapshot.serverTime, receivedAt),
+  }
+  if (quiz.phase === 'FEEDBACK' && quiz.nextOpensAt) {
+    // state에는 isLast가 없어 마지막 문항인지로 판단한다.
+    return {
+      ...active,
+      phase: 'between',
+      nextOpensAt: quiz.nextOpensAt,
+      isLast: question.questionNo === quiz.totalQuestions,
+    }
+  }
+  return { ...active, phase: 'question' }
 }
