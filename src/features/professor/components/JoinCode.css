@@ -54,5 +54,10 @@
 }
 
 .join-code__url {
-  @apply mt-1 text-xs text-hoot-muted;
+  @apply mt-1 break-all text-xs text-hoot-muted;
+}
+
+
+.join-code__placeholder {
+  @apply flex h-40 w-40 items-center justify-center text-center text-xs text-hoot-muted;
 }

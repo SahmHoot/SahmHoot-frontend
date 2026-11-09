@@ -55,6 +55,7 @@ export function CreateRoom({
             setError('')
           }}
           required
+          disabled={submitting}
           maxLength={50}
           placeholder="예: 자료구조 3주차"
           aria-invalid={error !== ''}

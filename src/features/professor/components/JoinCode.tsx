@@ -1,13 +1,6 @@
 import "./JoinCode.css";
+import { QRCodeSVG } from "qrcode.react";
 import type { Room } from "../dashboard-types";
-import { Icon } from "./Icon";
-
-/** 화면에 보일 입장 주소. 개설 응답의 주소를 쓰고, 목록에서 연 방은 이 앱의 /join 경로로 만든다. */
-function joinAddress(room: Room): string {
-  if (!room.code) return "";
-  const url = room.joinUrl ?? `${window.location.origin}/join/${room.code}`;
-  return url.replace(/^https?:\/\//, "");
-}
 
 export function JoinCode({
   room,
@@ -20,7 +13,10 @@ export function JoinCode({
 }) {
   const large = variant === "waiting";
   const create = variant === "create";
-  const address = joinAddress(room);
+  const joinUrl = room.code
+    ? room.joinUrl ?? `${window.location.origin}/join/${room.code}`
+    : "";
+  const size = large || create ? 160 : 96;
   return (
     <section
       aria-label="수업 입장 정보"
@@ -29,11 +25,19 @@ export function JoinCode({
       <div
         className={`join-code__qr ${large || create ? "join-code__qr--large" : "join-code__qr--compact"}`}
       >
-        <Icon
-          screen={variant}
-          name="imgFrame2"
-          alt={room.code ? `입장 코드 ${room.code} 수업 QR 코드` : "수업 QR 코드 자리"}
-        />
+        {joinUrl ? (
+          <QRCodeSVG
+            value={joinUrl}
+            size={size}
+            marginSize={4}
+            level="M"
+            title={`입장 코드 ${room.code} 수업 QR 코드`}
+          />
+        ) : (
+          <div className="join-code__placeholder" role="status">
+            수업 개설 후<br />QR 코드가 표시됩니다
+          </div>
+        )}
       </div>
       <div className="join-code__details">
         {create && (
@@ -46,7 +50,9 @@ export function JoinCode({
         >
           입장 코드 <span className="join-code__code">{room.code || "------"}</span>
         </p>
-        {address && <p className="join-code__url">{address}</p>}
+        {joinUrl && (
+          <p className="join-code__url">{joinUrl.replace(/^https?:\/\//, "")}</p>
+        )}
       </div>
     </section>
   );
