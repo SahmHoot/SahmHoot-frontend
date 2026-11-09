@@ -177,7 +177,7 @@ export function SignupPage() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [role, setRole] = useState<Role>("PROFESSOR");
+  const [role, setRole] = useState<Role | null>(null);
   const signup = useSignup({ email, code, name, role });
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
