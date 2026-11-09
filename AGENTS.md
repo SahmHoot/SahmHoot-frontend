@@ -24,17 +24,16 @@ npm run dev            # http://localhost:5173 — 백엔드(8080)가 떠 있어
 npm run type-check
 npm run lint
 npm run build
-npm run test           # Vitest 단위 테스트 (*.test.ts)
 ```
 
 - 로컬 개발에는 `.env`가 필요 없다. 백엔드 주소를 코드에 적지 말고 `/api`, `/ws` 상대 경로만 쓴다.
 - 화면이 `ERROR`면 `curl http://localhost:8080/api/health`로 백엔드부터 확인한다.
-- 단위 테스트는 Vitest로 화면 없는 로직(`shared/stomp` 동기화 등)에만 둔다. 화면 검증은 위 명령과 실제 화면 확인이다.
+- 문제 세트 편집기·수업방·재접속 동기화 테스트는 Node.js 내장 러너로 `node --test tests/*.test.mjs`를 실행한다. 위 3개 명령과 실제 화면 확인도 수행한다.
 
 ## 경계
 
 ### 항상 한다
-- 작업을 끝내기 전에 `type-check`, `lint`, `build`, `test`를 실행하고, 실행하지 못했다면 못 했다고 말한다.
+- 작업을 끝내기 전에 `type-check`, `lint`, `build`를 실행하고, 실행하지 못했다면 못 했다고 말한다.
 - 화면을 바꿨다면 백엔드와 함께 실행해 실제로 확인한다. 학생 화면은 모바일 폭 390px에서도 확인한다.
 - 새 UI를 만들기 전에 `src/shared/components/`에 이미 있는지 찾는다.
 - 수정하는 파일의 기존 스타일을 따른다.

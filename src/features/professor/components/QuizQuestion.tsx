@@ -1,23 +1,35 @@
 import "./QuizQuestion.css";
-import type { Question, QuestionSet, QuizState } from "../dashboard-types";
-import { labels } from "../dashboard-quiz";
+import { useServerCountdown } from "../../quiz/hooks/useServerCountdown";
+import type { ProfessorQuizState } from "../../quiz/professorQuizReducer";
+import { choiceLabel } from "../dashboard-quiz";
 import { Icon } from "./Icon";
+
+/** 남은 시간 문구. 0초가 돼도 자기 시계로 넘어가지 않고 서버의 마감 메시지를 기다린다(06 4절). */
+function timerText(
+  quiz: Extract<ProfessorQuizState, { phase: "question" | "between" }>,
+  seconds: number,
+) {
+  if (quiz.phase === "between") {
+    return `${quiz.isLast ? "결과까지" : "다음 문제까지"} ${seconds}초`;
+  }
+  if (seconds === 0) return "마감 중";
+  return `남은 시간 ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
 
 export function QuizQuestion({
   quiz,
-  question,
-  set,
   participants,
   onStop,
 }: {
-  quiz: QuizState;
-  question: Question;
-  set: QuestionSet;
+  quiz: Extract<ProfessorQuizState, { phase: "question" | "between" }>;
   participants: number;
   onStop: () => void;
 }) {
-  const responseCount = Math.round(participants * 0.875);
-  const remaining = `${Math.floor(quiz.remaining / 60)}:${String(quiz.remaining % 60).padStart(2, "0")}`;
+  const seconds = useServerCountdown(
+    quiz.phase === "between" ? quiz.nextOpensAt : quiz.closesAt,
+    quiz.clockOffsetMs,
+  );
+  const responseCount = quiz.answeredCount;
   return (
     <>
       <section className="quiz-question">
@@ -25,7 +37,7 @@ export function QuizQuestion({
           <div
             className="quiz-question__progress-fill"
             style={{
-              width: `${((quiz.index + 1) / set.questions.length) * 100}%`,
+              width: `${(quiz.questionNo / quiz.totalQuestions) * 100}%`,
             }}
           />
         </div>
@@ -33,10 +45,8 @@ export function QuizQuestion({
           <div className="quiz-question__toolbar">
             <p role="timer" className="quiz-question__timer">
               <Icon screen="quiz" name="imgFrame3" />
-              {quiz.index + 1} / {set.questions.length} 문항 ·{" "}
-              {quiz.phase === "between"
-                ? `다음 문제까지 ${quiz.remaining}초`
-                : `남은 시간 ${remaining}`}
+              {quiz.questionNo} / {quiz.totalQuestions} 문항 ·{" "}
+              {timerText(quiz, seconds)}
             </p>
             <button
               type="button"
@@ -46,17 +56,19 @@ export function QuizQuestion({
               퀴즈 중단
             </button>
           </div>
-          <h2 className="quiz-question__title">{question.prompt}</h2>
+          <h2 className="quiz-question__title">{quiz.content}</h2>
           <ul className="quiz-question__options">
-            {question.options.map((option, index) => (
-              <li key={index} className="quiz-question__option">
+            {quiz.choices.map((choice, index) => (
+              <li key={choice.id} className="quiz-question__option">
                 <span
                   className="quiz-question__option-number"
                   data-option-index={index}
                 >
-                  {question.type === "ox" ? option : labels[index]}
+                  {choiceLabel(choice, quiz.choices.length)}
                 </span>
-                <span className="quiz-question__option-text">{option}</span>
+                <span className="quiz-question__option-text">
+                  {choice.content}
+                </span>
               </li>
             ))}
           </ul>
@@ -79,7 +91,7 @@ export function QuizQuestion({
           <div
             className="quiz-question__response-fill"
             style={{
-              width: `${participants ? (responseCount / participants) * 100 : 0}%`,
+              width: `${participants ? Math.min((responseCount / participants) * 100, 100) : 0}%`,
             }}
           />
         </div>

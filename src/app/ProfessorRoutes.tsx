@@ -12,7 +12,7 @@ import { useProfessorDashboard } from "../features/professor/hooks/useProfessorD
 
 export default function ProfessorRoutes() {
   const professor = useProfessorDashboard();
-  const { room, sets, quiz, messages, notice } = professor;
+  const { room, quiz, messages, notice } = professor;
 
   return (
     <div className="professor-layout">
@@ -29,15 +29,13 @@ export default function ProfessorRoutes() {
           />
           <Route
             path="sets"
-            element={<QuizSetList sets={sets} onDelete={professor.deleteSet} />}
+            element={<QuizSetList />}
           />
           <Route
             path="sets/:setId"
             element={
               <QuizSetEditor
                 key={professor.editorKey}
-                sets={sets}
-                onSave={professor.saveSet}
               />
             }
           />
@@ -46,9 +44,10 @@ export default function ProfessorRoutes() {
             element={
               <ProfessorRoom
                 room={room}
-                sets={sets}
                 quiz={quiz}
-                setQuiz={professor.setQuiz}
+                quizReady={professor.quizReady}
+                onStartQuiz={(questionSetId) => void professor.startQuiz(questionSetId)}
+                onStopQuiz={() => void professor.stopQuiz()}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
@@ -61,12 +60,12 @@ export default function ProfessorRoutes() {
             element={
               <QuizResults
                 room={room}
-                quiz={quiz}
+                result={quiz.phase === 'results' ? quiz.result : null}
                 messages={messages}
                 onSend={professor.sendMessage}
                 notice={notice}
                 onNoticeChange={professor.setNotice}
-                onClose={professor.closeResults}
+                onClose={() => void professor.closeResults()}
               />
             }
           />
