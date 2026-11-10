@@ -56,12 +56,15 @@ function setup() {
   const render = () => { index = 0; return useStudentQuiz(40) }
   return {
     sent, stomp, render,
-    open(runQuestionId) {
+    open(runQuestionId, closesAt) {
       quiz = { phase: 'question', runId: 7, runQuestionId }
-      forward({ kind: 'message', message: { type: 'QUESTION_OPENED', runId: 7, runQuestionId, questionNo: 1 }, receivedAt: 0 })
+      forward({ kind: 'message', message: { type: 'QUESTION_OPENED', runId: 7, runQuestionId, questionNo: 1, closesAt }, receivedAt: 0 })
     },
-    close() { quiz = { ...quiz, phase: 'between' } },
-    error: (code) => errorListeners.forEach((listener) => listener({ type: 'ERROR', code, message: '', sentAt: '' })),
+    close() {
+      quiz = { ...quiz, phase: 'between' }
+      forward({ kind: 'message', message: { type: 'QUESTION_CLOSED', runId: 7, runQuestionId: quiz.runQuestionId, correctChoiceId: 1 }, receivedAt: 0 })
+    },
+    error: (code, sentAt = '') => errorListeners.forEach((listener) => listener({ type: 'ERROR', code, message: '', sentAt })),
   }
 }
 
@@ -118,4 +121,21 @@ test('마감 뒤 도착해 거부된 답은 되돌리고 그 문항에서 안내
   // 다음 문항에서는 이전 안내를 보이지 않는다.
   room.open(12)
   assert.equal(room.render().notice, null)
+})
+
+test('앞 문항의 늦은 거부가 다음 문항에 고른 답과 안내를 바꾸지 않는다', () => {
+  const room = setup()
+  room.render()
+  room.open(11, '2026-11-10T10:01:00Z')
+  room.render().select(1)
+  room.render().select(3)
+  room.close()
+  room.open(12, '2026-11-10T10:02:00Z')
+  room.render().select(5)
+  // 11번의 3이 늦게 도착해 12번이 열려 있는 동안 거부됐다.
+  room.error('QUESTION_CLOSED', '2026-11-10T10:01:30.5Z')
+  const view = room.render()
+  assert.equal(view.answerOf(12), 5)
+  assert.equal(view.answerOf(11), 1)
+  assert.equal(view.notice, null)
 })

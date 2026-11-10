@@ -10,22 +10,42 @@ export interface StudentAnswers {
   sent: Record<number, number[]>
   /** 마감으로 공개된 정답 선택지 ID. */
   correct: Record<number, number>
-  /** 마지막으로 답을 보낸 문항. 서버가 거부하면 이 문항의 답을 하나씩 되돌린다. */
-  lastSentQuestionId: number | null
+  /** 문항별로 마지막 state 뒤에 보내 서버 반영을 아직 확인하지 못한 답의 수. 거부는 이 답만 되돌린다. */
+  pending: Record<number, number>
+  /** 지금 열려 있는 문항. 거부가 어느 문항의 것인지 가를 때 쓴다. */
+  open: { runQuestionId: number; closesAt: string } | null
+  /** 마지막으로 답이 거부된 문항. 안내 문구를 그 문항에만 보인다. */
+  rejectedQuestionId: number | null
 }
 
 export type StudentAnswerAction =
   | ProfessorQuizAction
   | { kind: 'select'; runQuestionId: number; choiceId: number }
-  /** 서버가 마지막으로 보낸 답을 거부했다(마감 뒤 도착 등). */
-  | { kind: 'rejected' }
+  /** 서버가 보낸 답 하나를 거부했다(ERROR QUESTION_CLOSED). sentAt은 거부한 서버 시각이다. */
+  | { kind: 'rejected'; sentAt: string }
 
-export const initialStudentAnswers: StudentAnswers = { runId: null, sent: {}, correct: {}, lastSentQuestionId: null }
+export const initialStudentAnswers: StudentAnswers = {
+  runId: null, sent: {}, correct: {}, pending: {}, open: null, rejectedQuestionId: null,
+}
 
 /** 화면에 보일 내 답. 고르지 않았으면 null. */
 export function myAnswer(state: StudentAnswers, runQuestionId: number): number | null {
   const history = state.sent[runQuestionId]
   return history && history.length > 0 ? history[history.length - 1] : null
+}
+
+/**
+ * 거부된 답의 문항을 고른다. 서버 ERROR에는 어느 요청인지 담겨 있지 않다.
+ * 서버는 열린 문항의 답을 closesAt + 1초까지 받고, 조기 마감이면 QUESTION_CLOSED를 거부보다 먼저 보낸다(06 5절).
+ * 그래서 열린 문항이 아직 받는 시각에 온 거부는 앞 문항에 늦게 도착한 답의 것이다.
+ */
+function rejectedQuestion(state: StudentAnswers, sentAt: string): number | null {
+  const openId = state.open?.runQuestionId ?? null
+  const accepting = state.open !== null && Date.parse(sentAt) <= Date.parse(state.open.closesAt) + 1000
+  const candidates = Object.keys(state.pending).map(Number)
+    .filter((id) => state.pending[id] > 0 && !(accepting && id === openId))
+  if (openId !== null && candidates.includes(openId)) return openId
+  return candidates.length > 0 ? Math.max(...candidates) : null
 }
 
 export function studentAnswersReducer(state: StudentAnswers, action: StudentAnswerAction): StudentAnswers {
@@ -34,17 +54,18 @@ export function studentAnswersReducer(state: StudentAnswers, action: StudentAnsw
       return initialStudentAnswers
 
     case 'select': {
-      const history = state.sent[action.runQuestionId] ?? []
-      return { ...state, sent: { ...state.sent, [action.runQuestionId]: [...history, action.choiceId] },
-        lastSentQuestionId: action.runQuestionId }
+      const id = action.runQuestionId
+      return { ...state, sent: { ...state.sent, [id]: [...(state.sent[id] ?? []), action.choiceId] },
+        pending: { ...state.pending, [id]: (state.pending[id] ?? 0) + 1 },
+        rejectedQuestionId: state.rejectedQuestionId === id ? null : state.rejectedQuestionId }
     }
 
     case 'rejected': {
-      // 마감 뒤에 보낸 답은 모두 거부되고 그 답들이 가장 나중에 보낸 것이므로, 끝에서 하나씩 지우면 서버에 남은 답이 된다.
-      const id = state.lastSentQuestionId
-      const history = id === null ? undefined : state.sent[id]
-      if (id === null || !history || history.length === 0) return state
-      return { ...state, sent: { ...state.sent, [id]: history.slice(0, -1) } }
+      // 같은 문항에서 마감 뒤에 보낸 답은 모두 거부되고 가장 나중에 보낸 것이므로, 끝에서 하나씩 지우면 서버에 남은 답이 된다.
+      const id = rejectedQuestion(state, action.sentAt)
+      if (id === null) return state
+      return { ...state, sent: { ...state.sent, [id]: state.sent[id].slice(0, -1) },
+        pending: { ...state.pending, [id]: state.pending[id] - 1 }, rejectedQuestionId: id }
     }
 
     case 'snapshot': {
@@ -56,17 +77,27 @@ export function studentAnswersReducer(state: StudentAnswers, action: StudentAnsw
       const question = quiz.currentQuestion
       const correct: Record<number, number> = {}
       if (question && question.correctChoiceId !== null) correct[question.runQuestionId] = question.correctChoiceId
-      return { runId: quiz.runId, sent, correct, lastSentQuestionId: null }
+      const open = quiz.phase === 'QUESTION' && question ? { runQuestionId: question.runQuestionId, closesAt: question.closesAt } : null
+      return { runId: quiz.runId, sent, correct, pending: {}, open, rejectedQuestionId: null }
     }
 
     case 'message': {
       const { message } = action
       switch (message.type) {
-        case 'QUESTION_OPENED':
+        case 'QUESTION_OPENED': {
           if (state.runId !== null && message.runId < state.runId) return state
-          return message.runId === state.runId ? state : { ...initialStudentAnswers, runId: message.runId }
-        case 'QUESTION_CLOSED':
-          return { ...state, correct: { ...state.correct, [message.runQuestionId]: message.correctChoiceId } }
+          const open = { runQuestionId: message.runQuestionId, closesAt: message.closesAt }
+          if (message.runId !== state.runId) return { ...initialStudentAnswers, runId: message.runId, open }
+          // 이미 마감된 문항이 다시 오면(재전송) 지난 메시지다.
+          return message.runQuestionId in state.correct ? state : { ...state, open }
+        }
+        case 'QUESTION_CLOSED': {
+          const id = message.runQuestionId
+          // 그보다 앞 문항의 답은 이미 처리됐으므로, 늦은 거부를 받을 수 있는 건 방금 닫힌 문항뿐이다.
+          return { ...state, correct: { ...state.correct, [id]: message.correctChoiceId },
+            pending: state.pending[id] ? { [id]: state.pending[id] } : {},
+            open: state.open?.runQuestionId === id ? null : state.open }
+        }
         case 'QUIZ_CANCELED':
           return message.runId === state.runId ? initialStudentAnswers : state
         case 'ROOM_WAITING':
