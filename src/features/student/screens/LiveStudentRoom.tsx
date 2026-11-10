@@ -8,6 +8,7 @@ import type { ProfessorQuizState } from '../../quiz/professorQuizReducer'
 import StudentHeader from '../components/StudentHeader'
 import StudentChat from '../components/StudentChat'
 import StudentQuizQuestion from '../components/StudentQuizQuestion'
+import StudentQuizResults from '../components/StudentQuizResults'
 import { writeSession } from '../data/studentStorage'
 import { useStudentQuiz } from '../hooks/useStudentQuiz'
 import './StudentRoom.css'
@@ -29,7 +30,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
       <main className={`student-room ${waiting ? 'student-room--waiting' : ''}`}>
         {waiting ? <div className="student-room__waiting-banner"><p><strong>대기 중</strong><span>교수님의 다음 안내를 기다려 주세요.</span></p><span>접속 {onlineCount}명</span></div> :
           <div className="student-room__quiz">
-            {quiz.phase === 'results' ? <section className="student-card student-results"><h2>퀴즈가 종료되었습니다</h2><p>교수님의 다음 안내를 기다려 주세요.</p></section> :
+            {quiz.phase === 'results' ? <StudentQuizResults key={quiz.runId} result={quiz.result} answerOf={classroom.answerOf} /> :
               <LiveQuestion quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}
                 correctChoiceId={classroom.correctOf(quiz.runQuestionId)} notice={classroom.notice} onSelect={classroom.select} />}
           </div>}
