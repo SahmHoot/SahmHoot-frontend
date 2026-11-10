@@ -9,5 +9,5 @@
 .student-question h2 { margin: 16px 0 24px; font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: -.6px; }
 .student-question__footer { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; }
 .student-question__hint { color: var(--student-muted); font-size: 12px; }
-.student-question__footer button { min-width: 128px; min-height: 48px; flex-shrink: 0; font-size: 15px; }
-@media (max-width: 600px) { .student-question__body { padding: 20px; } .student-question h2 { font-size: 20px; line-height: 28px; } .student-question__footer { align-items: flex-start; flex-direction: column; } .student-question__footer button { width: 100%; } }
+.student-question__notice { margin-top: 16px; color: #c9333b; font-size: 13px; font-weight: 600; }
+@media (max-width: 600px) { .student-question__body { padding: 20px; } .student-question h2 { font-size: 20px; line-height: 28px; } }

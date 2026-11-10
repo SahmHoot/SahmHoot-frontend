@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
-import { useClassroom } from '../../room/useClassroom'
 import { RoomEndedNotice } from '../../room/RoomEndedNotice'
 import { ClassroomStatus } from '../../room/ClassroomStatus'
 import { useServerCountdown } from '../../quiz/hooks/useServerCountdown'
@@ -10,11 +9,12 @@ import StudentHeader from '../components/StudentHeader'
 import StudentChat from '../components/StudentChat'
 import StudentQuizQuestion from '../components/StudentQuizQuestion'
 import { writeSession } from '../data/studentStorage'
+import { useStudentQuiz } from '../hooks/useStudentQuiz'
 import './StudentRoom.css'
 
 export default function LiveStudentRoom({ roomId }: { roomId: number }) {
   const navigate = useNavigate()
-  const classroom = useClassroom(roomId, false)
+  const classroom = useStudentQuiz(roomId)
   const [leaving, setLeaving] = useState(false)
   const home = () => { writeSession(null); navigate('/student', { replace: true }) }
   const { snapshot, quiz, onlineCount, ended, error } = classroom
@@ -30,9 +30,10 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
         {waiting ? <div className="student-room__waiting-banner"><p><strong>대기 중</strong><span>교수님의 다음 안내를 기다려 주세요.</span></p><span>접속 {onlineCount}명</span></div> :
           <div className="student-room__quiz">
             {quiz.phase === 'results' ? <section className="student-card student-results"><h2>퀴즈가 종료되었습니다</h2><p>교수님의 다음 안내를 기다려 주세요.</p></section> :
-              <LiveQuestion quiz={quiz} />}
+              <LiveQuestion quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}
+                correctChoiceId={classroom.correctOf(quiz.runQuestionId)} notice={classroom.notice} onSelect={classroom.select} />}
           </div>}
-        {/* shortcut: 채팅·답 제출은 해당 기능 연동 전까지 읽기 전용, #30과 채팅 이슈에서 연결한다. */}
+        {/* shortcut: 채팅은 채팅 기능 연동 전까지 읽기 전용, 채팅 이슈에서 연결한다. */}
         <StudentChat nickname={snapshot.me.nickname} expanded={waiting} messages={messages} reactions={[]}
           onlineCount={onlineCount} notice={snapshot.pinnedMessage?.content ?? null} readOnly onSend={() => {}} onReact={() => {}} />
       </main>}
@@ -41,9 +42,20 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
   </div>
 }
 
-function LiveQuestion({ quiz }: { quiz: Extract<ProfessorQuizState, { phase: 'question' | 'between' }> }) {
+interface LiveQuestionProps {
+  quiz: Extract<ProfessorQuizState, { phase: 'question' | 'between' }>
+  answer: number | null
+  correctChoiceId: number | null
+  notice: string | null
+  onSelect: (choiceId: number) => void
+}
+
+function LiveQuestion({ quiz, answer, correctChoiceId, notice, onSelect }: LiveQuestionProps) {
   const seconds = useServerCountdown(quiz.phase === 'between' ? quiz.nextOpensAt : quiz.closesAt, quiz.clockOffsetMs)
-  return <StudentQuizQuestion question={{ title: quiz.content, options: quiz.choices.map((choice) => choice.content), correctAnswer: -1 }}
+  // 화면 컴포넌트는 선택지 순서(index)로 그리고, 서버와는 선택지 ID로 주고받는다.
+  const indexOf = (choiceId: number | null) => choiceId === null ? -1 : quiz.choices.findIndex((choice) => choice.id === choiceId)
+  const selected = indexOf(answer)
+  return <StudentQuizQuestion question={{ title: quiz.content, options: quiz.choices.map((choice) => choice.content), correctAnswer: indexOf(correctChoiceId) }}
     index={quiz.questionNo - 1} total={quiz.totalQuestions} phase={quiz.phase === 'between' ? 'feedback' : seconds === 0 ? 'closing' : 'question'}
-    secondsLeft={seconds} selected={null} submitted={false} readOnly onSelect={() => {}} onSubmit={() => {}} />
+    secondsLeft={seconds} selected={selected < 0 ? null : selected} notice={notice} onSelect={(index) => onSelect(quiz.choices[index].id)} />
 }
