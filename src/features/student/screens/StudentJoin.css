@@ -13,5 +13,6 @@
 .student-join__random:hover { background: #e6ecff; }
 .student-join__hint { margin: 10px 0 20px !important; font-size: 11px; line-height: 16.5px; text-align: center; color: var(--student-muted); }
 .student-join__submit { height: 52px; width: 100%; font-size: 15px; }
+.student-join__home { width: 100%; margin-top: 12px; }
 .student-join__error { color: #e5484d; font-size: 12px; margin-bottom: 12px !important; }
 @media (max-width: 600px) { .student-join { padding: 32px 16px; } .student-join__card { padding: 24px 20px; } .student-join__random { width: 112px; } }
