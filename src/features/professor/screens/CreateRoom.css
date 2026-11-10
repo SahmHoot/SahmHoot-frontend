@@ -36,3 +36,7 @@
 .create-room__feedback {
   @apply text-sm text-hoot-success;
 }
+
+.create-room__error {
+  @apply mt-3 text-sm text-hoot-danger;
+}
