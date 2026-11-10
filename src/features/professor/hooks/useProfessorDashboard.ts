@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toApiError } from '../../auth/api'
+import { useAuth } from '../../auth/AuthProvider'
 import { useProfessorQuiz } from '../../quiz/hooks/useProfessorQuiz'
 import { closeRoom, createRoom as requestCreateRoom } from '../../room/api'
 import type { RoomSummaryResponse } from '../../room/room.types'
 import { demoMessages, demoNotice, noRoom } from '../dashboard-data'
 import type { Room, ChatMessage } from '../dashboard-types'
+import { readRoomId, writeRoomId } from '../roomStorage'
 
 /** 교수의 수업 선택·개설·종료와 서버 퀴즈 상태를 연결한다. */
 export function useProfessorDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [room, setRoom] = useState<Room>(noRoom)
+  const { user } = useAuth()
+  const [room, setRoom] = useState<Room>(() => {
+    const id = readRoomId(user?.id)
+    return id === null ? noRoom : { ...noRoom, id, active: true }
+  })
   const [messages, setMessages] = useState<ChatMessage[]>(demoMessages)
   const [notice, setNotice] = useState(demoNotice)
   const [ending, setEnding] = useState(false)
@@ -21,6 +27,11 @@ export function useProfessorDashboard() {
   const createGeneration = useRef(0)
   const [feedback, setFeedback] = useState('')
   const professorQuiz = useProfessorQuiz(room.active ? room.id : null, setFeedback)
+  const snapshot = professorQuiz.snapshot?.room.id === room.id ? professorQuiz.snapshot : null
+  const displayRoom = snapshot ? { ...room, name: snapshot.room.title, code: snapshot.room.joinCode,
+    joinUrl: snapshot.room.joinUrl, participants: professorQuiz.onlineCount } : room
+
+  useEffect(() => { writeRoomId(user?.id, room.id) }, [user?.id, room.id])
 
   // 화면을 떠난 뒤 도착한 개설 응답은 현재 수업 선택을 바꾸지 않는다.
   useEffect(() => () => { createGeneration.current++ }, [location.key])
@@ -93,8 +104,19 @@ export function useProfessorDashboard() {
     }
   }
 
+  const dismissRoom = () => {
+    setRoom(noRoom)
+    setEnding(false)
+    setEndError('')
+    navigate('/professor', { replace: true })
+  }
+
   return {
-    room,
+    room: displayRoom,
+    roomLoading: room.id !== null && !snapshot && !professorQuiz.error && !professorQuiz.ended,
+    roomEnded: professorQuiz.ended,
+    roomError: professorQuiz.error,
+    dismissRoom,
     messages,
     notice,
     setNotice,

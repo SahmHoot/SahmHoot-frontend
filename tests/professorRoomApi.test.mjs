@@ -60,6 +60,8 @@ function dashboard(api = {}) {
       location = { pathname: path, key: String(++routeKey) }
     }, useLocation: () => location },
     '../../auth/api': { toApiError: (error) => ({ message: error.message }) },
+    '../../auth/AuthProvider': { useAuth: () => ({ user: { id: 1 } }) },
+    '../roomStorage': { readRoomId: () => null, writeRoomId() {} },
     '../../room/api': { createRoom: async () => created, closeRoom: async () => {}, ...api },
     '../dashboard-data': { noRoom, demoMessages: [], demoNotice: '' },
     '../../quiz/hooks/useProfessorQuiz': { useProfessorQuiz: (roomId) => {

@@ -11,6 +11,7 @@ import { readSession, writeSession } from '../data/studentStorage'
 import type { RoomPreview, StudentSession } from '../types/student.types'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 import './StudentRoom.css'
+import LiveStudentRoom from './LiveStudentRoom'
 
 export default function StudentRoom() {
   const { code = '' } = useParams()
@@ -23,8 +24,8 @@ export default function StudentRoom() {
   if (!/^\d{6}$/.test(code) || !session || session.code !== code) {
     return <Navigate to={/^\d{6}$/.test(code) ? `/student/join/${code}` : '/student'} replace />
   }
-  // shortcut: 실제 방은 대기 화면까지만 연결한다, 학생 퀴즈 API 연동 시 실시간 상태로 교체한다.
-  return <StudentRoomContent key={`${code}:${preview}`} session={session} preview={preview ?? (session.roomId ? 'waiting' : null)} />
+  if (session.roomId && !preview) return <LiveStudentRoom key={session.roomId} roomId={session.roomId} />
+  return <StudentRoomContent key={`${code}:${preview}`} session={session} preview={preview} />
 }
 
 function StudentRoomContent({ session, preview }: { session: StudentSession; preview: RoomPreview }) {

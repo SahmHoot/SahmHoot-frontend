@@ -39,6 +39,22 @@ const BEFORE = '2026-11-08T09:59:59.000000Z'
 const AFTER = '2026-11-08T10:00:01.000000Z'
 const LATER = '2026-11-08T10:00:02.000000Z'
 
+it('state 조회 중 ROOM_ENDED를 즉시 전달하고 늦은 응답·재연결로 수업을 되살리지 않는다', async () => {
+  const room = setup()
+  const request = room.loads[0]
+  room.send('quiz', { type: 'ROOM_ENDED', sentAt: AFTER })
+  assert.deepEqual(room.types(), ['ROOM_ENDED'])
+  assert.equal(request.signal.aborted, true)
+  request.resolve(roomState())
+  await Promise.resolve()
+  assert.equal(room.log.some((entry) => entry.startsWith('snapshot:')), false)
+  room.reconnect()
+  assert.equal(room.loads.length, 1)
+  room.send('quiz', { type: 'ROOM_ENDED', sentAt: LATER })
+  assert.deepEqual(room.types(), ['ROOM_ENDED'])
+  room.stop()
+})
+
 /** 가짜 STOMP 연결과 가짜 state API로 동기화 모듈을 띄운다. */
 /** autoReceipt: 연결돼 있으면 서버가 구독마다 바로 RECEIPT를 보낸 것처럼 한다. */
 function setup({ owner = false, connected = true, autoReceipt = true } = {}) {

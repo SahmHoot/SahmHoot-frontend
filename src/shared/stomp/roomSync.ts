@@ -219,6 +219,14 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
       if (closed || mode === 'stopped' || !message) {
         return
       }
+      // 수업 종료는 조회 중에도 즉시 알리고, 늦은 스냅샷과 재시도로 되살리지 않는다.
+      if (channel === 'quiz' && message.type === 'ROOM_ENDED') {
+        cancelLoading()
+        mode = 'stopped'
+        buffer = []
+        onMessage(channel, message)
+        return
+      }
       if (mode === 'live') {
         deliver(channel, message)
         return
