@@ -16,6 +16,8 @@ export interface StudentAnswers {
   open: { runQuestionId: number; closesAt: string } | null
   /** 마지막으로 답이 거부된 문항. 안내 문구를 그 문항에만 보인다. */
   rejectedQuestionId: number | null
+  /** state가 그 뒤에 고른 답보다 오래돼 서버에 다시 보낼 답. state를 받을 때마다 새로 정한다. */
+  resend: { runQuestionId: number; choiceId: number } | null
 }
 
 export type StudentAnswerAction =
@@ -25,7 +27,7 @@ export type StudentAnswerAction =
   | { kind: 'rejected'; sentAt: string }
 
 export const initialStudentAnswers: StudentAnswers = {
-  runId: null, sent: {}, correct: {}, pending: {}, open: null, rejectedQuestionId: null,
+  runId: null, sent: {}, correct: {}, pending: {}, open: null, rejectedQuestionId: null, resend: null,
 }
 
 /** 화면에 보일 내 답. 고르지 않았으면 null. */
@@ -78,7 +80,20 @@ export function studentAnswersReducer(state: StudentAnswers, action: StudentAnsw
       const correct: Record<number, number> = {}
       if (question && question.correctChoiceId !== null) correct[question.runQuestionId] = question.correctChoiceId
       const open = quiz.phase === 'QUESTION' && question ? { runQuestionId: question.runQuestionId, closesAt: question.closesAt } : null
-      return { runId: quiz.runId, sent, correct, pending: {}, open, rejectedQuestionId: null }
+      const pending: Record<number, number> = {}
+      let resend: StudentAnswers['resend'] = null
+      // 서버는 답을 받았다는 응답을 보내지 않아, state가 그 뒤에 보낸 답보다 먼저 만들어졌는지 알 수 없다
+      // (재연결 직후 늦게 도착한 조회, 보내는 중이던 답, 끊긴 줄 모르고 보내 사라진 답). 아직 열린 문항이면
+      // 마지막 state 뒤에 고른 내 답을 유지하고 다시 보내 서버와 맞춘다. 같은 답을 다시 보내도 서버 값은 같다. 마감된 문항은 서버 값이 맞다.
+      // shortcut: 같은 학생이 다른 탭에서 그 사이 바꾼 답보다 이 탭의 답이 우선한다. 탭 간 충돌을 다루게 되면 다시 본다.
+      const mine = open && quiz.runId === state.runId && state.pending[open.runQuestionId] ? myAnswer(state, open.runQuestionId) : null
+      if (open && mine !== null && mine !== sent[open.runQuestionId]?.[0]) {
+        // 다시 보낸 답이 거부되면(그새 마감) 서버 값으로 돌아가도록 서버 값 뒤에 쌓는다.
+        sent[open.runQuestionId] = [...(sent[open.runQuestionId] ?? []), mine]
+        pending[open.runQuestionId] = 1
+        resend = { runQuestionId: open.runQuestionId, choiceId: mine }
+      }
+      return { runId: quiz.runId, sent, correct, pending, open, rejectedQuestionId: null, resend }
     }
 
     case 'message': {

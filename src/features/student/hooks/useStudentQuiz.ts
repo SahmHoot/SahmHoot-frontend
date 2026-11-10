@@ -18,6 +18,12 @@ export function useStudentQuiz(roomId: number) {
     if (error.code === 'QUESTION_CLOSED') dispatch({ kind: 'rejected', sentAt: error.sentAt })
   }), [])
 
+  // 늦게 온 state보다 최근에 고른 답을 서버에 다시 보낸다(studentAnswers의 snapshot). 못 보내면 다음 재연결 state에서 다시 정한다.
+  const { resend } = answers
+  useEffect(() => {
+    if (resend) publish(`/app/rooms/${roomId}/answer`, resend)
+  }, [resend, roomId])
+
   /** 답을 고르면 바로 보낸다. 같은 문항에 다시 보내면 서버가 답을 바꾼다. */
   function select(choiceId: number) {
     if (quiz.phase !== 'question') return

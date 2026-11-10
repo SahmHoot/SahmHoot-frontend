@@ -64,6 +64,12 @@ function setup() {
       quiz = { ...quiz, phase: 'between' }
       forward({ kind: 'message', message: { type: 'QUESTION_CLOSED', runId: 7, runQuestionId: quiz.runQuestionId, correctChoiceId: 1 }, receivedAt: 0 })
     },
+    /** 재연결 뒤 받은 state. 진행 중인 문항과 서버에 저장된 내 답을 담는다. */
+    state(runQuestionId, choiceId) {
+      forward({ kind: 'snapshot', receivedAt: 0, snapshot: { quiz: { runId: 7, phase: 'QUESTION',
+        currentQuestion: { runQuestionId, closesAt: '2026-11-10T10:01:00Z', correctChoiceId: null },
+        myAnswers: [{ runQuestionId, choiceId }] } } })
+    },
     error: (code, sentAt = '') => errorListeners.forEach((listener) => listener({ type: 'ERROR', code, message: '', sentAt })),
   }
 }
@@ -138,4 +144,21 @@ test('앞 문항의 늦은 거부가 다음 문항에 고른 답과 안내를 �
   assert.equal(view.answerOf(12), 5)
   assert.equal(view.answerOf(11), 1)
   assert.equal(view.notice, null)
+})
+
+test('재연결 뒤 늦게 온 state가 그 사이 고른 답을 덮지 않고, 그 답을 다시 보내 서버와 맞춘다', () => {
+  const room = setup()
+  room.render()
+  room.open(11, '2026-11-10T10:01:00Z')
+  room.render().select(2)
+  room.state(11, 2)
+  room.render().select(1)
+  // ①을 고르기 전에 만들어진 state가 늦게 도착했다.
+  room.state(11, 2)
+  const view = room.render()
+  assert.equal(view.answerOf(11), 1)
+  assert.deepEqual(room.sent.map(({ body }) => body.choiceId), [2, 1, 1])
+  // 다시 그려도 한 번만 보낸다.
+  room.render()
+  assert.equal(room.sent.length, 3)
 })

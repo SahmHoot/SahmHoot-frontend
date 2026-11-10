@@ -66,6 +66,32 @@ test('조기 마감 뒤 거부는 방금 닫힌 문항의 것이다', () => {
   assert.equal(myAnswer(state, 11), 1)
 })
 
+const liveState = (runQuestionId, choiceId, phase = 'QUESTION') => snapshot({ runId: 7, phase,
+  currentQuestion: { runQuestionId, closesAt: '2026-11-10T10:01:00Z', correctChoiceId: phase === 'FEEDBACK' ? 1 : null },
+  myAnswers: choiceId === null ? [] : [{ runQuestionId, choiceId }] })
+
+test('재연결 state가 그 뒤 고른 답보다 오래됐으면 열린 문항의 내 답을 유지하고 다시 보낼 답으로 둔다', () => {
+  // ②를 보내 state로 확인된 뒤 ①로 바꿨는데, ①보다 먼저 만들어진 state(②)가 늦게 도착했다.
+  const state = apply(openAt(11, '2026-11-10T10:01:00Z'), select(11, 2), liveState(11, 2), select(11, 1), liveState(11, 2))
+  assert.equal(myAnswer(state, 11), 1)
+  assert.deepEqual({ ...state.resend }, { runQuestionId: 11, choiceId: 1 })
+  // 다시 보낸 답마저 마감으로 거부되면 서버에 남은 ②로 돌아간다.
+  assert.equal(myAnswer(reduce(state, rejected('2026-11-10T10:01:02Z')), 11), 2)
+})
+
+test('state가 내 답과 같거나 문항이 마감됐으면 서버 값을 따르고 다시 보내지 않는다', () => {
+  const sentOne = apply(openAt(11, '2026-11-10T10:01:00Z'), select(11, 2), select(11, 1))
+  const confirmed = reduce(sentOne, liveState(11, 1))
+  assert.equal(myAnswer(confirmed, 11), 1)
+  assert.equal(confirmed.resend, null)
+  // 확인된 뒤로 이 탭에서 보낸 답이 없으면 바뀐 서버 값(다른 탭 등)을 따른다.
+  assert.equal(myAnswer(reduce(confirmed, liveState(11, 3)), 11), 3)
+  // 끊긴 동안 보낸 답이 사라진 채 마감됐으면 서버 값(미응답)이 맞다.
+  const closed = reduce(sentOne, liveState(11, null, 'FEEDBACK'))
+  assert.equal(myAnswer(closed, 11), null)
+  assert.equal(closed.resend, null)
+})
+
 test('QUESTION_CLOSED의 정답을 문항별로 보관한다', () => {
   const state = apply(open(7), select(11, 2), message({ type: 'QUESTION_CLOSED', runId: 7, runQuestionId: 11, correctChoiceId: 1 }))
   assert.equal(state.correct[11], 1)
