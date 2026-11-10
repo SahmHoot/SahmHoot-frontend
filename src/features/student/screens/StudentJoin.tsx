@@ -5,7 +5,7 @@ import dice from '../../../assets/student/nickname-random.svg'
 import qrDice from '../../../assets/student/nickname-random-qr.svg'
 import StudentHeader from '../components/StudentHeader'
 import StudentReviewSetList from '../components/StudentReviewSetList'
-import { classTitle, reviewSets } from '../data/studentFixtures'
+import { classTitle } from '../data/studentFixtures'
 import { readSession, writeSession } from '../data/studentStorage'
 import './StudentJoin.css'
 
@@ -64,7 +64,7 @@ export default function StudentJoin() {
           {error && <p id="join-error" role="alert" className="student-join__error">{error}</p>}
           <button className="student-button student-button--primary student-join__submit" type="submit">입장</button>
         </form>
-        {!fromQr && <StudentReviewSetList sets={reviewSets} />}
+        {!fromQr && <StudentReviewSetList />}
       </main>
     </div>
   )
