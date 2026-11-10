@@ -18,8 +18,12 @@ export function useProfessorDashboard() {
   const [endPending, setEndPending] = useState(false)
   const [endError, setEndError] = useState('')
   const endInFlight = useRef(false)
+  const createGeneration = useRef(0)
   const [feedback, setFeedback] = useState('')
   const professorQuiz = useProfessorQuiz(room.active ? room.id : null, setFeedback)
+
+  // 화면을 떠난 뒤 도착한 개설 응답은 현재 수업 선택을 바꾸지 않는다.
+  useEffect(() => () => { createGeneration.current++ }, [location.key])
 
   useEffect(() => {
     if (!feedback) return
@@ -35,7 +39,9 @@ export function useProfessorDashboard() {
 
   /** 실패하면 오류를 그대로 던져 개설 화면이 안내한다. */
   const createRoom = async (title: string) => {
+    const generation = ++createGeneration.current
     const created = await requestCreateRoom(title)
+    if (generation !== createGeneration.current) return
     setRoom({
       id: created.id,
       name: created.title,
@@ -49,6 +55,7 @@ export function useProfessorDashboard() {
   }
 
   const openRoom = (summary: RoomSummaryResponse) => {
+    createGeneration.current++
     setRoom({
       id: summary.id,
       name: summary.title,

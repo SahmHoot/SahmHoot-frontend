@@ -6,10 +6,12 @@ export function Modal({
   title,
   children,
   onClose,
+  closable = true,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  closable?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -21,7 +23,10 @@ export function Modal({
     <dialog
       ref={ref}
       aria-labelledby="professor-dialog-title"
-      onCancel={onClose}
+      onCancel={(event) => {
+        if (!closable) event.preventDefault();
+        else onClose();
+      }}
       className="professor-modal"
     >
       <div className="professor-modal__header">
@@ -31,6 +36,7 @@ export function Modal({
         <button
           type="button"
           onClick={onClose}
+          disabled={!closable}
           className="professor-modal__close-button"
         >
           닫기
