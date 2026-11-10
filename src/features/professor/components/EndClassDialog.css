@@ -4,6 +4,10 @@
   @apply text-sm leading-6;
 }
 
+.end-class-dialog__error {
+  @apply mt-3 text-sm text-hoot-danger;
+}
+
 .end-class-dialog__actions {
   @apply mt-6 flex justify-end gap-2;
 }
