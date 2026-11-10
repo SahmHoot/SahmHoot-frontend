@@ -28,7 +28,7 @@ export default function StudentQuizResults({ result, answerOf }: Props) {
       <h2 id="result-question-title">{question.content}</h2>
       <StudentAnswerOptions mode="results" options={question.choices.map((choice) => choice.content)} selected={answer < 0 ? null : answer} correctAnswer={correctAnswer} />
       <div className="student-results__footer">
-        <p>내 답: {answer < 0 ? '미응답' : optionLabels[answer]} · <strong className={correct ? 'student-results__correct' : 'student-results__wrong'}>{correct ? '정답 ✓' : answer < 0 ? '미응답' : '오답'}</strong> · 반 정답률 <strong>{accuracy}%</strong> (응답 {question.answeredCount}명)</p>
+        <p>내 답: {answer < 0 ? '미응답' : <>{optionLabels[answer]} · <strong className={correct ? 'student-results__correct' : 'student-results__wrong'}>{correct ? '정답 ✓' : '오답'}</strong></>} · 반 정답률 <strong>{accuracy}%</strong> (응답 {question.answeredCount}명)</p>
         <div className="student-results__navigation">
           <button className="student-button" disabled={index === 0} onClick={() => setIndex((previous) => previous - 1)}>이전 문항</button>
           <button className="student-button student-button--primary" disabled={index === total - 1} onClick={() => setIndex((previous) => previous + 1)}>다음 문항</button>
