@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import StudentAnswerOptions from './StudentAnswerOptions'
-import { optionLabels } from '../data/studentFixtures'
-import { percentagesOf } from '../../professor/dashboard-quiz'
+import { choiceLabel, percentagesOf } from '../../professor/dashboard-quiz'
 import type { QuizResult } from '../../quiz/types'
 import './StudentQuizResults.css'
 
@@ -31,7 +30,7 @@ export default function StudentQuizResults({ result, answerOf }: Props) {
       <StudentAnswerOptions mode="results" options={question.choices.map((choice) => choice.content)} selected={answer < 0 ? null : answer} correctAnswer={correctAnswer}
         stats={percentages.map((percentage) => `${percentage}%`)} />
       <div className="student-results__footer">
-        <p>내 답: {answer < 0 ? '미응답' : <>{optionLabels[answer]} · <strong className={correct ? 'student-results__correct' : 'student-results__wrong'}>{correct ? '정답 ✓' : '오답'}</strong></>} · 응답 {question.answeredCount}명 · 정답 {question.correctCount}명 · 오답 {question.incorrectCount}명 · 반 정답률 <strong>{accuracy}%</strong></p>
+        <p>내 답: {answer < 0 ? '미응답' : <>{choiceLabel(question.choices[answer], question.choices.length)} · <strong className={correct ? 'student-results__correct' : 'student-results__wrong'}>{correct ? '정답 ✓' : '오답'}</strong></>} · 응답 {question.answeredCount}명 · 정답 {question.correctCount}명 · 오답 {question.incorrectCount}명 · 반 정답률 <strong>{accuracy}%</strong></p>
         <div className="student-results__navigation">
           <button className="student-button" disabled={index === 0} onClick={() => setIndex((previous) => previous - 1)}>이전 문항</button>
           <button className="student-button student-button--primary" disabled={index === total - 1} onClick={() => setIndex((previous) => previous + 1)}>다음 문항</button>

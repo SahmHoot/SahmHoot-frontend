@@ -1,6 +1,6 @@
 import timer from '../../../assets/student/timer.svg'
 import StudentAnswerOptions from './StudentAnswerOptions'
-import { optionLabels } from '../data/studentFixtures'
+import { choiceLabel } from '../../professor/dashboard-quiz'
 import type { QuizQuestion, RoomPhase } from '../types/student.types'
 import './StudentQuizQuestion.css'
 
@@ -22,11 +22,13 @@ export default function StudentQuizQuestion({ question, index, total, phase, sec
   const closing = phase === 'closing'
   const revealed = feedback && question.correctAnswer >= 0
   const answerCorrect = selected === question.correctAnswer
+  // OX는 교수 화면처럼 O·X로, 객관식은 ①~④로 부른다.
+  const label = (option: number) => choiceLabel({ orderNo: option + 1, content: question.options[option] }, question.options.length)
   const remaining = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`
   const hint = closing ? '답안을 마감하고 있습니다.'
-    : revealed ? `${answerCorrect ? '정답 ✓' : selected === null ? '미응답' : '오답'} · 정답은 ${optionLabels[question.correctAnswer]} · 잠시 후 다음 화면으로 이동합니다`
+    : revealed ? `${answerCorrect ? '정답 ✓' : selected === null ? '미응답' : '오답'} · 정답은 ${label(question.correctAnswer)} · 잠시 후 다음 화면으로 이동합니다`
       : feedback ? '문항이 마감되었습니다. 잠시 후 다음 화면으로 이동합니다.'
-        : selected !== null ? `${optionLabels[selected]} 제출됨 · 마감 전까지 다른 답으로 바꿀 수 있어요`
+        : selected !== null ? `${label(selected)} 제출됨 · 마감 전까지 다른 답으로 바꿀 수 있어요`
           : '답을 고르면 바로 제출됩니다 · 마감 전까지 바꿀 수 있어요'
   return (
     <section className="student-question student-card" aria-labelledby="live-question-title">
