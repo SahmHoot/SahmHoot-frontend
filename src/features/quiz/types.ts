@@ -100,42 +100,4 @@ export type ProfessorQuizMessage =
   | RoomWaitingMessage
   | AnswerProgressMessage
 
-/** GET /api/rooms/{roomId}/state의 현재 문항(백엔드 RoomStateResponse.CurrentQuestion). */
-export interface RoomStateCurrentQuestion {
-  runQuestionId: number
-  questionNo: number
-  questionType: QuestionType
-  timeLimitSeconds: number
-  content: string
-  choices: RunChoice[]
-  openedAt: string
-  closesAt: string
-  closedAt: string | null
-  /** 마감 뒤(FEEDBACK)에만 값이 있다. 교수 화면에는 표시하지 않는다. */
-  correctChoiceId: number | null
-}
-
-/** state의 퀴즈 부분. 대기 중이면 응답의 quiz가 null이다. */
-export interface RoomStateQuiz {
-  runId: number
-  questionSetTitle: string
-  totalQuestions: number
-  phase: 'QUESTION' | 'FEEDBACK' | 'RESULT'
-  /** RESULT 단계에서는 null이다. */
-  currentQuestion: RoomStateCurrentQuestion | null
-  /** FEEDBACK 단계에서만 값이 있다. */
-  nextOpensAt: string | null
-  /** RESULT 단계에서만 값이 있다. */
-  result: QuizResult | null
-}
-
-/**
- * GET /api/rooms/{roomId}/state 응답 중 교수 퀴즈 화면이 쓰는 필드.
- * 방·참여자·채팅 필드는 이 화면에서 쓰지 않아 생략한다.
- */
-export interface RoomStateResponse {
-  serverTime: string
-  quiz: RoomStateQuiz | null
-  /** 소유자에게 QUESTION 단계에서만 온다. 없으면 필드 자체가 빠진다. */
-  progress?: { runQuestionId: number; answeredCount: number }
-}
+export type { RoomStateResponse, RoomStateQuiz, RoomStateQuestion as RoomStateCurrentQuestion } from '../../shared/types/roomState'

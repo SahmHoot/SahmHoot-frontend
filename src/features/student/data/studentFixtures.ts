@@ -1,4 +1,4 @@
-import type { ChatMessage, QuizQuestion, QuizSet } from '../types/student.types'
+import type { QuizQuestion, QuizSet } from '../types/student.types'
 
 // UI previews only. Replace these fixtures with room/quiz responses when APIs are available.
 const question = (
@@ -29,17 +29,4 @@ export const reviewSets: QuizSet[] = [
   },
 ]
 
-export const roomQuiz = reviewSets[0]
-export const classTitle = '자료구조 3주차'
 export const optionLabels = ['①', '②', '③', '④']
-
-export function initialMessages(nickname: string): ChatMessage[] {
-  return [
-    { id: 'message-1', nickname, mine: true, role: 'student', text: '오늘 범위가 스택까지인가요?' },
-    { id: 'message-2', nickname: '강현민 교수', role: 'professor', text: '네, 큐는 다음 주에 합니다', reply: `${nickname}: 오늘 범위가 스택까지...` },
-    { id: 'message-3', nickname: '부지런한 수박', role: 'student', text: '재귀랑 스택 관계가 아직 헷갈려요' },
-    { id: 'message-4', nickname: '느긋한 참외', role: 'student', text: '저도요 ㅠㅠ' },
-    { id: 'message-5', nickname: '강현민 교수', role: 'professor', text: '그러면 예제 하나 더 보고 갈게요. 42쪽 펴세요' },
-    { id: 'message-6', nickname: '용감한 자두', role: 'student', text: '넵' },
-  ]
-}

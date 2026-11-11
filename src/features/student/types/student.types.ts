@@ -1,5 +1,4 @@
 export type RoomPhase = 'waiting' | 'question' | 'closing' | 'feedback' | 'results'
-export type RoomPreview = 'waiting' | 'question' | 'results' | null
 export type Reaction = '👍' | '❓' | '😄' | '👏'
 
 export interface StudentSession {
