@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
+import { fetchRoomState } from '../../../shared/api/roomState'
 import { onStompErrorMessage, publish } from '../../../shared/stomp'
 import { useClassroom } from '../../room/useClassroom'
 import { initialStudentAnswers, myAnswer, studentAnswersReducer } from '../studentAnswers'
@@ -19,10 +20,20 @@ export function useStudentQuiz(roomId: number) {
   }), [])
 
   // 늦게 온 state보다 최근에 고른 답을 서버에 다시 보낸다(studentAnswers의 snapshot). 못 보내면 다음 재연결 state에서 다시 정한다.
-  const { resend } = answers
+  // 그사이 마감된 문항에는 보내지 않는다. 마감 뒤에는 verify로 서버 답을 맞춘다.
+  const { resend, open, verify } = answers
   useEffect(() => {
-    if (resend) publish(`/app/rooms/${roomId}/answer`, resend)
-  }, [resend, roomId])
+    if (resend && open?.runQuestionId === resend.runQuestionId) publish(`/app/rooms/${roomId}/answer`, resend)
+  }, [resend, open, roomId])
+
+  useEffect(() => {
+    if (verify === null) return
+    const controller = new AbortController()
+    // shortcut: 조회가 실패하면 다시 묻지 않고, 다음 재연결 state(마감 뒤라 서버 답이 확정됨)가 바로잡는다.
+    fetchRoomState(roomId, controller.signal).then((state) => dispatch({ kind: 'verified', runQuestionId: verify,
+      choiceId: state.quiz?.myAnswers?.find((answer) => answer.runQuestionId === verify)?.choiceId ?? null }), () => {})
+    return () => controller.abort()
+  }, [verify, roomId])
 
   /** 답을 고르면 바로 보낸다. 같은 문항에 다시 보내면 서버가 답을 바꾼다. */
   function select(choiceId: number) {

@@ -9,7 +9,7 @@ function load(path, dependencies = {}) {
   const source = readFileSync(new URL(`../src/features/${path}.ts`, import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } })
   const exports = {}
-  runInNewContext(outputText, { exports, require: (id) => {
+  runInNewContext(outputText, { exports, AbortController, require: (id) => {
     if (!(id in dependencies)) throw new Error(`Unexpected dependency: ${id}`)
     return dependencies[id]
   } })
@@ -48,14 +48,18 @@ function setup() {
   }
   let quiz = { phase: 'waiting' }
   let forward
+  /** 서버에 저장된 내 답. 마감된 문항을 서버 답으로 맞출 때 조회한다. */
+  const server = { myAnswers: [], fetches: 0 }
+  const roomState = { fetchRoomState: async () => { server.fetches += 1; return { quiz: { myAnswers: server.myAnswers } } } }
   const classroom = { useClassroom: (_roomId, _owner, onQuizAction) => { forward = onQuizAction; return { quiz } } }
   const answers = load('student/studentAnswers')
   const { useStudentQuiz } = load('student/hooks/useStudentQuiz', {
     react, '../../../shared/stomp': stomp, '../../room/useClassroom': classroom, '../studentAnswers': answers,
+    '../../../shared/api/roomState': roomState,
   })
   const render = () => { index = 0; return useStudentQuiz(40) }
   return {
-    sent, stomp, render,
+    sent, stomp, render, server,
     open(runQuestionId, closesAt) {
       quiz = { phase: 'question', runId: 7, runQuestionId }
       forward({ kind: 'message', message: { type: 'QUESTION_OPENED', runId: 7, runQuestionId, questionNo: 1, closesAt }, receivedAt: 0 })
@@ -161,4 +165,61 @@ test('재연결 뒤 늦게 온 state가 그 사이 고른 답을 덮지 않고, 
   // 다시 그려도 한 번만 보낸다.
   room.render()
   assert.equal(room.sent.length, 3)
+})
+
+/** ②로 확인된 뒤 ①로 바꿨는데(서버 ①), 그 전에 만들어진 state(②)가 늦게 도착하고 바로 뒤에 마감이 적용된다. */
+function staleStateThenClose() {
+  const room = setup()
+  room.render()
+  room.open(11, '2026-11-10T10:01:00Z')
+  room.render().select(2)
+  room.state(11, 2)
+  room.render().select(1)
+  room.state(11, 2)
+  room.close()
+  return room
+}
+const settle = () => new Promise((resolve) => setImmediate(resolve))
+
+test('늦은 state와 마감이 겹치면 마감된 문항에 다시 보내지 않고 서버 답으로 맞춘다', async () => {
+  const room = staleStateThenClose()
+  room.server.myAnswers = [{ runQuestionId: 11, choiceId: 1 }]
+  room.render()
+  assert.deepEqual(room.sent.map(({ body }) => body.choiceId), [2, 1])
+  await settle()
+  const view = room.render()
+  assert.equal(room.server.fetches, 1)
+  assert.equal(view.answerOf(11), 1)
+  assert.equal(view.notice, null)
+})
+
+test('다시 보낸 답이 마감으로 거부돼도 앞서 저장된 답을 지우지 않고 서버 답으로 맞춘다', async () => {
+  const room = setup()
+  room.render()
+  room.open(11, '2026-11-10T10:01:00Z')
+  room.render().select(2)
+  room.state(11, 2)
+  room.render().select(1)
+  room.state(11, 2)
+  room.render()
+  assert.deepEqual(room.sent.map(({ body }) => body.choiceId), [2, 1, 1])
+  // 다시 보낸 ①이 마감 뒤 도착해 거부됐다. 처음 보낸 ①은 서버에 저장돼 있다.
+  room.server.myAnswers = [{ runQuestionId: 11, choiceId: 1 }]
+  room.close()
+  room.error('QUESTION_CLOSED', '2026-11-10T10:01:01.500Z')
+  room.render()
+  await settle()
+  const view = room.render()
+  assert.equal(view.answerOf(11), 1)
+  assert.equal(view.notice, null)
+})
+
+test('끊긴 동안 보낸 답이 사라졌으면 마감 뒤 서버 답으로 되돌리고 안내한다', async () => {
+  const room = staleStateThenClose()
+  room.server.myAnswers = [{ runQuestionId: 11, choiceId: 2 }]
+  room.render()
+  await settle()
+  const view = room.render()
+  assert.equal(view.answerOf(11), 2)
+  assert.match(view.notice, /반영되지 않았습니다/)
 })

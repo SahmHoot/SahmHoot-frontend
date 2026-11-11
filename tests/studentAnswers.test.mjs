@@ -75,8 +75,16 @@ test('재연결 state가 그 뒤 고른 답보다 오래됐으면 열린 문항�
   const state = apply(openAt(11, '2026-11-10T10:01:00Z'), select(11, 2), liveState(11, 2), select(11, 1), liveState(11, 2))
   assert.equal(myAnswer(state, 11), 1)
   assert.deepEqual({ ...state.resend }, { runQuestionId: 11, choiceId: 1 })
-  // 다시 보낸 답마저 마감으로 거부되면 서버에 남은 ②로 돌아간다.
-  assert.equal(myAnswer(reduce(state, rejected('2026-11-10T10:01:02Z')), 11), 2)
+  // 다시 보낸 답이 마감으로 거부돼도 처음 보낸 ①이 저장됐을 수 있어 지우지 않고, 서버 답 조회로 맞춘다.
+  const rejectedResend = reduce(state, rejected('2026-11-10T10:01:02Z'))
+  assert.equal(myAnswer(rejectedResend, 11), 1)
+  assert.equal(rejectedResend.verify, 11)
+  const verified = reduce(rejectedResend, { kind: 'verified', runQuestionId: 11, choiceId: 2 })
+  assert.equal(myAnswer(verified, 11), 2)
+  assert.equal(verified.rejectedQuestionId, 11)
+  assert.equal(verified.verify, null)
+  // 다시 보낸 답이 있는 채로 마감되면 거부가 오지 않아도 서버 답으로 맞춘다.
+  assert.equal(reduce(state, close(11, 1)).verify, 11)
 })
 
 test('state가 내 답과 같거나 문항이 마감됐으면 서버 값을 따르고 다시 보내지 않는다', () => {

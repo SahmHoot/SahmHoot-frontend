@@ -18,6 +18,11 @@ export interface StudentAnswers {
   rejectedQuestionId: number | null
   /** state가 그 뒤에 고른 답보다 오래돼 서버에 다시 보낼 답. state를 받을 때마다 새로 정한다. */
   resend: { runQuestionId: number; choiceId: number } | null
+  /**
+   * 다시 보낸 답이 있는 채로 마감·거부된 문항. 처음 보낸 답이 저장됐는지 알 수 없어, 마감 뒤 서버 답을 조회해 맞춘다.
+   * 마감된 문항의 서버 답은 더 바뀌지 않는다.
+   */
+  verify: number | null
 }
 
 export type StudentAnswerAction =
@@ -25,9 +30,11 @@ export type StudentAnswerAction =
   | { kind: 'select'; runQuestionId: number; choiceId: number }
   /** 서버가 보낸 답 하나를 거부했다(ERROR QUESTION_CLOSED). sentAt은 거부한 서버 시각이다. */
   | { kind: 'rejected'; sentAt: string }
+  /** verify 문항의 서버 답을 조회했다. 답하지 않았으면 null. */
+  | { kind: 'verified'; runQuestionId: number; choiceId: number | null }
 
 export const initialStudentAnswers: StudentAnswers = {
-  runId: null, sent: {}, correct: {}, pending: {}, open: null, rejectedQuestionId: null, resend: null,
+  runId: null, sent: {}, correct: {}, pending: {}, open: null, rejectedQuestionId: null, resend: null, verify: null,
 }
 
 /** 화면에 보일 내 답. 고르지 않았으면 null. */
@@ -66,8 +73,20 @@ export function studentAnswersReducer(state: StudentAnswers, action: StudentAnsw
       // 같은 문항에서 마감 뒤에 보낸 답은 모두 거부되고 가장 나중에 보낸 것이므로, 끝에서 하나씩 지우면 서버에 남은 답이 된다.
       const id = rejectedQuestion(state, action.sentAt)
       if (id === null) return state
+      // 다시 보낸 답은 처음 보낸 답과 같아서, 거부가 어느 쪽 것인지에 따라 서버 답이 다르다. 지우지 않고 서버 답으로 맞춘다.
+      if (id === state.resend?.runQuestionId) return { ...state, verify: id }
       return { ...state, sent: { ...state.sent, [id]: state.sent[id].slice(0, -1) },
         pending: { ...state.pending, [id]: state.pending[id] - 1 }, rejectedQuestionId: id }
+    }
+
+    case 'verified': {
+      const id = action.runQuestionId
+      if (id !== state.verify) return state
+      const lost = myAnswer(state, id) !== action.choiceId
+      return { ...state, sent: { ...state.sent, [id]: action.choiceId === null ? [] : [action.choiceId] },
+        pending: { ...state.pending, [id]: 0 }, resend: null, verify: null,
+        // 내가 마지막에 고른 답이 서버에 없으면 반영되지 않은 것이다.
+        rejectedQuestionId: lost ? id : state.rejectedQuestionId }
     }
 
     case 'snapshot': {
@@ -93,7 +112,7 @@ export function studentAnswersReducer(state: StudentAnswers, action: StudentAnsw
         pending[open.runQuestionId] = 1
         resend = { runQuestionId: open.runQuestionId, choiceId: mine }
       }
-      return { runId: quiz.runId, sent, correct, pending, open, rejectedQuestionId: null, resend }
+      return { runId: quiz.runId, sent, correct, pending, open, rejectedQuestionId: null, resend, verify: null }
     }
 
     case 'message': {
@@ -111,7 +130,8 @@ export function studentAnswersReducer(state: StudentAnswers, action: StudentAnsw
           // 그보다 앞 문항의 답은 이미 처리됐으므로, 늦은 거부를 받을 수 있는 건 방금 닫힌 문항뿐이다.
           return { ...state, correct: { ...state.correct, [id]: message.correctChoiceId },
             pending: state.pending[id] ? { [id]: state.pending[id] } : {},
-            open: state.open?.runQuestionId === id ? null : state.open }
+            open: state.open?.runQuestionId === id ? null : state.open,
+            verify: state.resend?.runQuestionId === id ? id : state.verify }
         }
         case 'QUIZ_CANCELED':
           return message.runId === state.runId ? initialStudentAnswers : state
