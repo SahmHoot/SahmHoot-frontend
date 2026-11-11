@@ -73,20 +73,6 @@ test('빈 세트는 문제를 임의 생성하지 않는다', async () => {
   assert.equal((await api.getReviewSet('54')).questions.length, 0)
 })
 
-const { reviewResult } = moduleAt('reviewResult')
-test('객관식·OX 정답과 오답을 선택지 ID 및 isCorrect로 계산한다', () => {
-  assert.equal(JSON.stringify(reviewResult(detail.questions, { 1: 11, 2: 22 })),
-    JSON.stringify({ total: 2, correct: 1, wrong: 1, unanswered: 0, rate: 50 }))
-  assert.equal(reviewResult(detail.questions, { 1: 11, 2: 21 }).rate, 100)
-  assert.equal(reviewResult(detail.questions, { 1: 12, 2: 22 }).rate, 0)
-})
-
-test('미응답·빈 세트는 오답에 중복 집계하지 않고 NaN을 만들지 않는다', () => {
-  assert.equal(reviewResult(detail.questions, {}).unanswered, 2)
-  assert.equal(reviewResult(detail.questions, {}).wrong, 0)
-  assert.equal(reviewResult([], {}).rate, 0)
-})
-
 function resourceHarness(initialLoad) {
   let cursor = 0
   const slots = []

@@ -8,10 +8,12 @@ interface Props {
   correctAnswer?: number
   mode?: 'answer' | 'results' | 'review'
   disabled?: boolean
+  /** results 모드에서 선택지 옆에 보일 반 전체 분포(퀴즈 결과 화면에서만). */
+  stats?: string[]
   onSelect?: (index: number) => void
 }
 
-export default function StudentAnswerOptions({ options, selected, correctAnswer, mode = 'answer', disabled = false, onSelect }: Props) {
+export default function StudentAnswerOptions({ options, selected, correctAnswer, mode = 'answer', disabled = false, stats, onSelect }: Props) {
   const reveal = mode !== 'answer'
   return (
     <div className="student-answers" role="group" aria-label="문제 선택지">
@@ -24,6 +26,7 @@ export default function StudentAnswerOptions({ options, selected, correctAnswer,
           {mode === 'review' && correct && <span className="student-answers__badge student-answers__badge--correct">정답</span>}
           {mode === 'review' && wrong && <span className="student-answers__badge student-answers__badge--wrong">내가 고른 답</span>}
           {mode === 'results' && wrong && <span className="student-answers__badge student-answers__badge--wrong">내가 고른 답</span>}
+          {mode === 'results' && stats && <span className="student-answers__stat">{stats[index]}</span>}
         </>
         const classes = `student-answers__option ${highlighted ? 'student-answers__option--selected' : ''} ${mode === 'review' && correct ? 'student-answers__option--correct' : ''} ${wrong ? 'student-answers__option--wrong' : ''}`
         return mode === 'answer' ? (

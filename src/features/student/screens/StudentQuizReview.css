@@ -14,7 +14,4 @@
 .student-review__navigation .student-button { min-height: 48px; padding: 11px 24px; font-size: 15px; }
 .student-review h1, .student-review h2 { overflow-wrap: anywhere; white-space: pre-wrap; }
 .student-review__check { margin-top: 20px; }
-.student-review__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.student-review__summary dt { color: var(--student-muted); }
-.student-review__summary dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; }
 @media (max-width: 600px) { .student-review { padding: 32px 16px; } .student-review h1 { font-size: 20px; line-height: 28px; } .student-review__question { padding: 24px 20px; } .student-review__navigation .student-button { padding: 11px 16px; } }

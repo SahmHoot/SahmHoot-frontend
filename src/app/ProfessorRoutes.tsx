@@ -9,6 +9,8 @@ import { QuizSetEditor } from "../features/professor/screens/QuizSetEditor";
 import { ProfessorRoom } from "../features/professor/screens/ProfessorRoom";
 import { QuizResults } from "../features/professor/screens/QuizResults";
 import { useProfessorDashboard } from "../features/professor/hooks/useProfessorDashboard";
+import { RoomEndedNotice } from "../features/room/RoomEndedNotice";
+import { ClassroomStatus } from "../features/room/ClassroomStatus";
 
 export default function ProfessorRoutes() {
   const professor = useProfessorDashboard();
@@ -42,6 +44,8 @@ export default function ProfessorRoutes() {
           <Route
             path="room"
             element={
+              professor.roomEnded ? null : professor.roomLoading || professor.roomError ?
+              <ClassroomStatus error={professor.roomError} onHome={professor.dismissRoom} /> :
               <ProfessorRoom
                 room={room}
                 quiz={quiz}
@@ -58,6 +62,8 @@ export default function ProfessorRoutes() {
           <Route
             path="room/results"
             element={
+              professor.roomEnded ? null : professor.roomLoading || professor.roomError ?
+              <ClassroomStatus error={professor.roomError} onHome={professor.dismissRoom} /> :
               <QuizResults
                 room={room}
                 result={quiz.phase === 'results' ? quiz.result : null}
@@ -77,7 +83,8 @@ export default function ProfessorRoutes() {
           {professor.feedback}
         </div>
       )}
-      {professor.ending && (
+      {professor.roomEnded && <RoomEndedNotice onHome={professor.dismissRoom} />}
+      {professor.ending && !professor.roomEnded && (
         <EndClassDialog
           roomName={room.name}
           pending={professor.endPending}

@@ -1,9 +1,28 @@
 export type RoomPhase = 'waiting' | 'question' | 'closing' | 'feedback' | 'results'
-export type RoomPreview = 'waiting' | 'question' | 'results' | null
 export type Reaction = '👍' | '❓' | '😄' | '👏'
 
 export interface StudentSession {
   code: string
+  nickname: string
+  roomId?: number
+  title?: string
+}
+
+/** GET /api/rooms/by-code/{joinCode}. */
+export interface RoomByCodeResponse {
+  roomId: number
+  title: string
+  ownerName: string
+  status: 'OPEN' | 'PLAYING' | 'CLOSED'
+  joined: boolean
+  isOwner: boolean
+  myNickname: string | null
+}
+
+/** POST /api/rooms/by-code/{joinCode}/participants. */
+export interface JoinRoomResponse {
+  roomId: number
+  participantId: number
   nickname: string
 }
 
@@ -15,13 +34,6 @@ export interface QuizQuestion {
   duration: number
   correctRate: number
   responseCount: number
-}
-
-export interface QuizSet {
-  id: string
-  title: string
-  subject: string
-  questions: QuizQuestion[]
 }
 
 export interface ChatMessage {
