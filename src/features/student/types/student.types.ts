@@ -36,13 +36,6 @@ export interface QuizQuestion {
   responseCount: number
 }
 
-export interface QuizSet {
-  id: string
-  title: string
-  subject: string
-  questions: QuizQuestion[]
-}
-
 export interface ChatMessage {
   id: string
   nickname: string

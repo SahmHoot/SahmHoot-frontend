@@ -25,17 +25,3 @@ export function writeSession(value: StudentSession | null) {
     else sessionStorage.removeItem(sessionKey)
   } catch { /* The current navigation can still carry the session in memory. */ }
 }
-
-export function readAnswers(setId: string, count: number): (number | null)[] {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(`sahmhoot.student.answers.${setId}`) ?? 'null')
-    if (Array.isArray(value) && value.length === count && value.every(answer =>
-      answer === null || (Number.isInteger(answer) && answer >= 0 && answer < 4))) return value
-  } catch { /* Fall back to unanswered questions. */ }
-  return Array.from({ length: count }, () => null)
-}
-
-export function saveAnswers(setId: string, answers: (number | null)[]) {
-  try { localStorage.setItem(`sahmhoot.student.answers.${setId}`, JSON.stringify(answers)) }
-  catch { /* Quiz interactions remain available without persistence. */ }
-}

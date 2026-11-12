@@ -4,7 +4,6 @@ import dice from '../../../assets/student/nickname-random.svg'
 import qrDice from '../../../assets/student/nickname-random-qr.svg'
 import StudentHeader from '../components/StudentHeader'
 import StudentReviewSetList from '../components/StudentReviewSetList'
-import { reviewSets } from '../data/studentFixtures'
 import { useStudentJoin } from '../hooks/useStudentJoin'
 import './StudentJoin.css'
 
@@ -50,7 +49,7 @@ function StudentJoinForm({ qrCode }: { qrCode: string }) {
           <button className="student-button student-button--primary student-join__submit" type="submit" disabled={pending}>{pending ? '처리 중…' : room ? '입장' : '코드 확인'}</button>
           {(error || room) && <Link to="/student" className="student-button student-join__home">홈으로</Link>}
         </form>
-        {!fromQr && <StudentReviewSetList sets={reviewSets} />}
+        {!fromQr && <StudentReviewSetList />}
       </main>
     </div>
   )
