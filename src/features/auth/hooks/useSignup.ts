@@ -31,7 +31,8 @@ export function useSignup({ email, code, name, role }: {
   email: string
   code: string
   name: string
-  role: AuthRole
+  /** 아직 고르지 않았으면 null. 기본값을 두지 않아 학생이 교수로 가입되는 일을 막는다(#93). */
+  role: AuthRole | null
 }) {
   const navigate = useNavigate()
   const auth = useAuth()
@@ -99,6 +100,10 @@ export function useSignup({ email, code, name, role }: {
     }
     if (!emailVerified) {
       setFeedback('이메일 인증을 먼저 완료해 주세요.')
+      return
+    }
+    if (!role) {
+      setFeedback('교수 또는 학생을 선택해 주세요.')
       return
     }
     void run(async () => {
