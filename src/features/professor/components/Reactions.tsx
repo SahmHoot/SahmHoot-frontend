@@ -13,23 +13,23 @@ export function Reactions({ participants }: { participants: number }) {
         {[
           {
             emoji: "👍",
-            count: participants ? 12 : 0,
-            width: participants ? 75 : 0,
+            count: 0,
+            width: 0,
           },
           {
             emoji: "❓",
-            count: participants ? 5 : 0,
-            width: participants ? 38 : 0,
+            count: 0,
+            width: 0,
           },
           {
             emoji: "😄",
-            count: participants ? 3 : 0,
-            width: participants ? 20 : 0,
+            count: 0,
+            width: 0,
           },
           {
             emoji: "👏",
-            count: participants ? 2 : 0,
-            width: participants ? 13 : 0,
+            count: 0,
+            width: 0,
           },
         ].map((item) => (
           <li key={item.emoji}>

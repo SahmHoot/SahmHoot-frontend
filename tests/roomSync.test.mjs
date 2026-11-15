@@ -426,3 +426,62 @@ describe('startRoomSync', () => {
     assert.deepEqual(room.log, [])
   })
 })
+
+describe('#40 마감 후 교수 응답 집계', () => {
+  it('마감 직후 늦게 도착한 동일 문항 집계를 필터와 교수 리듀서가 함께 반영한다', async () => {
+    const room = setup({ owner: true })
+    const snapshot = roomState({ quiz: quizAt('QUESTION', 1, 801), progress: { runQuestionId: 801, answeredCount: 1 } })
+    room.loads[0].resolve(snapshot)
+    await settle()
+    room.send('quiz', { ...closed(801, AFTER), nextOpensAt: '2026-11-08T10:00:04Z' })
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: LATER, runQuestionId: 801, answeredCount: 2 })
+    const clock = load('features/quiz/serverClock')
+    const { professorQuizReducer } = load('features/quiz/professorQuizReducer', { './serverClock': clock })
+    let state = professorQuizReducer({ phase: 'waiting' }, { kind: 'snapshot', snapshot, receivedAt: Date.parse(T0) })
+    for (const [, message] of room.messages) {
+      state = professorQuizReducer(state, { kind: 'message', message, receivedAt: Date.parse(message.sentAt) })
+    }
+    assert.equal(state.phase, 'between')
+    assert.equal(state.answeredCount, 2)
+    room.stop()
+  })
+
+  it('피드백 스냅샷 복원 후에도 같은 문항의 새 집계만 반영한다', async () => {
+    const room = setup({ owner: true })
+    room.loads[0].resolve(roomState({ quiz: quizAt('FEEDBACK', 2, 802) }))
+    await settle()
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: T0, runQuestionId: 802, answeredCount: 1 })
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: AFTER, runQuestionId: 801, answeredCount: 9 })
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: LATER, runQuestionId: 802, answeredCount: 2 })
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: AFTER, runQuestionId: 802, answeredCount: 1 })
+    assert.deepEqual(room.messages.map(([, message]) => message.answeredCount), [2])
+    room.stop()
+  })
+
+  it('다음 문항에서는 이전 문항 집계를 버리고 현재 문항 집계만 반영한다', async () => {
+    const room = setup({ owner: true })
+    room.loads[0].resolve(roomState({ quiz: quizAt('QUESTION', 1, 801) }))
+    await settle()
+    room.send('quiz', closed(801, AFTER))
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: LATER, runQuestionId: 801, answeredCount: 2 })
+    room.send('quiz', opened(2, 802, '2026-11-08T10:00:04Z'))
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: '2026-11-08T10:00:05Z', runQuestionId: 801, answeredCount: 9 })
+    room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: '2026-11-08T10:00:05Z', runQuestionId: 802, answeredCount: 1 })
+    assert.deepEqual(room.messages.filter(([, message]) => message.type === 'ANSWER_PROGRESS').map(([, message]) => message.answeredCount), [2, 1])
+    room.stop()
+  })
+
+  it('중단·결과·대기·수업 종료 뒤에는 마감 문항의 집계도 반영하지 않는다', async () => {
+    for (const type of ['QUIZ_CANCELED', 'QUIZ_FINISHED', 'ROOM_WAITING', 'ROOM_ENDED']) {
+      const room = setup({ owner: true })
+      room.loads[0].resolve(roomState({ quiz: quizAt('QUESTION', 1, 801) }))
+      await settle()
+      room.send('quiz', closed(801, AFTER))
+      room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: LATER, runQuestionId: 801, answeredCount: 2 })
+      room.send('quiz', { type, runId: 77, sentAt: '2026-11-08T10:00:04Z', result: { questions: [] } })
+      room.send('stats', { type: 'ANSWER_PROGRESS', sentAt: '2026-11-08T10:00:05Z', runQuestionId: 801, answeredCount: 9 })
+      assert.deepEqual(room.messages.filter(([, message]) => message.type === 'ANSWER_PROGRESS').map(([, message]) => message.answeredCount), [2], type)
+      room.stop()
+    }
+  })
+})

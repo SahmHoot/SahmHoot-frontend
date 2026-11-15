@@ -18,8 +18,8 @@ export function useProfessorDashboard() {
     const id = readRoomId(user?.id)
     return id === null ? noRoom : { ...noRoom, id, active: true }
   })
-  const [messages, setMessages] = useState<ChatMessage[]>(demoMessages)
-  const [notice, setNotice] = useState(demoNotice)
+  const [messages, setMessages] = useState<ChatMessage[]>(() => room.id === null ? demoMessages : [])
+  const [notice, setNotice] = useState(() => room.id === null ? demoNotice : '')
   const [ending, setEnding] = useState(false)
   const [endPending, setEndPending] = useState(false)
   const [endError, setEndError] = useState('')
@@ -62,7 +62,7 @@ export function useProfessorDashboard() {
       active: true,
     })
     setMessages([])
-    setNotice(demoNotice)
+    setNotice('')
   }
 
   const openRoom = (summary: RoomSummaryResponse) => {
@@ -76,7 +76,7 @@ export function useProfessorDashboard() {
       active: true,
     })
     setMessages([])
-    setNotice(demoNotice)
+    setNotice('')
     navigate('/professor/room')
   }
 

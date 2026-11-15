@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import * as jsxRuntime from 'react/jsx-runtime'
+import { renderToStaticMarkup } from 'react-dom/server'
 import ts from 'typescript'
 
 const noRoom = { id: null, name: '', code: '', joinUrl: null, participants: 0, active: false }
@@ -48,12 +49,15 @@ function harness(file, name, dependencies, extension = 'ts') {
   }
 }
 
-function dashboard(api = {}) {
+const demoMessages = [{ id: 'demo', author: '예제 학생', text: '예제 대화' }]
+const demoNotice = '예제 공지'
+
+function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/create' } = {}) {
   const navigation = []
   const bindings = []
   const requests = []
   let routeKey = 0
-  let location = { pathname: '/professor/create', key: String(routeKey) }
+  let location = { pathname: initialPath, key: String(routeKey) }
   const hook = harness('professor/hooks/useProfessorDashboard', 'useProfessorDashboard', {
     'react-router-dom': { useNavigate: () => (path) => {
       navigation.push(path)
@@ -61,9 +65,9 @@ function dashboard(api = {}) {
     }, useLocation: () => location },
     '../../auth/api': { toApiError: (error) => ({ message: error.message }) },
     '../../auth/AuthProvider': { useAuth: () => ({ user: { id: 1 } }) },
-    '../roomStorage': { readRoomId: () => null, writeRoomId() {} },
+    '../roomStorage': { readRoomId: () => restoredRoomId, writeRoomId() {} },
     '../../room/api': { createRoom: async () => created, closeRoom: async () => {}, ...api },
-    '../dashboard-data': { noRoom, demoMessages: [], demoNotice: '' },
+    '../dashboard-data': { noRoom, demoMessages, demoNotice },
     '../../quiz/hooks/useProfessorQuiz': { useProfessorQuiz: (roomId) => {
       bindings.push(roomId)
       return { quiz: { phase: 'waiting' }, ready: roomId !== null,
@@ -224,4 +228,49 @@ test('목록 조회 실패를 안내하고 재시도·재진입마다 서버 목
   await flush()
   assert.equal(reads, 3)
   assert.equal(reopened.render().state.rooms[0].id, 52)
+})
+
+test('저장된 실제 방을 새로고침 복원하면 예제 채팅·공지를 표시하지 않는다', () => {
+  const hook = dashboard({}, { restoredRoomId: summary.id, initialPath: '/professor/room' })
+  const state = hook.render()
+  assert.equal(state.room.id, summary.id)
+  assert.equal(state.room.active, true)
+  assert.equal(state.messages.length, 0)
+  assert.equal(state.notice, '')
+  assert.equal(hook.bindings.at(-1), summary.id)
+})
+
+test('예제는 방 선택 전까지만 유지하고 개설·목록 입장 때 채팅·공지를 비운다', async () => {
+  const hook = dashboard()
+  const preview = hook.render()
+  assert.equal(preview.messages[0].text, '예제 대화')
+  assert.equal(preview.notice, '예제 공지')
+  await preview.createRoom('실제 수업')
+  assert.equal(hook.render().messages.length, 0)
+  assert.equal(hook.render().notice, '')
+  hook.render().setNotice('이전 수업 공지')
+  hook.render().openRoom(summary)
+  assert.equal(hook.render().notice, '')
+})
+
+test('실제 접속 인원이 있어도 대기·퀴즈·결과의 반응 집계에 예제 숫자를 표시하지 않는다', () => {
+  const dependencies = {
+    'react/jsx-runtime': jsxRuntime,
+    './Reactions.css': {}, './Chat.css': {},
+    './Icon': { Icon: () => null }, './Modal': { Modal: () => null },
+  }
+  const reactions = harness('professor/components/Reactions', 'Reactions', dependencies, 'tsx')
+  const waiting = renderToStaticMarkup(reactions.render({ participants: 7 }))
+  assert.match(waiting.replace(/<[^>]*>/g, ''), /접속\s*7명/)
+  assert.equal((waiting.match(/class="professor-reactions__count">0</g) ?? []).length, 4)
+  const chat = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')
+  for (const screen of ['quiz', 'results']) {
+    const markup = renderToStaticMarkup(chat.render({
+      compact: true, screen, messages: [], participants: 7, notice: '',
+      onSend() {}, onNoticeChange() {},
+    }))
+    const text = markup.replace(/<[^>]*>/g, '')
+    for (const emoji of ['👍', '❓', '😄']) assert.ok(text.includes(emoji + ' 0'))
+    assert.equal(markup.includes('class="professor-chat__notice"'), false)
+  }
 })

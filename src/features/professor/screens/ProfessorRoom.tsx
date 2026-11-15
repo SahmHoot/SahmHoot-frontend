@@ -87,7 +87,6 @@ export function ProfessorRoom({
         screen={waiting ? 'waiting' : 'quiz'}
         messages={messages}
         onSend={onSend}
-        participants={room.participants}
       />
       {choosing && (
         <Modal title="출제할 문제 세트 선택" onClose={() => setChoosing(false)}>
