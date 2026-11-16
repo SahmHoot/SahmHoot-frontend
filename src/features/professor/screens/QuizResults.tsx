@@ -126,7 +126,6 @@ export function QuizResults({
         screen="results"
         messages={messages}
         onSend={onSend}
-        participants={room.participants}
       />
     </main>
   )

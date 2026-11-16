@@ -25,7 +25,7 @@ const WAITING_STEP = Number.MAX_SAFE_INTEGER
  * 스냅샷 한 장을 기준으로 이후 메시지를 거른다(06 1절). 재연결해 스냅샷을 다시 받으면 새로 만든다.
  *
  * - 집계(ONLINE_COUNT·ANSWER_PROGRESS·REACTION_STATS)와 MY_STATUS: sentAt이 스냅샷 시각이나
- *   마지막으로 넘긴 같은 type의 sentAt보다 늦지 않으면 버린다. ANSWER_PROGRESS는 지금 열린 문항 것만 넘긴다.
+ *   마지막으로 넘긴 같은 type의 sentAt보다 늦지 않으면 버린다. ANSWER_PROGRESS는 현재 문항의 진행·피드백 동안만 넘긴다.
  * - 채팅 MESSAGE: id로 중복을 없앤다. 공지 고정·해제는 집계처럼 sentAt으로 거른다.
  * - 퀴즈: runId·runQuestionId와 진행 순서로 이미 반영한 것을 버린다. 순서로 판단할 수 없는 경우
  *   (대기 스냅샷 뒤의 첫 메시지, runId가 없는 ROOM_WAITING, 모르는 문항의 마감)에만 sentAt을 쓴다.
@@ -45,9 +45,10 @@ export function createSnapshotFilter(state: RoomStateResponse) {
   const quiz = state.quiz
   let runId: number | null = quiz ? quiz.runId : null
   let step = quiz ? snapshotStep(quiz.phase, quiz.currentQuestion?.questionNo) : WAITING_STEP
-  /** 지금 열려 있는 문항. 마감·결과·대기가 되면 null. */
-  let openQuestionId: number | null =
-    quiz?.phase === 'QUESTION' ? (quiz.currentQuestion?.runQuestionId ?? null) : null
+  /** 응답 집계를 받을 현재 문항. 피드백까지 유지하고 결과·중단·대기에 비운다. */
+  let progressQuestionId: number | null =
+    quiz?.phase === 'QUESTION' || quiz?.phase === 'FEEDBACK'
+      ? (quiz.currentQuestion?.runQuestionId ?? null) : null
   /** runQuestionId → questionNo. QUESTION_CLOSED에는 문항 번호가 없어서 열림 메시지로 채운다. */
   const questionNos = new Map<number, number>()
   if (quiz?.currentQuestion) {
@@ -78,7 +79,7 @@ export function createSnapshotFilter(state: RoomStateResponse) {
         return 'drop'
       }
       step = WAITING_STEP
-      openQuestionId = null
+      progressQuestionId = null
       return 'apply'
     }
     const messageRunId = numberField(message, 'runId')
@@ -148,12 +149,13 @@ export function createSnapshotFilter(state: RoomStateResponse) {
     }
     runId = messageRunId
     step = next
-    openQuestionId = opened ? opened[0] : null
+    progressQuestionId = opened ? opened[0]
+      : message.type === 'QUESTION_CLOSED' ? progressQuestionId : null
     return 'apply'
   }
 
   function acceptLatestValue(message: RoomRealtimeMessage): FilterVerdict {
-    if (message.type === 'ANSWER_PROGRESS' && numberField(message, 'runQuestionId') !== openQuestionId) {
+    if (message.type === 'ANSWER_PROGRESS' && numberField(message, 'runQuestionId') !== progressQuestionId) {
       return 'drop'
     }
     const sentAt = newerThan(message, latestSentAt.get(message.type) ?? snapshotTime)

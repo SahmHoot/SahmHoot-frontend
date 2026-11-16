@@ -10,7 +10,6 @@ export function Chat({
   screen,
   messages,
   onSend,
-  participants,
   notice,
   onNoticeChange,
 }: {
@@ -18,7 +17,6 @@ export function Chat({
   screen: "waiting" | "quiz" | "results";
   messages: ChatMessage[];
   onSend: (text: string, reply?: string) => void;
-  participants: number;
   notice: string;
   onNoticeChange: (notice: string) => void;
 }) {
@@ -71,32 +69,34 @@ export function Chat({
           </span>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          setNoticeDraft(notice);
-          setEditingNotice(true);
-        }}
-        aria-label="고정 공지 편집"
-        className="professor-chat__notice"
-      >
-        <Icon
-          screen={screen}
-          name="imgFrame4"
-          className="professor-chat__notice-icon"
-        />
-        <span>
-          {compact && (
-            <span className="professor-chat__notice-author">
-              고정 공지 (교수)
-            </span>
-          )}
-          <span className="professor-chat__notice-text">{notice}</span>
-          {!compact && (
-            <span className="professor-chat__notice-caption"> · 교수 공지</span>
-          )}
-        </span>
-      </button>
+      {notice && (
+        <button
+          type="button"
+          onClick={() => {
+            setNoticeDraft(notice);
+            setEditingNotice(true);
+          }}
+          aria-label="고정 공지 편집"
+          className="professor-chat__notice"
+        >
+          <Icon
+            screen={screen}
+            name="imgFrame4"
+            className="professor-chat__notice-icon"
+          />
+          <span>
+            {compact && (
+              <span className="professor-chat__notice-author">
+                고정 공지 (교수)
+              </span>
+            )}
+            <span className="professor-chat__notice-text">{notice}</span>
+            {!compact && (
+              <span className="professor-chat__notice-caption"> · 교수 공지</span>
+            )}
+          </span>
+        </button>
+      )}
       <div ref={listRef} className="professor-chat__messages">
         {!compact && (
           <div className="professor-chat__reaction-preview">
@@ -137,9 +137,9 @@ export function Chat({
       </div>
       {compact && (
         <div className="professor-chat__reactions">
-          <span>👍 {participants ? 12 : 0}</span>
-          <span>❓ {participants ? 5 : 0}</span>
-          <span>😄 {participants ? 3 : 0}</span>
+          <span>👍 0</span>
+          <span>❓ 0</span>
+          <span>😄 0</span>
           <span className="professor-chat__reactions-caption">
             학생이 보낸 반응
           </span>

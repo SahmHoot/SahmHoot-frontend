@@ -1,6 +1,4 @@
-import type { ChatMessage, Question, QuestionSet, Room } from './dashboard-types'
-
-export const demoNotice = '교재 42쪽 예제 먼저 보세요'
+import type { Question, QuestionSet, Room } from './dashboard-types'
 
 /** 고른 방이 없을 때. 수업 화면은 active가 false면 교수 홈으로 돌아간다. */
 export const noRoom: Room = {
@@ -139,24 +137,4 @@ export const demoSets: QuestionSet[] = [
       options: ['O', 'X'],
     })),
   },
-]
-
-export const demoMessages: ChatMessage[] = [
-  { id: 'message-1', author: '조용한 판다몽', text: '오늘 범위가 스택까지인가요?' },
-  {
-    id: 'message-2',
-    author: '강현민 교수',
-    text: '네, 큐는 다음 주에 합니다',
-    professor: true,
-    reply: '조용한 판다몽: 오늘 범위가 스택까지...',
-  },
-  { id: 'message-3', author: '부지런한 수박', text: '재귀랑 스택 관계가 아직 헷갈려요' },
-  { id: 'message-4', author: '느긋한 참외', text: '저도요 ㅠㅠ' },
-  {
-    id: 'message-5',
-    author: '강현민 교수',
-    text: '그러면 예제 하나 더 보고 갈게요. 42쪽 펴세요',
-    professor: true,
-  },
-  { id: 'message-6', author: '용감한 자두', text: '넵' },
 ]

@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { useProfessorQuiz } from '../../quiz/hooks/useProfessorQuiz'
 import { closeRoom, createRoom as requestCreateRoom } from '../../room/api'
 import type { RoomSummaryResponse } from '../../room/room.types'
-import { demoMessages, demoNotice, noRoom } from '../dashboard-data'
+import { noRoom } from '../dashboard-data'
 import type { Room, ChatMessage } from '../dashboard-types'
 import { readRoomId, writeRoomId } from '../roomStorage'
 
@@ -18,8 +18,8 @@ export function useProfessorDashboard() {
     const id = readRoomId(user?.id)
     return id === null ? noRoom : { ...noRoom, id, active: true }
   })
-  const [messages, setMessages] = useState<ChatMessage[]>(demoMessages)
-  const [notice, setNotice] = useState(demoNotice)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [notice, setNotice] = useState('')
   const [ending, setEnding] = useState(false)
   const [endPending, setEndPending] = useState(false)
   const [endError, setEndError] = useState('')
@@ -45,7 +45,7 @@ export function useProfessorDashboard() {
   const sendMessage = (text: string, reply?: string) =>
     setMessages((current) => [
       ...current,
-      { id: crypto.randomUUID(), author: '강현민 교수', professor: true, text, reply },
+      { id: crypto.randomUUID(), author: user?.name ?? '교수', professor: true, text, reply },
     ])
 
   /** 실패하면 오류를 그대로 던져 개설 화면이 안내한다. */
@@ -62,7 +62,7 @@ export function useProfessorDashboard() {
       active: true,
     })
     setMessages([])
-    setNotice(demoNotice)
+    setNotice('')
   }
 
   const openRoom = (summary: RoomSummaryResponse) => {
@@ -76,7 +76,7 @@ export function useProfessorDashboard() {
       active: true,
     })
     setMessages([])
-    setNotice(demoNotice)
+    setNotice('')
     navigate('/professor/room')
   }
 
