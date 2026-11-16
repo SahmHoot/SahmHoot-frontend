@@ -41,7 +41,7 @@ function harness(file, name, dependencies, extension = 'ts') {
   const source = readFileSync(new URL(`../src/features/${file}.${extension}`, import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } })
   const exports = {}
-  runInNewContext(outputText, { exports, window: { setTimeout: () => 1, clearTimeout() {} },
+  runInNewContext(outputText, { exports, crypto, window: { setTimeout: () => 1, clearTimeout() {} },
     require: (id) => id === 'react' ? react : dependencies[id] ?? (() => { throw new Error(`Unexpected import: ${id}`) })() })
   return {
     render(props) { index = 0; effects = []; const result = exports[name](props); effects.forEach((effect) => effect()); return result },
@@ -49,10 +49,7 @@ function harness(file, name, dependencies, extension = 'ts') {
   }
 }
 
-const demoMessages = [{ id: 'demo', author: '예제 학생', text: '예제 대화' }]
-const demoNotice = '예제 공지'
-
-function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/create' } = {}) {
+function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/create', user = { id: 1, name: '검증 교수' } } = {}) {
   const navigation = []
   const bindings = []
   const requests = []
@@ -64,10 +61,10 @@ function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/
       location = { pathname: path, key: String(++routeKey) }
     }, useLocation: () => location },
     '../../auth/api': { toApiError: (error) => ({ message: error.message }) },
-    '../../auth/AuthProvider': { useAuth: () => ({ user: { id: 1 } }) },
+    '../../auth/AuthProvider': { useAuth: () => ({ user }) },
     '../roomStorage': { readRoomId: () => restoredRoomId, writeRoomId() {} },
     '../../room/api': { createRoom: async () => created, closeRoom: async () => {}, ...api },
-    '../dashboard-data': { noRoom, demoMessages, demoNotice },
+    '../dashboard-data': { noRoom },
     '../../quiz/hooks/useProfessorQuiz': { useProfessorQuiz: (roomId) => {
       bindings.push(roomId)
       return { quiz: { phase: 'waiting' }, ready: roomId !== null,
@@ -79,6 +76,19 @@ function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/
   return { ...hook, navigation, bindings, requests,
     visit(pathname) { location = { pathname, key: String(++routeKey) }; return hook.render() } }
 }
+
+test('교수 채팅은 로그인한 사용자 이름을 사용하고 메시지와 답글을 보존한다', () => {
+  for (const name of ['이서연', '김민준']) {
+    const hook = dashboard({}, { user: { id: 1, name } })
+    hook.render().openRoom(summary)
+    hook.render().sendMessage('수업 안내', '학생 질문')
+    const message = hook.render().messages.at(-1)
+    assert.equal(message.author, name)
+    assert.equal(message.professor, true)
+    assert.equal(message.text, '수업 안내')
+    assert.equal(message.reply, '학생 질문')
+  }
+})
 
 test('개설 응답의 실제 방 ID·코드·URL을 보존하고 퀴즈 요청을 같은 방에 연결한다', async () => {
   let title
@@ -240,16 +250,18 @@ test('저장된 실제 방을 새로고침 복원하면 예제 채팅·공지를
   assert.equal(hook.bindings.at(-1), summary.id)
 })
 
-test('예제는 방 선택 전까지만 유지하고 개설·목록 입장 때 채팅·공지를 비운다', async () => {
+test('개설·목록 입장 때 이전 수업의 채팅·공지를 비운다', async () => {
   const hook = dashboard()
-  const preview = hook.render()
-  assert.equal(preview.messages[0].text, '예제 대화')
-  assert.equal(preview.notice, '예제 공지')
-  await preview.createRoom('실제 수업')
+  hook.render().openRoom(summary)
+  hook.render().sendMessage('이전 수업 대화')
+  hook.render().setNotice('이전 수업 공지')
+  await hook.render().createRoom('실제 수업')
   assert.equal(hook.render().messages.length, 0)
   assert.equal(hook.render().notice, '')
+  hook.render().sendMessage('개설한 수업 대화')
   hook.render().setNotice('이전 수업 공지')
   hook.render().openRoom(summary)
+  assert.equal(hook.render().messages.length, 0)
   assert.equal(hook.render().notice, '')
 })
 
@@ -266,7 +278,7 @@ test('실제 접속 인원이 있어도 대기·퀴즈·결과의 반응 집계�
   const chat = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')
   for (const screen of ['quiz', 'results']) {
     const markup = renderToStaticMarkup(chat.render({
-      compact: true, screen, messages: [], participants: 7, notice: '',
+      compact: true, screen, messages: [], notice: '',
       onSend() {}, onNoticeChange() {},
     }))
     const text = markup.replace(/<[^>]*>/g, '')
