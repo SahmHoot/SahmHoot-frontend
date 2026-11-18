@@ -5,7 +5,6 @@ import type { ChatMessage } from "../dashboard-types";
 import { ChatReactions } from "../../room/ChatReactions";
 import type { FloatingReaction } from "../../room/reactions";
 import { Icon } from "./Icon";
-import { Modal } from "./Modal";
 
 export function Chat({
   compact,
@@ -13,21 +12,20 @@ export function Chat({
   messages,
   reactions,
   onSend,
-  notice,
-  onNoticeChange,
+  notices,
+  onUnpin,
 }: {
   compact: boolean;
   screen: "waiting" | "quiz" | "results";
   messages: ChatMessage[];
   reactions: FloatingReaction[];
   onSend: (text: string, reply?: string) => void;
-  notice: string;
-  onNoticeChange: (notice: string) => void;
+  /** 고정 공지(05 #21 pinnedMessages). 고정한 순서로 모두 보여 준다. */
+  notices: { id: number; content: string }[];
+  onUnpin: (messageId: number) => void;
 }) {
   const [text, setText] = useState("");
   const [reply, setReply] = useState<string | undefined>();
-  const [editingNotice, setEditingNotice] = useState(false);
-  const [noticeDraft, setNoticeDraft] = useState(notice);
   const listRef = useRef<HTMLDivElement>(null);
   const lastMessage = useRef(messages[messages.length - 1]?.id);
   useEffect(() => {
@@ -55,52 +53,40 @@ export function Chat({
         <h2 className="professor-chat__title">
           {compact ? "전체" : "실시간 채팅"}
         </h2>
-        {compact ? (
-          <button
-            type="button"
-            className="professor-chat__notice-button"
-            aria-label="고정 공지 편집"
-            onClick={() => {
-              setNoticeDraft(notice);
-              setEditingNotice(true);
-            }}
-          >
-            <Icon screen={screen} name="img" />
-          </button>
-        ) : (
+        {!compact && (
           <span className="professor-chat__layout-help">
             퀴즈를 출제하면 이 영역이 오른쪽 사이드바로 줄어듭니다
           </span>
         )}
       </div>
-      {notice && (
-        <button
-          type="button"
-          onClick={() => {
-            setNoticeDraft(notice);
-            setEditingNotice(true);
-          }}
-          aria-label="고정 공지 편집"
-          className="professor-chat__notice"
-        >
+      {notices.map((notice) => (
+        <div key={notice.id} className="professor-chat__notice">
           <Icon
             screen={screen}
             name="imgFrame4"
             className="professor-chat__notice-icon"
           />
-          <span>
+          <span className="professor-chat__notice-body">
             {compact && (
               <span className="professor-chat__notice-author">
                 고정 공지 (교수)
               </span>
             )}
-            <span className="professor-chat__notice-text">{notice}</span>
+            <span className="professor-chat__notice-text">{notice.content}</span>
             {!compact && (
               <span className="professor-chat__notice-caption"> · 교수 공지</span>
             )}
           </span>
-        </button>
-      )}
+          <button
+            type="button"
+            onClick={() => onUnpin(notice.id)}
+            aria-label={`고정 해제: ${notice.content}`}
+            className="professor-chat__unpin-button"
+          >
+            해제
+          </button>
+        </div>
+      ))}
       <div className="chat-messages-area">
         <div ref={listRef} className="professor-chat__messages">
           {messages.map((message) => (
@@ -164,34 +150,6 @@ export function Chat({
           전송
         </button>
       </form>
-      {editingNotice && (
-        <Modal title="고정 공지 편집" onClose={() => setEditingNotice(false)}>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (noticeDraft.trim()) {
-                onNoticeChange(noticeDraft.trim());
-                setEditingNotice(false);
-              }
-            }}
-          >
-            <input
-              aria-label="고정 공지 내용"
-              className="professor-chat__notice-input"
-              value={noticeDraft}
-              onChange={(event) => setNoticeDraft(event.target.value)}
-              required
-              maxLength={150}
-            />
-            <button
-              type="submit"
-              className="professor-chat__save-notice-button"
-            >
-              공지 저장
-            </button>
-          </form>
-        </Modal>
-      )}
     </section>
   );
 }

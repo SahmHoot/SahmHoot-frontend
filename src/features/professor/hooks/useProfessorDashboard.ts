@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toApiError } from '../../auth/api'
 import { useAuth } from '../../auth/AuthProvider'
 import { useProfessorQuiz } from '../../quiz/hooks/useProfessorQuiz'
-import { closeRoom, createRoom as requestCreateRoom } from '../../room/api'
+import { closeRoom, createRoom as requestCreateRoom, unpinMessage } from '../../room/api'
 import type { RoomSummaryResponse } from '../../room/room.types'
 import { noRoom } from '../dashboard-data'
 import type { Room, ChatMessage } from '../dashboard-types'
@@ -19,7 +19,6 @@ export function useProfessorDashboard() {
     return id === null ? noRoom : { ...noRoom, id, active: true }
   })
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [notice, setNotice] = useState('')
   const [ending, setEnding] = useState(false)
   const [endPending, setEndPending] = useState(false)
   const [endError, setEndError] = useState('')
@@ -42,6 +41,12 @@ export function useProfessorDashboard() {
     return () => window.clearTimeout(timer)
   }, [feedback])
 
+  /** 화면의 고정 목록은 응답이 아니라 NOTICE_UNPINNED로 바뀐다(05 1절). */
+  const unpin = (messageId: number) => {
+    if (room.id === null) return
+    unpinMessage(room.id, messageId).catch((error) => setFeedback(toApiError(error).message))
+  }
+
   const sendMessage = (text: string, reply?: string) =>
     setMessages((current) => [
       ...current,
@@ -62,7 +67,6 @@ export function useProfessorDashboard() {
       active: true,
     })
     setMessages([])
-    setNotice('')
   }
 
   const openRoom = (summary: RoomSummaryResponse) => {
@@ -76,7 +80,6 @@ export function useProfessorDashboard() {
       active: true,
     })
     setMessages([])
-    setNotice('')
     navigate('/professor/room')
   }
 
@@ -120,8 +123,8 @@ export function useProfessorDashboard() {
     messages,
     reactions: professorQuiz.reactions,
     reactionStats: professorQuiz.reactionStats,
-    notice,
-    setNotice,
+    notices: snapshot ? professorQuiz.pinned : [],
+    unpin,
     quiz: professorQuiz.quiz,
     quizReady: professorQuiz.ready,
     startQuiz: professorQuiz.start,

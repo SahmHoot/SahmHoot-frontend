@@ -14,7 +14,7 @@ import { ClassroomStatus } from "../features/room/ClassroomStatus";
 
 export default function ProfessorRoutes() {
   const professor = useProfessorDashboard();
-  const { room, quiz, messages, notice } = professor;
+  const { room, quiz, messages, notices } = professor;
 
   return (
     <div className="professor-layout">
@@ -56,8 +56,8 @@ export default function ProfessorRoutes() {
                 reactions={professor.reactions}
                 reactionStats={professor.reactionStats}
                 onSend={professor.sendMessage}
-                notice={notice}
-                onNoticeChange={professor.setNotice}
+                notices={notices}
+                onUnpin={professor.unpin}
               />
             }
           />
@@ -72,8 +72,8 @@ export default function ProfessorRoutes() {
                 messages={messages}
                 reactions={professor.reactions}
                 onSend={professor.sendMessage}
-                notice={notice}
-                onNoticeChange={professor.setNotice}
+                notices={notices}
+                onUnpin={professor.unpin}
                 onClose={() => void professor.closeResults()}
               />
             }
