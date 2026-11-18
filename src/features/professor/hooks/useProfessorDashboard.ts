@@ -118,6 +118,8 @@ export function useProfessorDashboard() {
     roomError: professorQuiz.error,
     dismissRoom,
     messages,
+    reactions: professorQuiz.reactions,
+    reactionStats: professorQuiz.reactionStats,
     notice,
     setNotice,
     quiz: professorQuiz.quiz,

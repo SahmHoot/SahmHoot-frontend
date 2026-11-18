@@ -1,4 +1,4 @@
-import { Client, ReconnectionTimeMode } from '@stomp/stompjs'
+import { Client, ReconnectionTimeMode, StompSocketState } from '@stomp/stompjs'
 import type { IMessage, StompSubscription } from '@stomp/stompjs'
 
 /**
@@ -115,7 +115,7 @@ export function subscribe(
  * 끊긴 동안 쌓아 두었다가 늦게 보내지 않는다(이미 마감된 문항에 답이 들어가는 일을 막는다).
  */
 export function publish(destination: string, body: unknown): boolean {
-  if (!client?.connected) {
+  if (!client?.connected || client.webSocket?.readyState !== StompSocketState.OPEN) {
     return false
   }
   client.publish({ destination, body: JSON.stringify(body) })

@@ -55,6 +55,7 @@ const defaultDeps: RoomSyncDeps = {
 
 /** 조회가 오래 걸려 버퍼가 이만큼 쌓이면 지금 조회를 버리고 새로 조회한다. */
 const MAX_BUFFERED_MESSAGES = 1_000
+const MAX_SEEN_REACTIONS = 1_000
 const RETRY_DELAY_MS = 1_000
 /** 구독 RECEIPT를 기다리는 최대 시간. 넘으면 그냥 조회한다. */
 const RECEIPT_TIMEOUT_MS = 3_000
@@ -79,9 +80,10 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
   const { roomId, owner, onSnapshot, onMessage, onSyncError } = options
   /** 조회할 때마다 1씩 올린다. 이전 조회의 늦은 응답·재시도 타이머는 번호가 달라 무시된다. */
   let generation = 0
-  let mode: 'buffering' | 'live' | 'stopped' = 'buffering'
+  let mode: 'buffering' | 'live' = 'buffering'
   let buffer: [RoomChannel, RoomRealtimeMessage][] = []
   let filter: ReturnType<typeof createSnapshotFilter> | null = null
+  const seenReactions = new Set<string>()
   let pending: AbortController | null = null
   let retryTimer: ReturnType<typeof setTimeout> | null = null
   let receiptTimer: ReturnType<typeof setTimeout> | null = null
@@ -110,7 +112,7 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
   }
 
   function resync(): void {
-    if (closed || mode === 'stopped') {
+    if (closed) {
       return
     }
     cancelLoading()
@@ -141,6 +143,7 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
   }
 
   function markReady(channel: RoomChannel): void {
+    if (closed) return
     ready.add(channel)
     receiptsUnsupported = false
     if (!allReady()) {
@@ -166,6 +169,11 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
           return
         }
         pending = null
+        if (state.room.status === 'CLOSED') {
+          stop()
+          onSnapshot(state)
+          return
+        }
         filter = createSnapshotFilter(state)
         onSnapshot(state)
         const queued = buffer
@@ -185,8 +193,7 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
         }
         pending = null
         if (!deps.isRetryable(error)) {
-          mode = 'stopped'
-          buffer = []
+          stop()
           onSyncError?.(error)
           return
         }
@@ -208,22 +215,33 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
     const verdict = filter.accept(channel, message)
     if (verdict === 'resync') {
       resync()
-    } else if (verdict === 'apply') {
+    } else if (verdict === 'apply' && !isDuplicateReaction(channel, message)) {
       onMessage(channel, message)
     }
+  }
+
+  function isDuplicateReaction(channel: RoomChannel, message: RoomRealtimeMessage): boolean {
+    if (channel !== 'reaction' || message.type !== 'REACTION' || typeof message.emoji !== 'string') return false
+    // 반응 DTO에 ID가 없어 방별로 서버 원본 시각과 이모지 조합을 기억한다.
+    const key = `${message.sentAt}/${message.emoji}`
+    if (seenReactions.has(key)) return true
+    seenReactions.add(key)
+    if (seenReactions.size > MAX_SEEN_REACTIONS) {
+      const oldest = seenReactions.values().next()
+      if (!oldest.done) seenReactions.delete(oldest.value)
+    }
+    return false
   }
 
   function receive(channel: RoomChannel) {
     return (body: unknown) => {
       const message = toRealtimeMessage(body)
-      if (closed || mode === 'stopped' || !message) {
+      if (closed || !message) {
         return
       }
       // 수업 종료는 조회 중에도 즉시 알리고, 늦은 스냅샷과 재시도로 되살리지 않는다.
       if (channel === 'quiz' && message.type === 'ROOM_ENDED') {
-        cancelLoading()
-        mode = 'stopped'
-        buffer = []
+        stop()
         onMessage(channel, message)
         return
       }
@@ -245,28 +263,29 @@ export function startRoomSync(options: RoomSyncOptions, deps: RoomSyncDeps = def
   const removeConnected = deps.onConnected(resync)
   const removeStatus = deps.onStatus((status) => {
     // 끊긴 동안의 조회 결과는 쓰지 않는다. 다시 연결되면 처음부터 조회한다.
-    if (status !== 'connected') {
-      ready.clear()
-      loadedUnconfirmed = false
-    }
-    if (status !== 'connected' && mode !== 'stopped') {
-      cancelLoading()
-      mode = 'buffering'
-      buffer = []
-    }
+    if (closed || status === 'connected') return
+    ready.clear()
+    loadedUnconfirmed = false
+    cancelLoading()
+    mode = 'buffering'
+    buffer = []
   })
   if (deps.isConnected()) {
     resync()
   }
 
-  return () => {
+  function stop() {
+    if (closed) return
     closed = true
     cancelLoading()
     buffer = []
+    seenReactions.clear()
     unsubscribes.forEach((unsubscribe) => unsubscribe())
     removeConnected()
     removeStatus()
   }
+
+  return stop
 }
 
 function toRealtimeMessage(body: unknown): RoomRealtimeMessage | null {

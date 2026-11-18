@@ -1,5 +1,4 @@
 export type RoomPhase = 'waiting' | 'question' | 'closing' | 'feedback' | 'results'
-export type Reaction = '👍' | '❓' | '😄' | '👏'
 
 export interface StudentSession {
   code: string
@@ -43,10 +42,4 @@ export interface ChatMessage {
   role: 'student' | 'professor'
   mine?: boolean
   reply?: string
-}
-
-export interface FloatingReaction {
-  id: string
-  emoji: Reaction
-  expiresAt: number
 }

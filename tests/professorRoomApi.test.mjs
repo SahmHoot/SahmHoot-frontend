@@ -265,24 +265,34 @@ test('개설·목록 입장 때 이전 수업의 채팅·공지를 비운다', a
   assert.equal(hook.render().notice, '')
 })
 
-test('실제 접속 인원이 있어도 대기·퀴즈·결과의 반응 집계에 예제 숫자를 표시하지 않는다', () => {
+test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과 기존 채팅을 렌더링한다', () => {
+  const emojis = ['👍', '❓', '😀', '👏']
+  const stats = { '👍': 2, '❓': 0, '😀': 1, '👏': 3 }
+  const overlay = harness('room/ChatReactions', 'ChatReactions', {
+    'react/jsx-runtime': jsxRuntime, './ChatReactions.css': {},
+  }, 'tsx')
   const dependencies = {
     'react/jsx-runtime': jsxRuntime,
     './Reactions.css': {}, './Chat.css': {},
     './Icon': { Icon: () => null }, './Modal': { Modal: () => null },
+    '../../room/reactions': { REACTION_EMOJIS: emojis },
+    '../../room/ChatReactions': { ChatReactions: (props) => overlay.render(props) },
   }
   const reactions = harness('professor/components/Reactions', 'Reactions', dependencies, 'tsx')
-  const waiting = renderToStaticMarkup(reactions.render({ participants: 7 }))
+  const waiting = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
   assert.match(waiting.replace(/<[^>]*>/g, ''), /접속\s*7명/)
-  assert.equal((waiting.match(/class="professor-reactions__count">0</g) ?? []).length, 4)
+  assert.deepEqual(Array.from(waiting.matchAll(/class="professor-reactions__count">(\d+)</g), ([, count]) => Number(count)), [2, 0, 1, 3])
+  assert.match(renderToStaticMarkup(reactions.render({ participants: 7, stats: null })), /반응 집계를 확인할 수 없습니다/)
   const chat = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')
-  for (const screen of ['quiz', 'results']) {
+  for (const screen of ['waiting', 'quiz', 'results']) {
     const markup = renderToStaticMarkup(chat.render({
-      compact: true, screen, messages: [], notice: '',
+      compact: screen !== 'waiting', screen, notice: '수업 공지',
+      messages: [{ id: 'message', author: '학생', text: '기존 채팅', reply: '답글 원문' }],
+      reactions: [{ id: 'server-event', emoji: '😀', expiresAt: 100, lane: 0 }],
       onSend() {}, onNoticeChange() {},
     }))
-    const text = markup.replace(/<[^>]*>/g, '')
-    for (const emoji of ['👍', '❓', '😄']) assert.ok(text.includes(emoji + ' 0'))
-    assert.equal(markup.includes('class="professor-chat__notice"'), false)
+    assert.match(markup, /class="chat-reactions__emoji"[^>]*>😀<\/span>/)
+    assert.doesNotMatch(markup, /최근 1분|professor-chat__reactions/)
+    for (const text of ['수업 공지', '기존 채팅', '답글 원문']) assert.ok(markup.includes(text))
   }
 })

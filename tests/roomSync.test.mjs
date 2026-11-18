@@ -45,6 +45,7 @@ it('state 조회 중 ROOM_ENDED를 즉시 전달하고 늦은 응답·재연결�
   room.send('quiz', { type: 'ROOM_ENDED', sentAt: AFTER })
   assert.deepEqual(room.types(), ['ROOM_ENDED'])
   assert.equal(request.signal.aborted, true)
+  assert.equal(room.handlers.size, 0)
   request.resolve(roomState())
   await Promise.resolve()
   assert.equal(room.log.some((entry) => entry.startsWith('snapshot:')), false)
@@ -52,6 +53,17 @@ it('state 조회 중 ROOM_ENDED를 즉시 전달하고 늦은 응답·재연결�
   assert.equal(room.loads.length, 1)
   room.send('quiz', { type: 'ROOM_ENDED', sentAt: LATER })
   assert.deepEqual(room.types(), ['ROOM_ENDED'])
+  room.stop()
+})
+
+it('CLOSED 스냅샷도 종료 안내에 전달하고 방 채널을 바로 해제한다', async () => {
+  const room = setup({ owner: true })
+  room.loads[0].resolve(roomState({ room: { ...roomState().room, status: 'CLOSED' } }))
+  await settle()
+  assert.deepEqual(room.log, [`snapshot:${T0}`])
+  assert.equal(room.handlers.size, 0)
+  room.reconnect()
+  assert.equal(room.loads.length, 1)
   room.stop()
 })
 
@@ -158,6 +170,46 @@ function roomState(overrides = {}) {
     ...overrides,
   }
 }
+
+it('반응을 방 구독 하나에서 받고 재연결 후에도 같은 이벤트를 다시 표시하지 않는다', async () => {
+  const owner = setup({ owner: true })
+  const event = { type: 'REACTION', sentAt: AFTER, emoji: '👍' }
+  const reactionDestination = `/topic/rooms/${ROOM_ID}/reaction`
+  const originalHandler = owner.handlers.get(reactionDestination)
+  owner.send('reaction', event)
+  owner.send('reaction', { ...event })
+  owner.loads[0].resolve(roomState())
+  await settle()
+  assert.deepEqual(owner.types(), ['REACTION'])
+
+  owner.reconnect()
+  assert.equal(owner.handlers.get(reactionDestination), originalHandler)
+  owner.loads[1].resolve(roomState({ serverTime: AFTER }))
+  await settle()
+  owner.send('reaction', event)
+  owner.send('reaction', { ...event, emoji: '😀' })
+  owner.send('reaction', { ...event, sentAt: LATER })
+  assert.deepEqual(owner.types(), ['REACTION', 'REACTION', 'REACTION'])
+  owner.stop()
+  assert.equal(owner.handlers.size, 0)
+  originalHandler({ ...event, emoji: '👏' })
+  assert.equal(owner.messages.length, 3)
+})
+
+it('교수 집계의 중복·역순 메시지를 거르고 60초 뒤 감소한 값을 전달한다', async () => {
+  const room = setup({ owner: true })
+  const counts = (count) => ({ '👍': count, '❓': 0, '😀': 0, '👏': 0 })
+  const stats = (sentAt, count) => ({ type: 'REACTION_STATS', sentAt, reactionStats: counts(count) })
+  room.loads[0].resolve(roomState({ reactionStats: counts(1) }))
+  await settle()
+  room.send('stats', stats(T0, 0))
+  room.send('stats', stats(AFTER, 2))
+  room.send('stats', stats(AFTER, 1))
+  room.send('stats', stats('2026-11-08T10:01:01Z', 0))
+  room.send('stats', stats(LATER, 3))
+  assert.deepEqual(room.messages.map(([, message]) => message.reactionStats['👍']), [2, 0])
+  room.stop()
+})
 
 function quizAt(phase, questionNo, runQuestionId, runId = 77) {
   return {
@@ -306,6 +358,7 @@ describe('startRoomSync', () => {
     room.loads[2].reject('ROOM_CLOSED')
     await settle()
     assert.deepEqual(room.errors, ['ROOM_CLOSED'])
+    assert.equal(room.handlers.size, 0)
     room.reconnect()
     room.send('presence', online(5, LATER))
     assert.equal(room.loads.length, 3)

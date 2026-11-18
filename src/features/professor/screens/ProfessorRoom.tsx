@@ -2,6 +2,7 @@ import './ProfessorRoom.css'
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { ProfessorQuizState } from '../../quiz/professorQuizReducer'
+import type { FloatingReaction, ReactionStats } from '../../room/reactions'
 import type { Room, ChatMessage } from '../dashboard-types'
 import { Icon } from '../components/Icon'
 import { RoomSetPicker } from '../components/RoomSetPicker'
@@ -18,6 +19,8 @@ export function ProfessorRoom({
   onStartQuiz,
   onStopQuiz,
   messages,
+  reactions,
+  reactionStats,
   onSend,
   notice,
   onNoticeChange,
@@ -28,6 +31,8 @@ export function ProfessorRoom({
   onStartQuiz: (questionSetId: number) => void
   onStopQuiz: () => void
   messages: ChatMessage[]
+  reactions: FloatingReaction[]
+  reactionStats: ReactionStats | null
   onSend: (text: string, reply?: string) => void
   notice: string
   onNoticeChange: (notice: string) => void
@@ -50,7 +55,7 @@ export function ProfessorRoom({
         <JoinCode room={room} variant={waiting ? 'waiting' : 'quiz'} />
         {waiting ? (
           <>
-            <Reactions participants={room.participants} />
+            <Reactions participants={room.participants} stats={reactionStats} />
             <section className="professor-room__set-panel">
               <h2 className="professor-room__set-title">문제 세트</h2>
               <p className="professor-room__set-description">
@@ -86,6 +91,7 @@ export function ProfessorRoom({
         compact={!waiting}
         screen={waiting ? 'waiting' : 'quiz'}
         messages={messages}
+        reactions={reactions}
         onSend={onSend}
       />
       {choosing && (

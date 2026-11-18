@@ -2,6 +2,7 @@ import './QuizResults.css'
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { QuizResult } from '../../quiz/types'
+import type { FloatingReaction } from '../../room/reactions'
 import type { Room, ChatMessage } from '../dashboard-types'
 import { choiceLabel, percentagesOf } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
@@ -12,6 +13,7 @@ export function QuizResults({
   room,
   result,
   messages,
+  reactions,
   onSend,
   onClose,
   notice,
@@ -20,6 +22,7 @@ export function QuizResults({
   room: Room
   result: QuizResult | null
   messages: ChatMessage[]
+  reactions: FloatingReaction[]
   onSend: (text: string, reply?: string) => void
   onClose: () => void
   notice: string
@@ -125,6 +128,7 @@ export function QuizResults({
         compact
         screen="results"
         messages={messages}
+        reactions={reactions}
         onSend={onSend}
       />
     </main>

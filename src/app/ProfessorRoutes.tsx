@@ -53,6 +53,8 @@ export default function ProfessorRoutes() {
                 onStartQuiz={(questionSetId) => void professor.startQuiz(questionSetId)}
                 onStopQuiz={() => void professor.stopQuiz()}
                 messages={messages}
+                reactions={professor.reactions}
+                reactionStats={professor.reactionStats}
                 onSend={professor.sendMessage}
                 notice={notice}
                 onNoticeChange={professor.setNotice}
@@ -68,6 +70,7 @@ export default function ProfessorRoutes() {
                 room={room}
                 result={quiz.phase === 'results' ? quiz.result : null}
                 messages={messages}
+                reactions={professor.reactions}
                 onSend={professor.sendMessage}
                 notice={notice}
                 onNoticeChange={professor.setNotice}

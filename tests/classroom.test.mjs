@@ -16,6 +16,7 @@ function load(file, dependencies = {}, globals = {}) {
 }
 const clock = load('features/quiz/serverClock')
 const reducer = load('features/quiz/professorQuizReducer', { './serverClock': clock })
+const reactions = load('features/room/reactions')
 const time = '2026-11-10T00:00:00Z'
 const question = { runQuestionId: 71, questionNo: 1, questionType: 'TRUE_FALSE', timeLimitSeconds: 15,
   content: '서버 문항', choices: [{ id: 1, orderNo: 1, content: 'O' }, { id: 2, orderNo: 2, content: 'X' }],
@@ -35,7 +36,13 @@ function setup(owner = false) {
   let effects = []
   let handlers
   let id = 40
+  let syncId
   let status = 'connected'
+  let now = Date.parse(time)
+  let canPublish = true
+  const sent = []
+  const errors = new Set()
+  const timers = new Map()
   const react = {
     useState(initial) {
       const slot = index++
@@ -50,23 +57,162 @@ function setup(owner = false) {
     useEffect(effect, deps) {
       const slot = index++
       if (!slots[slot] || deps.some((value, i) => value !== slots[slot].deps[i])) {
-        slots[slot] = { deps }
-        effects.push(effect)
+        const previous = slots[slot]
+        const current = { deps }
+        slots[slot] = current
+        effects.push(() => {
+          previous?.cleanup?.()
+          current.cleanup = effect()
+        })
       }
     },
   }
   const { useClassroom } = load('features/room/useClassroom', {
-    react, '../auth/api': { toApiError: (error) => error }, '../quiz/professorQuizReducer': reducer,
+    react, '../auth/api': { toApiError: (error) => error }, '../quiz/professorQuizReducer': reducer, './reactions': reactions,
     '../../shared/stomp': { useStompStatus: () => status, useRoomSync(roomId, isOwner, callbacks) {
-      assert.equal(roomId, id); assert.equal(isOwner, owner); handlers = callbacks
+      syncId = roomId
+      assert.equal(isOwner, owner); handlers = callbacks
+    }, publish(destination, body) {
+      if (canPublish) sent.push([destination, JSON.stringify(body)])
+      return canPublish
+    }, onStompErrorMessage(listener) {
+      errors.add(listener)
+      return () => errors.delete(listener)
     } },
+  }, {
+    Date: { now: () => now },
+    setTimeout(callback, delay) {
+      const timer = Symbol()
+      timers.set(timer, { due: now + delay, callback })
+      return timer
+    },
+    clearTimeout: (timer) => timers.delete(timer),
   })
   const render = () => { index = 0; effects = []; const value = useClassroom(id, owner); effects.forEach((effect) => effect()); return value }
   render()
   return { render, snapshot: (value) => handlers.onSnapshot(value), message: (channel, value) => handlers.onMessage(channel, value),
     error: (value) => handlers.onSyncError(value), setRoom(value) { id = value; render(); return render() },
-    disconnect() { status = 'reconnecting'; return render() } }
+    disconnect() { status = 'reconnecting'; render(); return render() },
+    reconnect() { status = 'connected'; return render() },
+    failPublish() { canPublish = false },
+    sent, errors, timers, get syncId() { return syncId },
+    stompError(code) { errors.forEach((listener) => listener({ code })) },
+    advance(ms) {
+      now += ms
+      for (const [timer, { due, callback }] of timers) {
+        if (due <= now) { timers.delete(timer); callback() }
+      }
+      return render()
+    },
+    unmount() { slots.forEach((slot) => slot?.cleanup?.()) },
+  }
 }
+
+const emptyStats = { '👍': 0, '❓': 0, '😀': 0, '👏': 0 }
+const incomingReaction = (emoji, sentAt = time) => ({ type: 'REACTION', sentAt, emoji })
+
+test('학생만 네 가지 반응을 STOMP로 보내고 서버에서 받은 이벤트만 화면에 표시한다', () => {
+  const student = setup()
+  const professor = setup(true)
+  student.snapshot(state())
+  professor.snapshot(state(true))
+  for (const emoji of Object.keys(emptyStats)) {
+    student.render().sendReaction(emoji)
+    professor.render().sendReaction(emoji)
+    assert.equal(student.render().reactions.length, 0)
+  }
+  assert.deepEqual(student.sent, Object.keys(emptyStats).map((emoji) => ['/app/rooms/40/reaction', JSON.stringify({ emoji })]))
+  assert.deepEqual(professor.sent, [])
+
+  for (const classroom of [student, professor]) {
+    classroom.message('chat', incomingReaction('👍'))
+    classroom.message('reaction', incomingReaction('😄'))
+    classroom.message('reaction', incomingReaction('😀'))
+    assert.deepEqual(Array.from(classroom.render().reactions, ({ emoji }) => emoji), ['😀'])
+    assert.equal(classroom.advance(1_799).reactions.length, 1)
+    assert.equal(classroom.advance(1).reactions.length, 0)
+    assert.equal(classroom.timers.size, 0)
+  }
+})
+
+test('교수 집계는 최초·재연결 state와 서버 감소 이벤트의 전체 값으로 교체된다', () => {
+  const professor = setup(true)
+  const nonzero = { ...emptyStats, '👍': 2 }
+  professor.snapshot({ ...state(true), reactionStats: nonzero })
+  assert.equal(professor.render().reactionStats, nonzero)
+  professor.message('reaction', incomingReaction('👍'))
+  assert.equal(professor.render().reactionStats, nonzero)
+  professor.message('stats', { type: 'REACTION_STATS', reactionStats: { ...emptyStats, '😀': -1 } })
+  assert.equal(professor.render().reactionStats, nonzero)
+  professor.message('stats', { type: 'REACTION_STATS', reactionStats: emptyStats })
+  assert.equal(professor.render().reactionStats, emptyStats)
+  assert.equal(professor.disconnect().reactionStats, null)
+  assert.equal(professor.render().reactions.length, 0)
+  assert.equal(professor.reconnect().reactionStats, null)
+  professor.snapshot({ ...state(true), reactionStats: nonzero })
+  assert.equal(professor.render().reactionStats, nonzero)
+  assert.equal(professor.setRoom(41).reactionStats, null)
+
+  const student = setup()
+  student.snapshot({ ...state(), reactionStats: nonzero })
+  student.message('stats', { type: 'REACTION_STATS', reactionStats: nonzero })
+  assert.equal(student.render().reactionStats, null)
+})
+
+test('제한·연결 끊김을 안내하고 방 이동과 언마운트 때 리스너와 타이머를 해제한다', () => {
+  const student = setup()
+  student.snapshot(state())
+  student.render()
+  assert.equal(student.errors.size, 1)
+  student.stompError('QUESTION_CLOSED')
+  assert.equal(student.render().realtimeNotice, undefined)
+  student.stompError('RATE_LIMITED')
+  assert.match(student.render().realtimeNotice, /요청이 너무 많습니다/)
+  assert.equal(student.advance(4_000).realtimeNotice, undefined)
+
+  student.disconnect().sendReaction('👏')
+  assert.match(student.render().realtimeNotice, /연결이 끊겨/)
+  student.reconnect()
+  student.failPublish()
+  student.render().sendReaction('👏')
+  assert.equal(student.sent.length, 0)
+  student.message('reaction', incomingReaction('❓'))
+  student.render()
+  assert.equal(student.timers.size, 2)
+  assert.equal(student.setRoom(41).realtimeNotice, undefined)
+  assert.equal(student.errors.size, 0)
+  assert.equal(student.timers.size, 0)
+
+  student.snapshot({ ...state(), room: { ...state().room, id: 41 } })
+  student.render()
+  student.stompError('RATE_LIMITED')
+  student.render()
+  assert.equal(student.errors.size, 1)
+  assert.equal(student.timers.size, 1)
+  student.unmount()
+  assert.equal(student.errors.size, 0)
+  assert.equal(student.timers.size, 0)
+})
+
+test('요청 검증·권한 오류를 공통으로 안내하고 STOMP 방 종료 오류에서 현재 수업을 닫는다', () => {
+  const student = setup()
+  student.snapshot(state())
+  student.render()
+  student.stompError('VALIDATION_FAILED')
+  assert.match(student.render().realtimeNotice, /보낸 내용을 확인/)
+  student.stompError('FORBIDDEN')
+  assert.match(student.render().realtimeNotice, /권한이 없습니다/)
+  assert.equal(student.syncId, 40)
+  student.stompError('ROOM_CLOSED')
+  const closed = student.render()
+  assert.equal(closed.ended, true)
+  assert.equal(closed.realtimeNotice, undefined)
+  assert.equal(student.syncId, null)
+  assert.equal(student.errors.size, 0)
+  assert.equal(student.timers.size, 0)
+  student.setRoom(41)
+  assert.equal(student.syncId, 41)
+})
 
 test('교수·학생이 같은 state로 대기·문항·피드백·결과를 복원한다', () => {
   for (const owner of [false, true]) {

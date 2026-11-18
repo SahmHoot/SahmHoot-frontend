@@ -2,6 +2,8 @@ import "./Chat.css";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { ChatMessage } from "../dashboard-types";
+import { ChatReactions } from "../../room/ChatReactions";
+import type { FloatingReaction } from "../../room/reactions";
 import { Icon } from "./Icon";
 import { Modal } from "./Modal";
 
@@ -9,6 +11,7 @@ export function Chat({
   compact,
   screen,
   messages,
+  reactions,
   onSend,
   notice,
   onNoticeChange,
@@ -16,6 +19,7 @@ export function Chat({
   compact: boolean;
   screen: "waiting" | "quiz" | "results";
   messages: ChatMessage[];
+  reactions: FloatingReaction[];
   onSend: (text: string, reply?: string) => void;
   notice: string;
   onNoticeChange: (notice: string) => void;
@@ -97,54 +101,39 @@ export function Chat({
           </span>
         </button>
       )}
-      <div ref={listRef} className="professor-chat__messages">
-        {!compact && (
-          <div className="professor-chat__reaction-preview">
-            <span>👍❓👍😄</span>
-            <span className="professor-chat__reaction-help">
-              학생이 누른 이모지가 채팅 위로 잠깐 떠올랐다 사라집니다
-            </span>
-          </div>
-        )}
-        {messages.map((message) => (
-          <article key={message.id} className="professor-chat__message">
-            <p
-              className={`professor-chat__author ${message.professor ? "professor-chat__author--professor" : "professor-chat__author--student"}`}
-            >
-              {message.author}
-              {message.professor && (
-                <span className="professor-chat__professor-badge">교수</span>
-              )}
-            </p>
-            {message.reply && (
-              <p className="professor-chat__quote">
-                <Icon screen={screen} name="imgFrame5" />
-                <span className="professor-chat__quote-text">
-                  {message.reply}
-                </span>
+      <div className="chat-messages-area">
+        <div ref={listRef} className="professor-chat__messages">
+          {messages.map((message) => (
+            <article key={message.id} className="professor-chat__message">
+              <p
+                className={`professor-chat__author ${message.professor ? "professor-chat__author--professor" : "professor-chat__author--student"}`}
+              >
+                {message.author}
+                {message.professor && (
+                  <span className="professor-chat__professor-badge">교수</span>
+                )}
               </p>
-            )}
-            <button
-              type="button"
-              onClick={() => setReply(`${message.author}: ${message.text}`)}
-              aria-label={`${message.author}의 메시지에 답글: ${message.text}`}
-              className={`professor-chat__bubble ${message.professor ? "professor-chat__bubble--professor" : "professor-chat__bubble--student"}`}
-            >
-              {message.text}
-            </button>
-          </article>
-        ))}
-      </div>
-      {compact && (
-        <div className="professor-chat__reactions">
-          <span>👍 0</span>
-          <span>❓ 0</span>
-          <span>😄 0</span>
-          <span className="professor-chat__reactions-caption">
-            학생이 보낸 반응
-          </span>
+              {message.reply && (
+                <p className="professor-chat__quote">
+                  <Icon screen={screen} name="imgFrame5" />
+                  <span className="professor-chat__quote-text">
+                    {message.reply}
+                  </span>
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setReply(`${message.author}: ${message.text}`)}
+                aria-label={`${message.author}의 메시지에 답글: ${message.text}`}
+                className={`professor-chat__bubble ${message.professor ? "professor-chat__bubble--professor" : "professor-chat__bubble--student"}`}
+              >
+                {message.text}
+              </button>
+            </article>
+          ))}
         </div>
-      )}
+        <ChatReactions reactions={reactions} />
+      </div>
       {reply && (
         <div className="professor-chat__reply">
           <span className="professor-chat__reply-text">답글: {reply}</span>
