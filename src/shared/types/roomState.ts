@@ -12,7 +12,8 @@ export interface RoomStateResponse {
   onlineCount: number
   /** 방이 OPEN(대기)이면 null. */
   quiz: RoomStateQuiz | null
-  pinnedMessage: RoomChatMessage | null
+  /** 고정 공지. 고정한 순서이며 삭제된 메시지는 빠진다. */
+  pinnedMessages: RoomChatMessage[]
   recentMessages: RoomChatMessage[]
   /** 방 소유자이고 문항이 열려 있을 때만 온다. */
   progress?: { runQuestionId: number; answeredCount: number }

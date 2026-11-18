@@ -37,8 +37,8 @@ export function createSnapshotFilter(state: RoomStateResponse) {
   const snapshotTime = instantNanos(state.serverTime)
   const latestSentAt = new Map<string, bigint>()
   const seenMessageIds = new Set<number>(state.recentMessages.map((message) => message.id))
-  if (state.pinnedMessage) {
-    seenMessageIds.add(state.pinnedMessage.id)
+  for (const message of state.pinnedMessages) {
+    seenMessageIds.add(message.id)
   }
   let noticeSentAt = snapshotTime
 
