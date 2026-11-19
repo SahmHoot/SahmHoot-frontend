@@ -299,3 +299,25 @@ test('교수의 복원용 방 ID는 계정별로 저장하고 종료 시 제거�
     assert.equal(storage.readRoomId(1), null)
   }
 })
+
+test('고정 공지는 state로 시작해 고정·삭제·해제 메시지로 바뀌고 새 state와 방 이동에 맞춰 교체된다', () => {
+  const pin = (id) => ({ id, senderParticipantId: 9, nickname: '학생이름', isOwner: false, content: `공지 ${id}`,
+    parentId: null, parentPreview: null, createdAt: time })
+  const student = setup()
+  const ids = () => Array.from(student.render().pinned, ({ id }) => id)
+  student.snapshot({ ...state(), pinnedMessages: [pin(1)] })
+  assert.deepEqual(ids(), [1])
+  student.message('chat', { type: 'NOTICE_PINNED', sentAt: time, message: pin(2) })
+  student.message('chat', { type: 'NOTICE_PINNED', sentAt: time, message: pin(2) })
+  student.message('reaction', { type: 'NOTICE_PINNED', sentAt: time, message: pin(9) })
+  assert.deepEqual(ids(), [1, 2])
+  student.message('chat', { type: 'MESSAGE_DELETED', sentAt: time, messageId: 1 })
+  assert.deepEqual(ids(), [2])
+  student.message('chat', { type: 'NOTICE_UNPINNED', sentAt: time, messageId: 2 })
+  assert.deepEqual(ids(), [])
+  student.message('chat', { type: 'NOTICE_PINNED', sentAt: time, message: pin(3) })
+  student.snapshot({ ...state(), pinnedMessages: [pin(4), pin(5)] })
+  assert.deepEqual(ids(), [4, 5])
+  student.setRoom(41)
+  assert.deepEqual(ids(), [])
+})
