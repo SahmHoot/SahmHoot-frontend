@@ -24,7 +24,7 @@ const question = { runQuestionId: 71, questionNo: 1, questionType: 'TRUE_FALSE',
 const state = (owner = false, quiz = null) => ({ serverTime: time,
   room: { id: 40, title: '실제 수업', joinCode: '123456', joinUrl: '/join/123456', status: quiz ? 'PLAYING' : 'OPEN', ownerName: '교수' },
   me: { participantId: 9, nickname: '학생이름', isOwner: owner, chatBlocked: false }, onlineCount: 2,
-  quizRun: null, quiz, pinnedMessage: null, recentMessages: [] })
+  quizRun: null, quiz, pinnedMessages: [], recentMessages: [] })
 const quiz = (phase) => ({ runId: 7, questionSetTitle: '서버 문제집', totalQuestions: 1, phase,
   currentQuestion: phase === 'RESULT' ? null : { ...question, closedAt: phase === 'FEEDBACK' ? time : null },
   nextOpensAt: phase === 'FEEDBACK' ? '2026-11-10T00:00:18Z' : null,
