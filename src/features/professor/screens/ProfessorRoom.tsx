@@ -85,6 +85,7 @@ export function ProfessorRoom({
         )}
       </div>
       <Chat
+        screen={waiting ? 'waiting' : 'quiz'}
         compact={!waiting}
         chat={chat}
         reactions={reactions}

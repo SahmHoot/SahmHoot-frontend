@@ -8,7 +8,7 @@ export function useRoomChat(roomId: number | null, ready: boolean) {
   const [state, dispatch] = useReducer(chatReducer, initialChat)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
-  const pending = useRef<{ content: string; parentId: number | null; resolve: (sent: boolean) => void; timer: ReturnType<typeof setTimeout> } | null>(null)
+  const pending = useRef<{ content: string; parentId: number | null; resolve: (sent: boolean) => void; timer: ReturnType<typeof setTimeout>; failure?: string } | null>(null)
   const finish = useCallback((sent: boolean, message = '') => {
     const request = pending.current
     if (!request) return
@@ -34,10 +34,12 @@ export function useRoomChat(roomId: number | null, ready: boolean) {
   const handleError = useCallback((failure: StompErrorMessage): boolean => {
     const blocked = failure.code === 'CHAT_BLOCKED'
     if (blocked) dispatch({ type: 'message', channel: 'me', message: { type: 'MY_STATUS', sentAt: failure.sentAt, chatBlocked: true } })
-    // shortcut: ERROR에는 요청 ID가 없다, 상관 ID가 지원되면 해당 채팅 요청에만 오류를 연결한다.
+    // shortcut: ERROR에 요청 ID가 없어 도배 오류는 확인 기한까지 보류한다, 서버가 요청 ID를 주면 즉시 판정한다.
     if (failure.code === 'QUESTION_CLOSED' || !pending.current) return blocked
-    finish(false, failure.code === 'RATE_LIMITED'
-      ? '메시지를 너무 자주 보냈습니다. 잠시 후 다시 시도해 주세요.' : failure.message)
+    if (failure.code === 'RATE_LIMITED') {
+      pending.current.failure = '메시지를 너무 자주 보냈습니다. 잠시 후 다시 시도해 주세요.'
+      setError(pending.current.failure)
+    } else finish(false, failure.message)
     return true
   }, [finish])
 
@@ -57,7 +59,7 @@ export function useRoomChat(roomId: number | null, ready: boolean) {
     setSending(true)
     return new Promise((resolve) => {
       pending.current = { content, parentId, resolve,
-        timer: setTimeout(() => finish(false, '전송 결과를 확인하지 못했습니다. 대화 내용을 확인한 뒤 다시 보내 주세요.'), 10000) }
+        timer: setTimeout(() => finish(false, pending.current?.failure ?? '전송 결과를 확인하지 못했습니다. 대화 내용을 확인한 뒤 다시 보내 주세요.'), 10000) }
       try {
         if (!publish(`/app/rooms/${roomId}/chat`, { content, parentId })) finish(false, '연결이 끊겨 메시지를 보내지 못했습니다.')
       } catch { finish(false, '메시지를 보내지 못했습니다. 연결 상태를 확인해 주세요.') }

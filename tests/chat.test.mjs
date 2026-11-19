@@ -35,7 +35,9 @@ test('최신순 스냅샷은 원본 변경 없이 시간순으로 복원하고 �
 
 test('도착 순서가 바뀌어도 ID 순서를 유지하고 최근 50건만 보관한다', () => {
   let state = model.chatReducer(model.initialChat, { type: 'snapshot', state: snapshot() })
-  for (const id of [2, 1, ...Array.from({ length: 51 }, (_, index) => index + 3)]) state = model.chatReducer(state, action(message(id)))
+  for (const id of [2, 1]) state = model.chatReducer(state, action(message(id)))
+  assert.deepEqual(plain(state.messages.map(({ id }) => id)), [1, 2])
+  for (const id of Array.from({ length: 51 }, (_, index) => index + 3)) state = model.chatReducer(state, action(message(id)))
   assert.equal(state.messages.length, 50)
   assert.equal(state.messages[0].id, 4)
   assert.equal(state.messages.at(-1).id, 53)
@@ -101,6 +103,9 @@ function harness() {
   let ready = true
   let statusListener
   const calls = []
+  let now = 0
+  let nextTimer = 0
+  const timers = new Map()
   const react = {
     useCallback(callback) { return callback },
     useState(initial) { const slot = index++; slots[slot] ??= { value: initial }; return [slots[slot].value, (value) => { slots[slot].value = value }] },
@@ -117,11 +122,15 @@ function harness() {
     publish: (...args) => { calls.push(plain(args)); return true },
     onStompErrorMessage() { assert.fail('채팅 훅에서 오류를 따로 구독하지 않는다') },
     onStompStatus: (listener) => { statusListener = listener; return () => {} },
-  } })
+  } }, 'ts', {
+    setTimeout(callback, delay) { const id = ++nextTimer; timers.set(id, { callback, at: now + delay }); return id },
+    clearTimeout(id) { timers.delete(id) },
+  })
   const render = () => { index = 0; effects = []; const result = useRoomChat(roomId, ready); effects.forEach((effect) => effect()); return result }
   render().restore(snapshot())
   return { render, calls, error: (value) => render().handleError(value), status: (value) => statusListener(value),
     switchRoom() { roomId++; render(); return render() }, disconnect() { ready = false; return render() },
+    timers, advance(ms) { now += ms; for (const [id, timer] of timers) if (timer.at <= now) { timers.delete(id); timer.callback() } },
     unmount() { slots.forEach((slot) => slot.cleanup?.()) } }
 }
 
@@ -146,6 +155,8 @@ test('도배 제한·연결 종료 시 실패를 돌려 입력을 보존하고 �
   assert.equal(hook.render().sending, true)
   const failure = { code: 'RATE_LIMITED', sentAt: '', message: '제한' }
   assert.equal(hook.error(failure), true)
+  assert.equal(hook.render().sending, true)
+  hook.advance(10000)
   assert.equal(hook.error({ ...failure }), false)
   assert.equal(await request, false)
   assert.match(hook.render().error, /너무 자주/)
@@ -153,6 +164,56 @@ test('도배 제한·연결 종료 시 실패를 돌려 입력을 보존하고 �
   hook.status('reconnecting')
   assert.equal(await next, false)
   assert.match(hook.render().error, /다시 보내/)
+  hook.unmount()
+})
+
+test('다른 작성자나 다른 답글 대상의 MESSAGE로는 성공 처리하지 않는다', async () => {
+  const hook = harness()
+  const pending = hook.render().send('동일한 내용', 1)
+  hook.render().receive('chat', { type: 'MESSAGE', sentAt: '', ...message(2, { content: '동일한 내용', parentId: 2 }) })
+  assert.equal(hook.render().sending, true)
+  hook.render().receive('chat', { type: 'MESSAGE', sentAt: '', ...message(3, { content: '동일한 내용', parentId: 1, senderParticipantId: 99, isOwner: false }) })
+  assert.equal(hook.render().sending, true)
+  hook.render().receive('chat', { type: 'MESSAGE', sentAt: '', ...message(4, { content: '동일한 내용', parentId: 1 }) })
+  assert.equal(await pending, true)
+  assert.equal(hook.timers.size, 0)
+  hook.unmount()
+})
+
+test('반응의 RATE_LIMITED가 먼저 와도 뒤의 내 MESSAGE로 성공하고 오류를 지운다', async () => {
+  const hook = harness()
+  const pending = hook.render().send('서버에 전달된 질문')
+  hook.error({ code: 'RATE_LIMITED', sentAt: '', message: '반응 제한' })
+  assert.equal(hook.render().sending, true)
+  assert.match(hook.render().error, /너무 자주/)
+  assert.equal(await hook.render().send('조기 재전송'), false)
+  hook.render().receive('chat', { type: 'MESSAGE', sentAt: '', ...message(2, { content: '서버에 전달된 질문' }) })
+  assert.equal(await pending, true)
+  assert.equal(hook.render().error, '')
+  assert.equal(hook.calls.length, 1)
+  const next = hook.render().send('새로 작성한 질문')
+  hook.render().receive('chat', { type: 'MESSAGE', sentAt: '', ...message(2, { content: '서버에 전달된 질문' }) })
+  assert.equal(hook.render().sending, true)
+  hook.render().receive('chat', { type: 'MESSAGE', sentAt: '', ...message(3, { content: '새로 작성한 질문' }) })
+  assert.equal(await next, true)
+  hook.unmount()
+})
+
+test('MESSAGE가 없으면 10초에 실패하고 MY_STATUS 차단은 대기를 즉시 종료한다', async () => {
+  const hook = harness()
+  const pending = hook.render().send('확인되지 않은 질문')
+  hook.advance(9999)
+  assert.equal(hook.render().sending, true)
+  hook.advance(1)
+  assert.equal(await pending, false)
+  assert.match(hook.render().error, /전송 결과를 확인하지 못했습니다/)
+  const blocked = hook.render().send('차단 직전 질문')
+  hook.render().receive('chat', { type: 'MY_STATUS', sentAt: '', chatBlocked: true })
+  assert.equal(hook.render().sending, true)
+  hook.render().receive('me', { type: 'MY_STATUS', sentAt: '', chatBlocked: true })
+  assert.equal(await blocked, false)
+  assert.equal(hook.render().blocked, true)
+  assert.equal(hook.timers.size, 0)
   hook.unmount()
 })
 
@@ -190,6 +251,7 @@ function component(file, dependencies = {}, globals = {}) {
   const slots = []
   let index = 0
   const { [file]: render } = load(file, { 'react/jsx-runtime': jsxRuntime, './Chat.css': {},
+    '../../assets/student/send.svg': { __esModule: true, default: 'send.svg' },
     react: { useState(initial) { const slot = index++; slots[slot] ??= { value: initial }; return [slots[slot].value, value => { slots[slot].value = value }] } },
     ...dependencies }, 'tsx', globals)
   return props => { index = 0; return render(props) }
@@ -211,6 +273,7 @@ test('삭제 확인창은 포털로 목록 밖에 렌더링하고 취소 시 보
     '../auth/api': { toApiError: error => error }, '../professor/components/Modal': {},
     '../../shared/components/ConfirmDialog': { ConfirmDialog },
     './api': { deleteChatMessage: async (...args) => { calls.push(args) } },
+    '../room/api': {},
   }, { document: { body } })
   const props = { roomId: 40, message: message(8) }
   const view = () => { portal = undefined; return render(props) }
@@ -227,6 +290,35 @@ test('삭제 확인창은 포털로 목록 밖에 렌더링하고 취소 시 보
   portal.props.onConfirm()
   await flush()
   assert.deepEqual(calls, [[40, 8]])
+})
+
+test('공지 고정은 고른 메시지로 요청하고 삭제·종료 오류를 관리 메뉴에 표시한다', async () => {
+  const calls = []
+  let code
+  const render = component('ChatModeration', {
+    'react-dom': {}, '../auth/api': { toApiError: error => error }, '../professor/components/Modal': {},
+    '../../shared/components/ConfirmDialog': {}, './api': {},
+    '../room/api': { async pinMessage(...args) { calls.push(args); if (code) throw { code, message: code === 'MESSAGE_DELETED' ? '삭제된 메시지입니다' : '종료된 방입니다' } } },
+  })
+  const props = { roomId: 40, message: message(8) }
+  const pin = async () => { find(render(props), element => element.type === 'button' && element.props.children === '공지 고정').props.onClick(); await flush() }
+  await pin()
+  assert.deepEqual(calls, [[40, 8]])
+  assert.match(find(render(props), element => element.props.role === 'status').props.children, /고정했습니다/)
+  for (code of ['MESSAGE_DELETED', 'ROOM_CLOSED']) {
+    await pin()
+    assert.match(find(render(props), element => element.props.role === 'alert').props.children, /메시지|종료된 방/)
+  }
+})
+
+test('공지 고정 API는 PUT 경로와 백엔드 메시지 응답을 그대로 사용한다', async () => {
+  const calls = []
+  const response = message(8)
+  const api = load('../room/api', { '../../shared/api/client': { apiClient: {
+    async put(...args) { calls.push(args); return { data: response } },
+  } } })
+  assert.equal(await api.pinMessage(40, 8), response)
+  assert.deepEqual(calls, [['/rooms/40/pinned-messages/8']])
 })
 
 test('전송 중 입력은 readOnly로 유지하고 실패한 초안은 보존하며 성공한 초안만 비운다', async () => {

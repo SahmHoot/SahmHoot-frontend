@@ -122,6 +122,7 @@ export function QuizResults({
         </section>
       </div>
       <Chat
+        screen="results"
         compact
         chat={chat}
         reactions={reactions}

@@ -31,7 +31,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
               <LiveQuestion quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}
                 correctChoiceId={classroom.correctOf(quiz.runQuestionId)} notice={classroom.notice} onSelect={classroom.select} />}
           </div>}
-        <StudentChat expanded={waiting} chat={classroom.chat} onlineCount={onlineCount} reactions={classroom.reactions}
+        <StudentChat nickname={snapshot.me.nickname} expanded={waiting} chat={classroom.chat} onlineCount={onlineCount} reactions={classroom.reactions}
           onReact={classroom.sendReaction} notices={classroom.pinned} realtimeNotice={classroom.realtimeNotice} />
       </main>}
     {leaving && !ended && <ConfirmDialog title="수업에서 나갈까요?" message="수업에서 나가 홈으로 이동합니다."
