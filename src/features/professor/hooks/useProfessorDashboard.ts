@@ -6,7 +6,7 @@ import { useProfessorQuiz } from '../../quiz/hooks/useProfessorQuiz'
 import { closeRoom, createRoom as requestCreateRoom, unpinMessage } from '../../room/api'
 import type { RoomSummaryResponse } from '../../room/room.types'
 import { noRoom } from '../dashboard-data'
-import type { Room, ChatMessage } from '../dashboard-types'
+import type { Room } from '../dashboard-types'
 import { readRoomId, writeRoomId } from '../roomStorage'
 
 /** 교수의 수업 선택·개설·종료와 서버 퀴즈 상태를 연결한다. */
@@ -18,7 +18,6 @@ export function useProfessorDashboard() {
     const id = readRoomId(user?.id)
     return id === null ? noRoom : { ...noRoom, id, active: true }
   })
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [ending, setEnding] = useState(false)
   const [endPending, setEndPending] = useState(false)
   const [endError, setEndError] = useState('')
@@ -41,17 +40,10 @@ export function useProfessorDashboard() {
     return () => window.clearTimeout(timer)
   }, [feedback])
 
-  /** 화면의 고정 목록은 응답이 아니라 NOTICE_UNPINNED로 바뀐다(05 1절). */
   const unpin = (messageId: number) => {
     if (room.id === null) return
     unpinMessage(room.id, messageId).catch((error) => setFeedback(toApiError(error).message))
   }
-
-  const sendMessage = (text: string, reply?: string) =>
-    setMessages((current) => [
-      ...current,
-      { id: crypto.randomUUID(), author: user?.name ?? '교수', professor: true, text, reply },
-    ])
 
   /** 실패하면 오류를 그대로 던져 개설 화면이 안내한다. */
   const createRoom = async (title: string) => {
@@ -66,7 +58,6 @@ export function useProfessorDashboard() {
       participants: 0,
       active: true,
     })
-    setMessages([])
   }
 
   const openRoom = (summary: RoomSummaryResponse) => {
@@ -79,7 +70,6 @@ export function useProfessorDashboard() {
       participants: summary.onlineCount,
       active: true,
     })
-    setMessages([])
     navigate('/professor/room')
   }
 
@@ -120,7 +110,7 @@ export function useProfessorDashboard() {
     roomEnded: professorQuiz.ended,
     roomError: professorQuiz.error,
     dismissRoom,
-    messages,
+    chat: professorQuiz.chat,
     reactions: professorQuiz.reactions,
     reactionStats: professorQuiz.reactionStats,
     notices: snapshot ? professorQuiz.pinned : [],
@@ -136,10 +126,10 @@ export function useProfessorDashboard() {
     endError,
     cancelEnding,
     feedback,
+    realtimeNotice: professorQuiz.realtimeNotice,
     editorKey: location.pathname,
     createRoom,
     openRoom,
-    sendMessage,
     endRoom,
   }
 }

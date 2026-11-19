@@ -4,6 +4,9 @@ dist/
 .vite/
 coverage/
 
+# 화면 검증 산출물은 로컬에 보관하고 PR에 첨부한다.
+/test-evidence/
+
 # Env — .env.development / .env.production / .env.example은 커밋(비밀값 없음)
 .env
 .env.local

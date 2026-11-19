@@ -14,7 +14,7 @@ import { ClassroomStatus } from "../features/room/ClassroomStatus";
 
 export default function ProfessorRoutes() {
   const professor = useProfessorDashboard();
-  const { room, quiz, messages, notices } = professor;
+  const { room, quiz, chat } = professor;
 
   return (
     <div className="professor-layout">
@@ -52,11 +52,10 @@ export default function ProfessorRoutes() {
                 quizReady={professor.quizReady}
                 onStartQuiz={(questionSetId) => void professor.startQuiz(questionSetId)}
                 onStopQuiz={() => void professor.stopQuiz()}
-                messages={messages}
+                chat={chat}
                 reactions={professor.reactions}
                 reactionStats={professor.reactionStats}
-                onSend={professor.sendMessage}
-                notices={notices}
+                notices={professor.notices}
                 onUnpin={professor.unpin}
               />
             }
@@ -69,10 +68,9 @@ export default function ProfessorRoutes() {
               <QuizResults
                 room={room}
                 result={quiz.phase === 'results' ? quiz.result : null}
-                messages={messages}
+                chat={chat}
                 reactions={professor.reactions}
-                onSend={professor.sendMessage}
-                notices={notices}
+                notices={professor.notices}
                 onUnpin={professor.unpin}
                 onClose={() => void professor.closeResults()}
               />
@@ -81,9 +79,9 @@ export default function ProfessorRoutes() {
           <Route path="*" element={<Navigate to="/professor" replace />} />
         </Routes>
       </div>
-      {professor.feedback && (
+      {(professor.realtimeNotice || professor.feedback) && (
         <div role="status" className="professor-layout__feedback">
-          {professor.feedback}
+          {professor.realtimeNotice || professor.feedback}
         </div>
       )}
       {professor.roomEnded && <RoomEndedNotice onHome={professor.dismissRoom} />}

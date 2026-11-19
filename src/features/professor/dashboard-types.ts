@@ -41,12 +41,4 @@ export interface Room {
   active: boolean
 }
 
-export interface ChatMessage {
-  id: string
-  author: string
-  text: string
-  professor?: boolean
-  reply?: string
-}
-
 export type DesignScreen = 'home' | 'create' | 'sets' | 'editor' | 'waiting' | 'quiz' | 'results'

@@ -2,8 +2,9 @@ import './QuizResults.css'
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { QuizResult } from '../../quiz/types'
+import type { Room } from '../dashboard-types'
+import type { RoomChat } from '../../chat/useRoomChat'
 import type { FloatingReaction } from '../../room/reactions'
-import type { Room, ChatMessage } from '../dashboard-types'
 import { choiceLabel, percentagesOf } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
 import { JoinCode } from '../components/JoinCode'
@@ -12,21 +13,19 @@ import { Chat } from '../components/Chat'
 export function QuizResults({
   room,
   result,
-  messages,
+  chat,
   reactions,
-  onSend,
-  onClose,
   notices,
   onUnpin,
+  onClose,
 }: {
   room: Room
   result: QuizResult | null
-  messages: ChatMessage[]
+  chat: RoomChat
   reactions: FloatingReaction[]
-  onSend: (text: string, reply?: string) => void
-  onClose: () => void
   notices: { id: number; content: string }[]
   onUnpin: (messageId: number) => void
+  onClose: () => void
 }) {
   const [index, setIndex] = useState(0)
   const question = result?.questions[index]
@@ -123,13 +122,11 @@ export function QuizResults({
         </section>
       </div>
       <Chat
+        compact
+        chat={chat}
+        reactions={reactions}
         notices={notices}
         onUnpin={onUnpin}
-        compact
-        screen="results"
-        messages={messages}
-        reactions={reactions}
-        onSend={onSend}
       />
     </main>
   )
