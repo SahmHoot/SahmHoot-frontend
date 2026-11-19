@@ -34,12 +34,3 @@ export interface QuizQuestion {
   correctRate: number
   responseCount: number
 }
-
-export interface ChatMessage {
-  id: string
-  nickname: string
-  text: string
-  role: 'student' | 'professor'
-  mine?: boolean
-  reply?: string
-}

@@ -2,8 +2,9 @@ import './ProfessorRoom.css'
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { ProfessorQuizState } from '../../quiz/professorQuizReducer'
+import type { Room } from '../dashboard-types'
+import type { RoomChat } from '../../chat/useRoomChat'
 import type { FloatingReaction, ReactionStats } from '../../room/reactions'
-import type { Room, ChatMessage } from '../dashboard-types'
 import { Icon } from '../components/Icon'
 import { RoomSetPicker } from '../components/RoomSetPicker'
 import { QuizQuestion } from '../components/QuizQuestion'
@@ -18,10 +19,9 @@ export function ProfessorRoom({
   quizReady,
   onStartQuiz,
   onStopQuiz,
-  messages,
+  chat,
   reactions,
   reactionStats,
-  onSend,
   notices,
   onUnpin,
 }: {
@@ -30,10 +30,9 @@ export function ProfessorRoom({
   quizReady: boolean
   onStartQuiz: (questionSetId: number) => void
   onStopQuiz: () => void
-  messages: ChatMessage[]
+  chat: RoomChat
   reactions: FloatingReaction[]
   reactionStats: ReactionStats | null
-  onSend: (text: string, reply?: string) => void
   notices: { id: number; content: string }[]
   onUnpin: (messageId: number) => void
 }) {
@@ -86,13 +85,11 @@ export function ProfessorRoom({
         )}
       </div>
       <Chat
+        compact={!waiting}
+        chat={chat}
+        reactions={reactions}
         notices={notices}
         onUnpin={onUnpin}
-        compact={!waiting}
-        screen={waiting ? 'waiting' : 'quiz'}
-        messages={messages}
-        reactions={reactions}
-        onSend={onSend}
       />
       {choosing && (
         <Modal title="출제할 문제 세트 선택" onClose={() => setChoosing(false)}>

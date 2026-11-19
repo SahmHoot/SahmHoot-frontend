@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { toApiError } from '../../auth/api'
-import { getStompStatus, onStompErrorMessage } from '../../../shared/stomp'
+import { getStompStatus } from '../../../shared/stomp'
 import { useClassroom } from '../../room/useClassroom'
 import { abortQuiz, closeQuizResults, startQuiz } from '../api'
 
@@ -8,7 +8,6 @@ import { abortQuiz, closeQuizResults, startQuiz } from '../api'
 export function useProfessorQuiz(roomId: number | null, onError: (message: string) => void) {
   const classroom = useClassroom(roomId, true)
   const { quiz } = classroom
-  useEffect(() => onStompErrorMessage((error) => onError(error.message)), [onError])
 
   const runId = quiz.phase === 'waiting' ? null : quiz.runId
 

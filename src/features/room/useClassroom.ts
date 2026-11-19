@@ -6,6 +6,7 @@ import { onStompErrorMessage, publish, useRoomSync, useStompStatus } from '../..
 import type { RoomChatMessage, RoomStateResponse } from '../../shared/types/roomState'
 import { isReaction, isReactionStats, REACTION_DURATION_MS } from './reactions'
 import type { FloatingReaction, Reaction, ReactionStats } from './reactions'
+import { useRoomChat } from '../chat/useRoomChat'
 
 const realtimeErrorNotices = new Map([
   ['RATE_LIMITED', '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'],
@@ -31,6 +32,8 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
   const status = useStompStatus()
   const active = snapshot?.room.id === roomId && !ended && !error
   const ready = active && status === 'connected'
+  const chat = useRoomChat(roomId, ready)
+  const { handleError: handleChatError } = chat
   const apply = (action: ProfessorQuizAction) => { dispatch(action); onQuizAction?.(action) }
 
   useEffect(() => {
@@ -62,17 +65,18 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
   }, [ready, reactions])
 
   useEffect(() => {
-    if (!active || owner) return
-    return onStompErrorMessage(({ code }) => {
+    if (!active) return
+    return onStompErrorMessage((failure) => {
+      const { code } = failure
+      const handled = handleChatError(failure)
       if (code === 'ROOM_CLOSED') {
         setEnded(true)
         return
       }
-      // 오류에는 요청 목적지가 없어 현재 방의 공통 안내로 표시한다.
-      const text = realtimeErrorNotices.get(code)
-      if (text) setRealtimeNotice({ text })
+      if (handled || code === 'QUESTION_CLOSED') return
+      setRealtimeNotice({ text: realtimeErrorNotices.get(code) ?? failure.message })
     })
-  }, [active, owner, roomId])
+  }, [active, roomId, handleChatError])
 
   useEffect(() => {
     if (!active || !realtimeNotice) return
@@ -89,9 +93,11 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
       setReactionStats(owner && isReactionStats(state.reactionStats) ? state.reactionStats : null)
       setPinned(state.pinnedMessages)
       setError('')
+      chat.restore(state)
       apply({ kind: 'snapshot', snapshot: state, receivedAt: Date.now() })
     },
     onMessage: (channel, message) => {
+      chat.receive(channel, message)
       if (channel === 'quiz' && message.type === 'ROOM_ENDED') { setEnded(true); return }
       if (channel === 'reaction' && message.type === 'REACTION' && isReaction(message.emoji)) {
         const { emoji, sentAt } = message
@@ -129,7 +135,7 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
     }
   }
 
-  return { snapshot, onlineCount, pinned, ended, error, quiz, ready, sendReaction,
+  return { snapshot, onlineCount, pinned, ended, error, quiz, chat, ready, sendReaction,
     reactions: ready ? reactions : [], reactionStats: ready ? reactionStats : null,
     realtimeNotice: active ? realtimeNotice?.text : undefined }
 }

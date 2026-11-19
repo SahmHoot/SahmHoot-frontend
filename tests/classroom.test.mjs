@@ -43,6 +43,10 @@ function setup(owner = false) {
   const sent = []
   const errors = new Set()
   const timers = new Map()
+  const chat = { snapshots: [], events: [], handlesError: false, failures: [],
+    restore(snapshot) { chat.snapshots.push(snapshot) },
+    receive(channel, message) { chat.events.push([channel, message]) },
+    handleError(failure) { chat.failures.push(failure); return chat.handlesError } }
   const react = {
     useState(initial) {
       const slot = index++
@@ -68,6 +72,7 @@ function setup(owner = false) {
     },
   }
   const { useClassroom } = load('features/room/useClassroom', {
+    '../chat/useRoomChat': { useRoomChat: () => chat },
     react, '../auth/api': { toApiError: (error) => error }, '../quiz/professorQuizReducer': reducer, './reactions': reactions,
     '../../shared/stomp': { useStompStatus: () => status, useRoomSync(roomId, isOwner, callbacks) {
       syncId = roomId
@@ -95,8 +100,12 @@ function setup(owner = false) {
     disconnect() { status = 'reconnecting'; render(); return render() },
     reconnect() { status = 'connected'; return render() },
     failPublish() { canPublish = false },
-    sent, errors, timers, get syncId() { return syncId },
-    stompError(code) { errors.forEach((listener) => listener({ code })) },
+    sent, errors, timers, chat, get syncId() { return syncId },
+    stompError(code, handled = false, message = '서버 오류 안내') {
+      const failure = { code, message }
+      chat.handlesError = handled
+      errors.forEach((listener) => listener(failure))
+    },
     advance(ms) {
       now += ms
       for (const [timer, { due, callback }] of timers) {
@@ -110,6 +119,48 @@ function setup(owner = false) {
 
 const emptyStats = { '👍': 0, '❓': 0, '😀': 0, '👏': 0 }
 const incomingReaction = (emoji, sentAt = time) => ({ type: 'REACTION', sentAt, emoji })
+
+test('같은 수업 구독으로 채팅·반응·고정 공지를 함께 전달하고 채팅 오류를 중복 안내하지 않는다', () => {
+  const student = setup()
+  const initial = state()
+  student.snapshot(initial)
+  assert.equal(student.chat.snapshots[0], initial)
+  const chatMessage = { type: 'MESSAGE', id: 1, sentAt: time }
+  student.message('chat', chatMessage)
+  student.message('reaction', incomingReaction('👍'))
+  student.message('chat', { type: 'NOTICE_PINNED', sentAt: time, message: { id: 1, content: '공지' } })
+  assert.equal(student.chat.events[0][1], chatMessage)
+  assert.equal(student.render().reactions[0].emoji, '👍')
+  assert.equal(student.render().pinned[0].id, 1)
+  student.stompError('RATE_LIMITED', true)
+  assert.equal(student.render().realtimeNotice, undefined)
+  student.stompError('RATE_LIMITED')
+  assert.match(student.render().realtimeNotice, /너무 많습니다/)
+  student.stompError('ROOM_CLOSED', true)
+  assert.equal(student.render().ended, true)
+  student.unmount()
+})
+
+test('교수·학생 모두 한 리스너에서 채팅 오류를 먼저 처리하고 미처리 오류만 공통 안내한다', () => {
+  for (const owner of [false, true]) {
+    const room = setup(owner)
+    room.snapshot(state(owner))
+    room.render()
+    assert.equal(room.errors.size, 1)
+    room.stompError('RATE_LIMITED', true)
+    assert.equal(room.chat.failures.length, 1)
+    assert.equal(room.render().realtimeNotice, undefined)
+    room.stompError('FORBIDDEN')
+    assert.match(room.render().realtimeNotice, /권한이 없습니다/)
+    room.stompError('UNKNOWN_ERROR', false, '새 기능의 전송 실패')
+    assert.equal(room.render().realtimeNotice, '새 기능의 전송 실패')
+    room.advance(4_000)
+    room.stompError('QUESTION_CLOSED')
+    assert.equal(room.render().realtimeNotice, undefined)
+    room.unmount()
+    assert.equal(room.errors.size, 0)
+  }
+})
 
 test('학생만 네 가지 반응을 STOMP로 보내고 서버에서 받은 이벤트만 화면에 표시한다', () => {
   const student = setup()

@@ -10,6 +10,7 @@ const noRoom = { id: null, name: '', code: '', joinUrl: null, participants: 0, a
 const created = { id: 38, title: '실제 수업', joinCode: '123456', joinUrl: 'https://class.example/join/123456' }
 const summary = { id: 52, title: '진행 중 수업', joinCode: '654321', onlineCount: 7, status: 'PLAYING' }
 const flush = async () => { for (let i = 0; i < 3; i++) await new Promise(setImmediate) }
+const roomChat = { messages: [], received: 0, roomId: 52, ready: true }
 
 function harness(file, name, dependencies, extension = 'ts') {
   const slots = []
@@ -68,7 +69,7 @@ function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/
     '../dashboard-data': { noRoom },
     '../../quiz/hooks/useProfessorQuiz': { useProfessorQuiz: (roomId) => {
       bindings.push(roomId)
-      return { ...classroom(roomId), quiz: { phase: 'waiting' }, ready: roomId !== null,
+      return { chat: roomChat, ...classroom(roomId), quiz: { phase: 'waiting' }, ready: roomId !== null,
         start: (setId) => requests.push(['start', roomId, setId]),
         stop: () => requests.push(['stop', roomId]),
         closeResults: () => requests.push(['wait', roomId]) }
@@ -78,17 +79,10 @@ function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/
     visit(pathname) { location = { pathname, key: String(++routeKey) }; return hook.render() } }
 }
 
-test('교수 채팅은 로그인한 사용자 이름을 사용하고 메시지와 답글을 보존한다', () => {
-  for (const name of ['이서연', '김민준']) {
-    const hook = dashboard({}, { user: { id: 1, name } })
-    hook.render().openRoom(summary)
-    hook.render().sendMessage('수업 안내', '학생 질문')
-    const message = hook.render().messages.at(-1)
-    assert.equal(message.author, name)
-    assert.equal(message.professor, true)
-    assert.equal(message.text, '수업 안내')
-    assert.equal(message.reply, '학생 질문')
-  }
+test('교수 화면은 공통 실시간 채팅 상태를 전달한다', () => {
+  const hook = dashboard()
+  hook.render().openRoom(summary)
+  assert.equal(hook.render().chat, roomChat)
 })
 
 test('개설 응답의 실제 방 ID·코드·URL을 보존하고 퀴즈 요청을 같은 방에 연결한다', async () => {
@@ -246,25 +240,22 @@ test('저장된 실제 방을 새로고침 복원하면 예제 채팅·공지를
   const state = hook.render()
   assert.equal(state.room.id, summary.id)
   assert.equal(state.room.active, true)
-  assert.equal(state.messages.length, 0)
+  assert.equal(state.chat.messages.length, 0)
   assert.equal(state.notices.length, 0)
   assert.equal(hook.bindings.at(-1), summary.id)
 })
 
-test('개설·목록 입장 때 이전 수업의 채팅·공지를 비운다', async () => {
+test('다른 수업으로 이동하면 이전 수업의 고정 공지를 표시하지 않는다', async () => {
   const pinned = [{ id: 5, content: '이전 수업 공지' }]
   // 고정 공지는 수업 동기화가 방마다 새로 받으므로, 지금 방의 스냅샷이 아니면 보여 주지 않는다.
   const hook = dashboard({}, { classroom: (roomId) => roomId === summary.id
     ? { snapshot: { room: { id: summary.id } }, pinned } : {} })
   hook.render().openRoom(summary)
   assert.deepEqual(Array.from(hook.render().notices, ({ id }) => id), [5])
-  hook.render().sendMessage('이전 수업 대화')
   await hook.render().createRoom('실제 수업')
-  assert.equal(hook.render().messages.length, 0)
   assert.equal(hook.render().notices.length, 0)
-  hook.render().sendMessage('개설한 수업 대화')
   hook.render().openRoom(summary)
-  assert.equal(hook.render().messages.length, 0)
+  assert.equal(hook.render().chat, roomChat)
 })
 
 test('고정 해제는 지금 방으로 요청하고 실패하면 안내한다', async () => {
@@ -299,6 +290,7 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
     './Icon': { Icon: () => null }, './Modal': { Modal: () => null },
     '../../room/reactions': { REACTION_EMOJIS: emojis },
     '../../room/ChatReactions': { ChatReactions: (props) => overlay.render(props) },
+    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null },
   }
   const reactions = harness('professor/components/Reactions', 'Reactions', dependencies, 'tsx')
   const waiting = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
@@ -309,7 +301,7 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
   for (const screen of ['waiting', 'quiz', 'results']) {
     const markup = renderToStaticMarkup(chat.render({
       compact: screen !== 'waiting', screen, notices: [{ id: 5, content: '수업 공지' }],
-      messages: [{ id: 'message', author: '학생', text: '기존 채팅', reply: '답글 원문' }],
+      chat: { ...roomChat, messages: [{ id: 2, nickname: '학생', content: '기존 채팅', parentId: 1, parentPreview: '답글 원문' }] },
       reactions: [{ id: 'server-event', emoji: '😀', expiresAt: 100, lane: 0 }],
       onSend() {}, onUnpin() {},
     }))
