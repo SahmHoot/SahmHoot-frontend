@@ -20,7 +20,7 @@ function load(file, dependencies) {
 }
 
 const none = { __esModule: true, default: () => null }
-const composer = load('chat/ChatComposer', { './Chat.css': {} })
+const composer = load('chat/ChatComposer', { './Chat.css': {}, '../../assets/student/send.svg': { __esModule: true, default: 'send.svg' } })
 const StudentChat = load('student/components/StudentChat', {
   '../../../assets/student/pin.svg': { __esModule: true, default: 'pin.svg' },
   '../../../assets/student/reply.svg': { __esModule: true, default: 'reply.svg' },
@@ -61,15 +61,18 @@ test('학생 화면은 교수 답글 위에 원본 인용을 보여 주고 원�
     message(2, '3장까지입니다', { senderParticipantId: 1, nickname: '교수', isOwner: true, parentId: 1, parentPreview: '시험 범위요?' }),
     message(1, '시험 범위요?'),
   ]))
-  const replies = Array.from(markup.matchAll(/class="student-chat__reply">([^<]*)</g), ([, text]) => text)
+  const replies = Array.from(markup.matchAll(/class="student-chat__reply"><img[^>]*\/>([^<]*)</g), ([, text]) => text)
   assert.deepEqual(replies, ['시험 범위요?'])
+  assert.match(markup, /alt="답장"/)
+  assert.match(markup, /내 메시지는 학생으로 표시됩니다/)
   assert.ok(markup.indexOf('시험 범위요?') < markup.indexOf('3장까지입니다'))
 })
 
 test('학생 화면은 고정 공지를 고정한 순서로 모두 보여 주고 없으면 목록을 그리지 않는다', () => {
   const markup = renderRoom(classroom([message(8, '과제 마감'), message(5, '시험 범위')]))
-  const notices = Array.from(markup.matchAll(/class="student-chat__notice">([^<]*)</g), ([, text]) => text)
+  const notices = Array.from(markup.matchAll(/class="student-chat__notice"><img[^>]*\/><p>([^<]*)</g), ([, text]) => text)
   assert.deepEqual(notices, ['과제 마감', '시험 범위'])
+  assert.match(markup, /교수 공지/)
   assert.ok(markup.includes('student-chat__notices'))
   assert.ok(!renderRoom(classroom([])).includes('student-chat__notices'))
 })

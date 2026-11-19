@@ -6,9 +6,10 @@ import type { RoomChat } from '../../chat/useRoomChat'
 import type { RoomChatMessage } from '../../../shared/types/roomState'
 import { ChatReactions } from '../../room/ChatReactions'
 import type { FloatingReaction } from '../../room/reactions'
+import { Icon } from './Icon'
 
-export function Chat({ compact, chat, reactions, notices, onUnpin }: {
-  compact: boolean; chat: RoomChat; reactions: FloatingReaction[]
+export function Chat({ compact, screen, chat, reactions, notices, onUnpin }: {
+  compact: boolean; screen: 'waiting' | 'quiz' | 'results'; chat: RoomChat; reactions: FloatingReaction[]
   notices: { id: number; content: string }[]; onUnpin: (messageId: number) => void
 }) {
   const [reply, setReply] = useState<RoomChatMessage | null>(null)
@@ -19,7 +20,12 @@ export function Chat({ compact, chat, reactions, notices, onUnpin }: {
   return <section aria-label="수업 채팅" className={`professor-chat ${compact ? 'professor-chat--compact' : 'professor-chat--expanded'}`}>
     <div className="professor-chat__header"><h2 className="professor-chat__title">실시간 채팅</h2></div>
     {notices.length > 0 && <div className="professor-chat__notices">{notices.map((notice) => <div key={notice.id} className="professor-chat__notice">
-      <span className="professor-chat__notice-body professor-chat__notice-text">{notice.content}</span>
+      <Icon screen={screen} name="imgFrame4" className="professor-chat__notice-icon" />
+      <span className="professor-chat__notice-body">
+        {compact && <span className="professor-chat__notice-author">고정 공지 (교수)</span>}
+        <span className="professor-chat__notice-text">{notice.content}</span>
+        {!compact && <span className="professor-chat__notice-caption"> · 교수 공지</span>}
+      </span>
       <button type="button" onClick={() => onUnpin(notice.id)} aria-label={`고정 해제: ${notice.content}`} className="professor-chat__unpin-button">해제</button>
     </div>)}</div>}
     <div className="chat-messages-area">
@@ -28,7 +34,7 @@ export function Chat({ compact, chat, reactions, notices, onUnpin }: {
           <p className={`professor-chat__author ${message.isOwner ? 'professor-chat__author--professor' : 'professor-chat__author--student'}`}>
             {message.nickname}{message.isOwner && <span className="professor-chat__professor-badge">교수</span>}
           </p>
-          {message.parentId !== null && <p className="professor-chat__quote">{message.parentPreview ?? '삭제된 메시지'}</p>}
+          {message.parentId !== null && <p className="professor-chat__quote"><Icon screen={screen} name="imgFrame5" alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
           <button type="button" disabled={!chat.ready} onClick={() => setReply(message)}
             aria-label={`${message.nickname}의 메시지에 답글: ${message.content}`}
             className={`professor-chat__bubble ${message.isOwner ? 'professor-chat__bubble--professor' : 'professor-chat__bubble--student'}`}>{message.content}</button>

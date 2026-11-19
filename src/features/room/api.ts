@@ -1,5 +1,6 @@
 import { apiClient } from '../../shared/api/client'
 import type { CreateRoomResponse, RoomSummaryResponse } from './room.types'
+import type { RoomChatMessage } from '../../shared/types/roomState'
 
 // 오류는 AxiosError 그대로 전파한다. 호출 측에서 toApiError로 변환한다.
 
@@ -12,6 +13,12 @@ export async function createRoom(title: string): Promise<CreateRoomResponse> {
 /** 내 수업 목록. 종료되지 않은 방만 최근 개설 순으로 온다. */
 export async function fetchMyRooms(): Promise<RoomSummaryResponse[]> {
   const { data } = await apiClient.get<RoomSummaryResponse[]>('/rooms/mine')
+  return data
+}
+
+/** 05 #28 공지 고정. 목록은 응답이 아니라 NOTICE_PINNED로 갱신한다. */
+export async function pinMessage(roomId: number, messageId: number): Promise<RoomChatMessage> {
+  const { data } = await apiClient.put<RoomChatMessage>(`/rooms/${roomId}/pinned-messages/${messageId}`)
   return data
 }
 
