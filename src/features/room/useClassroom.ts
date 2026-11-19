@@ -3,7 +3,7 @@ import { toApiError } from '../auth/api'
 import { initialProfessorQuiz, professorQuizReducer, toProfessorQuizMessage } from '../quiz/professorQuizReducer'
 import type { ProfessorQuizAction } from '../quiz/professorQuizReducer'
 import { onStompErrorMessage, publish, useRoomSync, useStompStatus } from '../../shared/stomp'
-import type { RoomStateResponse } from '../../shared/types/roomState'
+import type { RoomChatMessage, RoomStateResponse } from '../../shared/types/roomState'
 import { isReaction, isReactionStats, REACTION_DURATION_MS } from './reactions'
 import type { FloatingReaction, Reaction, ReactionStats } from './reactions'
 
@@ -20,6 +20,8 @@ const realtimeErrorNotices = new Map([
 export function useClassroom(roomId: number | null, owner: boolean, onQuizAction?: (action: ProfessorQuizAction) => void) {
   const [snapshot, setSnapshot] = useState<RoomStateResponse | null>(null)
   const [onlineCount, setOnlineCount] = useState(0)
+  /** 고정 공지. state로 시작하고 NOTICE_PINNED·NOTICE_UNPINNED·MESSAGE_DELETED로 바꾼다(06 4절). */
+  const [pinned, setPinned] = useState<RoomChatMessage[]>([])
   const [ended, setEnded] = useState(false)
   const [error, setError] = useState('')
   const [reactions, setReactions] = useState<FloatingReaction[]>([])
@@ -34,6 +36,7 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
   useEffect(() => {
     setSnapshot(null)
     setOnlineCount(0)
+    setPinned([])
     setEnded(false)
     setError('')
     setReactionStats(null)
@@ -84,6 +87,7 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
       setSnapshot(state)
       setOnlineCount(state.onlineCount)
       setReactionStats(owner && isReactionStats(state.reactionStats) ? state.reactionStats : null)
+      setPinned(state.pinnedMessages)
       setError('')
       apply({ kind: 'snapshot', snapshot: state, receivedAt: Date.now() })
     },
@@ -107,6 +111,7 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
         typeof message.onlineCount === 'number' && Number.isSafeInteger(message.onlineCount) && message.onlineCount >= 0) {
         setOnlineCount(message.onlineCount)
       }
+      if (channel === 'chat') setPinned((current) => nextPinned(current, message))
       const quizMessage = channel === 'quiz' || channel === 'stats' ? toProfessorQuizMessage(message) : null
       if (quizMessage) apply({ kind: 'message', message: quizMessage, receivedAt: Date.now() })
     },
@@ -124,7 +129,19 @@ export function useClassroom(roomId: number | null, owner: boolean, onQuizAction
     }
   }
 
-  return { snapshot, onlineCount, ended, error, quiz, ready, sendReaction,
+  return { snapshot, onlineCount, pinned, ended, error, quiz, ready, sendReaction,
     reactions: ready ? reactions : [], reactionStats: ready ? reactionStats : null,
     realtimeNotice: active ? realtimeNotice?.text : undefined }
+}
+
+function nextPinned(current: RoomChatMessage[], message: { type: string; [field: string]: unknown }): RoomChatMessage[] {
+  if (message.type === 'NOTICE_PINNED') {
+    const pinned = message.message as RoomChatMessage | undefined
+    if (typeof pinned?.id !== 'number' || current.some((item) => item.id === pinned.id)) return current
+    return [...current, pinned]
+  }
+  if (message.type === 'NOTICE_UNPINNED' || message.type === 'MESSAGE_DELETED') {
+    return current.filter((item) => item.id !== message.messageId)
+  }
+  return current
 }

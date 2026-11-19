@@ -49,7 +49,8 @@ function harness(file, name, dependencies, extension = 'ts') {
   }
 }
 
-function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/create', user = { id: 1, name: '검증 교수' } } = {}) {
+function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/create', user = { id: 1, name: '검증 교수' },
+  classroom = () => ({}) } = {}) {
   const navigation = []
   const bindings = []
   const requests = []
@@ -67,7 +68,7 @@ function dashboard(api = {}, { restoredRoomId = null, initialPath = '/professor/
     '../dashboard-data': { noRoom },
     '../../quiz/hooks/useProfessorQuiz': { useProfessorQuiz: (roomId) => {
       bindings.push(roomId)
-      return { quiz: { phase: 'waiting' }, ready: roomId !== null,
+      return { ...classroom(roomId), quiz: { phase: 'waiting' }, ready: roomId !== null,
         start: (setId) => requests.push(['start', roomId, setId]),
         stop: () => requests.push(['stop', roomId]),
         closeResults: () => requests.push(['wait', roomId]) }
@@ -246,23 +247,44 @@ test('저장된 실제 방을 새로고침 복원하면 예제 채팅·공지를
   assert.equal(state.room.id, summary.id)
   assert.equal(state.room.active, true)
   assert.equal(state.messages.length, 0)
-  assert.equal(state.notice, '')
+  assert.equal(state.notices.length, 0)
   assert.equal(hook.bindings.at(-1), summary.id)
 })
 
 test('개설·목록 입장 때 이전 수업의 채팅·공지를 비운다', async () => {
-  const hook = dashboard()
+  const pinned = [{ id: 5, content: '이전 수업 공지' }]
+  // 고정 공지는 수업 동기화가 방마다 새로 받으므로, 지금 방의 스냅샷이 아니면 보여 주지 않는다.
+  const hook = dashboard({}, { classroom: (roomId) => roomId === summary.id
+    ? { snapshot: { room: { id: summary.id } }, pinned } : {} })
   hook.render().openRoom(summary)
+  assert.deepEqual(Array.from(hook.render().notices, ({ id }) => id), [5])
   hook.render().sendMessage('이전 수업 대화')
-  hook.render().setNotice('이전 수업 공지')
   await hook.render().createRoom('실제 수업')
   assert.equal(hook.render().messages.length, 0)
-  assert.equal(hook.render().notice, '')
+  assert.equal(hook.render().notices.length, 0)
   hook.render().sendMessage('개설한 수업 대화')
-  hook.render().setNotice('이전 수업 공지')
   hook.render().openRoom(summary)
   assert.equal(hook.render().messages.length, 0)
-  assert.equal(hook.render().notice, '')
+})
+
+test('고정 해제는 지금 방으로 요청하고 실패하면 안내한다', async () => {
+  const calls = []
+  let fail = false
+  const hook = dashboard({ unpinMessage: async (roomId, messageId) => {
+    calls.push([roomId, messageId])
+    if (fail) throw new Error('고정 해제 실패')
+  } })
+  hook.render().unpin(5)
+  assert.deepEqual(calls, [])
+  hook.render().openRoom(summary)
+  hook.render().unpin(5)
+  await flush()
+  assert.deepEqual(calls, [[summary.id, 5]])
+  assert.equal(hook.render().feedback, '')
+  fail = true
+  hook.render().unpin(6)
+  await flush()
+  assert.equal(hook.render().feedback, '고정 해제 실패')
 })
 
 test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과 기존 채팅을 렌더링한다', () => {
@@ -286,13 +308,13 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
   const chat = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')
   for (const screen of ['waiting', 'quiz', 'results']) {
     const markup = renderToStaticMarkup(chat.render({
-      compact: screen !== 'waiting', screen, notice: '수업 공지',
+      compact: screen !== 'waiting', screen, notices: [{ id: 5, content: '수업 공지' }],
       messages: [{ id: 'message', author: '학생', text: '기존 채팅', reply: '답글 원문' }],
       reactions: [{ id: 'server-event', emoji: '😀', expiresAt: 100, lane: 0 }],
-      onSend() {}, onNoticeChange() {},
+      onSend() {}, onUnpin() {},
     }))
     assert.match(markup, /class="chat-reactions__emoji"[^>]*>😀<\/span>/)
     assert.doesNotMatch(markup, /최근 1분|professor-chat__reactions/)
-    for (const text of ['수업 공지', '기존 채팅', '답글 원문']) assert.ok(markup.includes(text))
+    for (const text of ['수업 공지', '고정 해제: 수업 공지', '기존 채팅', '답글 원문']) assert.ok(markup.includes(text))
   }
 })

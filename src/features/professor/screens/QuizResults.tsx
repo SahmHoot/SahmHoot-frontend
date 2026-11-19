@@ -16,8 +16,8 @@ export function QuizResults({
   reactions,
   onSend,
   onClose,
-  notice,
-  onNoticeChange,
+  notices,
+  onUnpin,
 }: {
   room: Room
   result: QuizResult | null
@@ -25,8 +25,8 @@ export function QuizResults({
   reactions: FloatingReaction[]
   onSend: (text: string, reply?: string) => void
   onClose: () => void
-  notice: string
-  onNoticeChange: (notice: string) => void
+  notices: { id: number; content: string }[]
+  onUnpin: (messageId: number) => void
 }) {
   const [index, setIndex] = useState(0)
   const question = result?.questions[index]
@@ -123,8 +123,8 @@ export function QuizResults({
         </section>
       </div>
       <Chat
-        notice={notice}
-        onNoticeChange={onNoticeChange}
+        notices={notices}
+        onUnpin={onUnpin}
         compact
         screen="results"
         messages={messages}

@@ -15,6 +15,11 @@ export async function fetchMyRooms(): Promise<RoomSummaryResponse[]> {
   return data
 }
 
+/** 05 #29 공지 해제. 성공 204. 고정되지 않은 메시지도 204이고, 화면은 NOTICE_UNPINNED로 바꾼다. */
+export async function unpinMessage(roomId: number, messageId: number): Promise<void> {
+  await apiClient.delete(`/rooms/${roomId}/pinned-messages/${messageId}`)
+}
+
 /** 수업 종료. 성공 204. 이미 종료된 방도 204, 방 주인이 아니면 403 FORBIDDEN. */
 export async function closeRoom(roomId: number): Promise<void> {
   await apiClient.patch(`/rooms/${roomId}/close`)

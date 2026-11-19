@@ -18,11 +18,12 @@ interface Props {
   onReact: (reaction: Reaction) => void
   realtimeNotice?: string
   onlineCount?: number
-  notice?: string | null
+  /** 고정 공지. 고정한 순서로 모두 보여 준다. */
+  notices?: { id: number; content: string }[]
   readOnly?: boolean
 }
 
-export default function StudentChat({ nickname, expanded, messages, reactions, onSend, onReact, realtimeNotice, onlineCount = 32, notice = '교재 42쪽 예제 먼저 보세요', readOnly = false }: Props) {
+export default function StudentChat({ nickname, expanded, messages, reactions, onSend, onReact, realtimeNotice, onlineCount = 32, notices = [], readOnly = false }: Props) {
   const [draft, setDraft] = useState('')
   const list = useRef<HTMLDivElement>(null)
   const previousLength = useRef(messages.length)
@@ -44,7 +45,9 @@ export default function StudentChat({ nickname, expanded, messages, reactions, o
     <aside className={`student-chat student-card ${expanded ? 'student-chat--expanded' : ''}`} aria-label="수업 채팅">
       <div className="student-chat__heading"><h2>실시간 채팅</h2><span>{expanded ? `내 메시지는 ${nickname}으로 표시됩니다` : `${onlineCount}명 접속 중`}</span></div>
       <div role="status" className="student-chat__realtime-notice">{realtimeNotice}</div>
-      {notice && <div className="student-chat__notice"><img src={pin} alt="" /><p>{notice}{expanded && <span className="student-muted"> · 교수 공지</span>}</p></div>}
+      {notices.length > 0 && <div className="student-chat__notices">
+        {notices.map(notice => <div className="student-chat__notice" key={notice.id}><img src={pin} alt="" /><p>{notice.content}{expanded && <span className="student-muted"> · 교수 공지</span>}</p></div>)}
+      </div>}
       <div className="chat-messages-area">
         <div className="student-chat__messages" ref={list} role="log" aria-label="채팅 메시지" aria-relevant="additions" aria-live="polite">
           {messages.map(message => (

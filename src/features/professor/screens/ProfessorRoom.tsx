@@ -22,8 +22,8 @@ export function ProfessorRoom({
   reactions,
   reactionStats,
   onSend,
-  notice,
-  onNoticeChange,
+  notices,
+  onUnpin,
 }: {
   room: Room
   quiz: ProfessorQuizState
@@ -34,8 +34,8 @@ export function ProfessorRoom({
   reactions: FloatingReaction[]
   reactionStats: ReactionStats | null
   onSend: (text: string, reply?: string) => void
-  notice: string
-  onNoticeChange: (notice: string) => void
+  notices: { id: number; content: string }[]
+  onUnpin: (messageId: number) => void
 }) {
   const [choosing, setChoosing] = useState(false)
   const [stopping, setStopping] = useState(false)
@@ -86,8 +86,8 @@ export function ProfessorRoom({
         )}
       </div>
       <Chat
-        notice={notice}
-        onNoticeChange={onNoticeChange}
+        notices={notices}
+        onUnpin={onUnpin}
         compact={!waiting}
         screen={waiting ? 'waiting' : 'quiz'}
         messages={messages}

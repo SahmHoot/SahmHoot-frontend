@@ -165,7 +165,7 @@ function roomState(overrides = {}) {
     me: { participantId: 1, nickname: '학생', isOwner: false, chatBlocked: false },
     onlineCount: 3,
     quiz: null,
-    pinnedMessage: null,
+    pinnedMessages: [],
     recentMessages: [],
     ...overrides,
   }

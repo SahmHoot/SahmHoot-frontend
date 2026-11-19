@@ -22,7 +22,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
   const waiting = quiz.phase === 'waiting'
   const messages = snapshot?.recentMessages.map((message) => ({ id: String(message.id), nickname: message.nickname,
     text: message.content, role: message.isOwner ? 'professor' as const : 'student' as const,
-    mine: message.senderParticipantId === snapshot.me.participantId })) ?? []
+    mine: message.senderParticipantId === snapshot.me.participantId, reply: message.parentPreview ?? undefined })) ?? []
 
   return <div className="student-app">
     <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} onLeave={() => setLeaving(true)} />
@@ -37,7 +37,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
         {/* shortcut: 채팅은 채팅 기능 연동 전까지 읽기 전용, 채팅 이슈에서 연결한다. */}
         <StudentChat nickname={snapshot.me.nickname} expanded={waiting} messages={messages} reactions={classroom.reactions}
           realtimeNotice={classroom.realtimeNotice} onReact={classroom.sendReaction}
-          onlineCount={onlineCount} notice={snapshot.pinnedMessage?.content ?? null} readOnly onSend={() => {}} />
+          onlineCount={onlineCount} notices={classroom.pinned} readOnly onSend={() => {}} />
       </main>}
     {leaving && !ended && <ConfirmDialog title="수업에서 나갈까요?" message="수업에서 나가 홈으로 이동합니다."
       cancelLabel="수업 계속하기" confirmLabel="수업 나가기" onCancel={() => setLeaving(false)} onConfirm={home} />}

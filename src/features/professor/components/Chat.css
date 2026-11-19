@@ -20,16 +20,25 @@
   @apply text-sm font-bold;
 }
 
-.professor-chat__notice-button {
-  @apply rounded-lg p-1 hover:bg-hoot-soft;
-}
-
 .professor-chat__layout-help {
   @apply hidden text-xs text-hoot-muted xl:block;
 }
 
 .professor-chat__notice {
   @apply flex items-start gap-2 border-b border-hoot-primary/10 bg-hoot-selected/60 px-5 py-3 text-left text-sm text-[#1a28a8];
+}
+
+.professor-chat__notices {
+  @apply max-h-[104px] shrink-0 overflow-y-auto;
+}
+
+.professor-chat__notice-body {
+  @apply min-w-0 flex-1;
+  overflow-wrap: anywhere;
+}
+
+.professor-chat__unpin-button {
+  @apply shrink-0 rounded-lg px-2 py-0.5 text-xs font-semibold text-hoot-muted hover:bg-white hover:text-[#1a28a8];
 }
 
 .professor-chat__notice-icon {
@@ -116,10 +125,3 @@
   @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] h-11 px-4 text-sm;
 }
 
-.professor-chat__notice-input {
-  @apply h-12 w-full rounded-[16.8px] border border-[#dbe2ee] px-4 text-sm shadow-hoot-card;
-}
-
-.professor-chat__save-notice-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-5;
-}
