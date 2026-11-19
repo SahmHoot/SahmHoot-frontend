@@ -52,14 +52,6 @@
   @apply min-h-0 flex-1 space-y-4 overflow-y-auto p-5 pr-8;
 }
 
-.professor-chat__reaction-preview {
-  @apply flex flex-wrap items-center gap-5 rounded-[16.8px] border border-dashed border-hoot-primary/25 bg-hoot-soft/60 px-3 py-2;
-}
-
-.professor-chat__reaction-help {
-  @apply text-xs text-hoot-muted;
-}
-
 .professor-chat__message {
   @apply space-y-1.5;
 }
@@ -98,14 +90,6 @@
 
 .professor-chat__bubble.professor-chat__bubble--student {
   @apply bg-[#f4f6fb] hover:bg-hoot-soft;
-}
-
-.professor-chat__reactions {
-  @apply flex flex-wrap items-center gap-3 border-t border-hoot-border px-5 py-3 text-sm;
-}
-
-.professor-chat__reactions-caption {
-  @apply text-xs text-hoot-muted;
 }
 
 .professor-chat__reply {

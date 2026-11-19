@@ -47,7 +47,3 @@
 .professor-reactions__count {
   @apply w-7 text-right text-sm;
 }
-
-.professor-reactions__question-help {
-  @apply mt-1 ml-9 text-[11px] text-orange-500;
-}

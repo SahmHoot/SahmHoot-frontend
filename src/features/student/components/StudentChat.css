@@ -18,9 +18,5 @@
 .student-chat__composer input { min-width: 0; width: 100%; height: 44px; padding: 11px 16px; border: 1px solid #dbe2ee; border-radius: var(--student-control-radius); background: rgb(244 246 251 / 50%); }
 .student-chat__composer input::placeholder { color: rgb(102 112 138 / 80%); }
 .student-chat__composer button { flex-shrink: 0; height: 44px; }
-.student-chat__floating { position: absolute; bottom: 145px; left: 20px; right: 20px; pointer-events: none; height: 110px; overflow: hidden; }
-.student-chat__reaction { position: absolute; bottom: 0; font-size: 28px; animation: student-float 1.8s ease-out forwards; }
-.student-chat__reaction--0 { left: 12%; } .student-chat__reaction--1 { left: 36%; } .student-chat__reaction--2 { left: 62%; } .student-chat__reaction--3 { left: 82%; }
-@keyframes student-float { 0% { transform: translateY(0) scale(.7); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-100px) scale(1.1); opacity: 0; } }
+.student-chat__realtime-notice:not(:empty) { padding: 8px 20px; color: var(--student-primary-dark); background: var(--student-soft); font-size: 12px; }
 @media (max-width: 600px) { .student-chat__heading > span { max-width: 160px; text-align: right; font-size: 10px; } }
-@media (prefers-reduced-motion: reduce) { .student-chat__reaction { animation: none; opacity: 1; } }
