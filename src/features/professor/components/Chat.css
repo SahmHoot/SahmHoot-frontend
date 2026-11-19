@@ -28,6 +28,10 @@
   @apply flex items-start gap-2 border-b border-hoot-primary/10 bg-hoot-selected/60 px-5 py-3 text-left text-sm text-[#1a28a8];
 }
 
+.professor-chat__notices {
+  @apply max-h-[104px] shrink-0 overflow-y-auto;
+}
+
 .professor-chat__notice-body {
   @apply min-w-0 flex-1;
   overflow-wrap: anywhere;

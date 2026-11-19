@@ -59,34 +59,38 @@ export function Chat({
           </span>
         )}
       </div>
-      {notices.map((notice) => (
-        <div key={notice.id} className="professor-chat__notice">
-          <Icon
-            screen={screen}
-            name="imgFrame4"
-            className="professor-chat__notice-icon"
-          />
-          <span className="professor-chat__notice-body">
-            {compact && (
-              <span className="professor-chat__notice-author">
-                고정 공지 (교수)
+      {notices.length > 0 && (
+        <div className="professor-chat__notices">
+          {notices.map((notice) => (
+            <div key={notice.id} className="professor-chat__notice">
+              <Icon
+                screen={screen}
+                name="imgFrame4"
+                className="professor-chat__notice-icon"
+              />
+              <span className="professor-chat__notice-body">
+                {compact && (
+                  <span className="professor-chat__notice-author">
+                    고정 공지 (교수)
+                  </span>
+                )}
+                <span className="professor-chat__notice-text">{notice.content}</span>
+                {!compact && (
+                  <span className="professor-chat__notice-caption"> · 교수 공지</span>
+                )}
               </span>
-            )}
-            <span className="professor-chat__notice-text">{notice.content}</span>
-            {!compact && (
-              <span className="professor-chat__notice-caption"> · 교수 공지</span>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={() => onUnpin(notice.id)}
-            aria-label={`고정 해제: ${notice.content}`}
-            className="professor-chat__unpin-button"
-          >
-            해제
-          </button>
+              <button
+                type="button"
+                onClick={() => onUnpin(notice.id)}
+                aria-label={`고정 해제: ${notice.content}`}
+                className="professor-chat__unpin-button"
+              >
+                해제
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
       <div className="chat-messages-area">
         <div ref={listRef} className="professor-chat__messages">
           {messages.map((message) => (
