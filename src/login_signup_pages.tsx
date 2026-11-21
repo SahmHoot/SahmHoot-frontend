@@ -179,6 +179,15 @@ export function LoginPage() {
  */
 const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/u;
 
+/** 비밀번호 규칙 위반 안내. 문제가 없으면 null. BCrypt 한도(72바이트)는 서버 DTO와 같은 기준이다. */
+function passwordProblem(password: string): string | null {
+  if (!PASSWORD_RULE.test(password)) return "비밀번호는 영문·숫자를 포함해 8~64자입니다.";
+  if (new TextEncoder().encode(password).length > 72) {
+    return "비밀번호가 너무 깁니다. 이모지 등은 한 글자를 여러 바이트로 세며 72바이트까지 쓸 수 있습니다.";
+  }
+  return null;
+}
+
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "PROFESSOR", label: "교수" },
   { value: "STUDENT", label: "학생" },
@@ -195,14 +204,15 @@ export function SignupPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
-  const passwordInvalid = password !== "" && !PASSWORD_RULE.test(password);
+  const passwordError = password === "" ? null : passwordProblem(password);
+  const passwordInvalid = passwordError !== null;
 
   const passwordMismatch =
     passwordConfirm !== "" && password !== passwordConfirm;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!PASSWORD_RULE.test(password)) {
+    if (passwordProblem(password)) {
       passwordRef.current?.focus();
       return;
     }
@@ -263,7 +273,7 @@ export function SignupPage() {
             />
             {passwordInvalid && (
               <p id="pw-error" role="alert" className="auth-error">
-                비밀번호는 영문·숫자를 포함해 8~64자입니다.
+                {passwordError}
               </p>
             )}
           </AuthField>
@@ -338,12 +348,13 @@ export function PasswordResetPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
-  const passwordInvalid = password !== "" && !PASSWORD_RULE.test(password);
+  const passwordError = password === "" ? null : passwordProblem(password);
+  const passwordInvalid = passwordError !== null;
   const passwordMismatch = passwordConfirm !== "" && password !== passwordConfirm;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!PASSWORD_RULE.test(password)) {
+    if (passwordProblem(password)) {
       passwordRef.current?.focus();
       return;
     }
@@ -393,7 +404,7 @@ export function PasswordResetPage() {
             />
             {passwordInvalid && (
               <p id="pw-error" role="alert" className="auth-error">
-                비밀번호는 영문·숫자를 포함해 8~64자입니다.
+                {passwordError}
               </p>
             )}
           </AuthField>

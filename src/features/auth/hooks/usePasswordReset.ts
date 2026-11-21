@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { confirmPasswordResetCode, resetPassword, sendPasswordResetCode, toApiError } from '../api'
+import { useAuth } from '../AuthProvider'
 import { useEmailVerification, verificationErrorMessage } from './useEmailVerification'
 
 /** 로그인 화면이 비밀번호 변경 직후 보여 줄 안내. location.state.notice로 넘긴다. */
@@ -14,6 +15,7 @@ export function usePasswordReset({ email, code, onCodeSent }: {
   onCodeSent: () => void
 }) {
   const navigate = useNavigate()
+  const auth = useAuth()
   // 변경 응답이 오기 전에 다른 화면으로 옮겼다면 로그인 화면으로 끌고 가지 않는다.
   const mounted = useRef(true)
   useEffect(() => {
@@ -45,7 +47,10 @@ export function usePasswordReset({ email, code, onCodeSent }: {
     setSubmitting(true)
     resetPassword(verification.normalizedEmail, code, newPassword)
       .then(() => {
-        if (mounted.current) navigate('/login', { replace: true, state: { notice: PASSWORD_RESET_NOTICE } })
+        if (!mounted.current) return
+        // 로그인된 채로 바꿨다면 로그아웃해야 로그인 화면이 홈으로 넘기지 않고 안내를 보여 준다. 이 기기의 옛 토큰도 지운다.
+        if (auth.user) auth.signOut()
+        navigate('/login', { replace: true, state: { notice: PASSWORD_RESET_NOTICE } })
       })
       .catch((error: unknown) => {
         const apiError = toApiError(error)

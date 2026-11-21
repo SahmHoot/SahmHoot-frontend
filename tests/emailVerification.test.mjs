@@ -224,10 +224,13 @@ function setupReset({ reset = async () => {} } = {}) {
     useEffect(effect) { const slot = index++; if (!slots[slot]) { slots[slot] = {}; cleanup = effect() } },
   }
   let verified = true
+  let signedIn = false
+  let signOuts = 0
   const verificationCalls = []
   const { usePasswordReset, PASSWORD_RESET_NOTICE } = load('hooks/usePasswordReset', {
     react,
     'react-router-dom': { useNavigate: () => (...args) => navigation.push(plain(args)) },
+    '../AuthProvider': { useAuth: () => ({ user: signedIn ? { id: 1 } : null, signOut: () => { signOuts += 1 } }) },
     '../api': {
       toApiError: (error) => error,
       sendPasswordResetCode: async () => {}, confirmPasswordResetCode: async () => {},
@@ -247,6 +250,8 @@ function setupReset({ reset = async () => {} } = {}) {
     render, navigation, calls, verificationCalls, PASSWORD_RESET_NOTICE,
     unverify() { verified = false },
     unmount() { cleanup?.() },
+    signIn() { signedIn = true },
+    signOuts: () => signOuts,
     async settle() { for (let i = 0; i < 3; i++) await new Promise(setImmediate); return render() },
   }
 }
@@ -294,4 +299,22 @@ test('비밀번호 규칙은 서버처럼 이모지를 한 글자로 센다', ()
   assert.equal(rule.test('a1😀😀😀😀😀😀'), true)
   assert.equal(rule.test('abcd1234'), true)
   assert.equal(rule.test('abcdefgh'), false)
+})
+
+test('로그인된 채로 비밀번호를 바꾸면 로그아웃하고 로그인 화면으로 간다', async () => {
+  const hook = setupReset()
+  hook.signIn()
+  hook.render().finish('newpass456')
+  await hook.settle()
+  assert.equal(hook.signOuts(), 1)
+  assert.deepEqual(hook.navigation, [['/login', { replace: true, state: { notice: hook.PASSWORD_RESET_NOTICE } }]])
+})
+
+test('72바이트를 넘는 비밀번호는 화면에서 먼저 막는다', () => {
+  const source = readFileSync(new URL('../src/login_signup_pages.tsx', import.meta.url), 'utf8')
+  assert.match(source, /new TextEncoder\(\)\.encode\(password\)\.length > 72/)
+  const rule = new RegExp(...source.match(/const PASSWORD_RULE = \/(.+)\/(\w*);/).slice(1))
+  const tooLong = 'a1' + '😀'.repeat(18)
+  assert.equal(rule.test(tooLong), true, '글자 수 규칙만으로는 통과한다')
+  assert.equal(new TextEncoder().encode(tooLong).length, 74)
 })
