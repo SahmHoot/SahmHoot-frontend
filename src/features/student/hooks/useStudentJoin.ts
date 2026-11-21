@@ -5,7 +5,19 @@ import { getRoomByCode, joinRoom } from '../api'
 import { writeSession } from '../data/studentStorage'
 import type { RoomByCodeResponse } from '../types/student.types'
 
-const nicknames = ['조용한 판다몽', '부지런한 수박', '느긋한 참외', '용감한 자두', '행복한 고양이', '씩씩한 복숭아']
+const adjectives = [
+  '조용한', '부지런한', '느긋한', '용감한', '행복한',
+  '씩씩한', '활기찬', '다정한', '친절한', '차분한',
+  '명랑한', '유쾌한', '빛나는', '반짝이는', '꿈꾸는',
+  '웃는', '산뜻한', '포근한', '즐거운', '궁금한',
+]
+const nouns = [
+  '판다', '수박', '참외', '자두', '고양이',
+  '복숭아', '강아지', '토끼', '다람쥐', '고슴도치',
+  '햄스터', '펭귄', '수달', '돌고래', '거북이',
+  '부엉이', '여우', '코알라', '사슴', '참새',
+]
+const nicknames = adjectives.flatMap(adjective => nouns.map(noun => `${adjective} ${noun}`))
 const unavailableMessage = '존재하지 않거나 종료된 수업입니다. 코드를 확인하거나 홈으로 돌아가 주세요.'
 
 export function useStudentJoin(qrCode: string) {
