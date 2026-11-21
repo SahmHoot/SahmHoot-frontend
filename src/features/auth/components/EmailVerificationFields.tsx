@@ -34,7 +34,7 @@ export function EmailVerificationFields({ email, code, onEmailChange, onCodeChan
   }
 }) {
   const { verified, requested, canVerify, pending, cooldown, emailMessage, codeMessage } = verification
-  const requestLabel = cooldown > 0 ? `${cooldown}초` : requested ? '재요청' : '인증요청'
+  const requestLabel = verified ? '인증요청' : cooldown > 0 ? `${cooldown}초` : requested ? '재요청' : '인증요청'
 
   return (
     <>
@@ -59,7 +59,7 @@ export function EmailVerificationFields({ email, code, onEmailChange, onCodeChan
             className="auth-btn-side"
             onClick={verification.requestCode}
             disabled={pending || verified || cooldown > 0}
-            aria-label={cooldown > 0 ? `${cooldown}초 뒤 다시 요청할 수 있습니다` : undefined}
+            aria-label={!verified && cooldown > 0 ? `${cooldown}초 뒤 다시 요청할 수 있습니다` : undefined}
           >
             {requestLabel}
           </button>
