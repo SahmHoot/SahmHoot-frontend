@@ -5,7 +5,7 @@
 .student-review__heading strong { color: var(--student-primary); }
 .student-review__heading .student-button { flex-shrink: 0; }
 .student-review__progress { display: flex; gap: 6px; height: 6px; }
-.student-review__progress span { flex: 1; border-radius: 100px; background: rgb(37 56 210 / 15%); }
+.student-review__progress span { flex: 1; border-radius: var(--radius-full); background: rgb(37 56 210 / 15%); }
 .student-review__progress .student-review__step--active { background: var(--student-primary); }
 .student-review__question { padding: 36px 28px 28px; }
 .student-review h2 { font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 24px; }

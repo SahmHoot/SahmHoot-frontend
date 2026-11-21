@@ -40,9 +40,9 @@ export function HeaderStatus({ children, className = '', ...props }: HeaderStatu
   return (
     <span
       {...props}
-      className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-pill bg-success/10 px-3 py-1 font-sans text-xs font-semibold leading-4 text-success ${className}`}
+      className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm bg-success/10 px-3 py-1 font-sans text-xs font-semibold leading-4 text-success ${className}`}
     >
-      <span aria-hidden="true" className="size-2 shrink-0 rounded-pill bg-success" />
+      <span aria-hidden="true" className="size-2 shrink-0 rounded-(--radius-full) bg-success" />
       {children}
     </span>
   );
@@ -53,7 +53,7 @@ export function HeaderParticipantCount({ count, className = '', ...props }: Head
   return (
     <span
       {...props}
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-pill bg-brand-subtle px-3 py-1.5 font-sans text-xs font-semibold leading-4 text-brand ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm bg-brand-subtle px-3 py-1.5 font-sans text-xs font-semibold leading-4 text-brand ${className}`}
     >
       <img src={participantsIcon} alt="" className="size-3.5 shrink-0" />
       접속 {count}명
@@ -70,7 +70,7 @@ export function HeaderAction({ variant = 'outline', className = '', type = 'butt
       type={type}
       variant={variant}
       size="sm"
-      className={`rounded-control! shadow-surface! disabled:shadow-none! md:min-h-10 md:px-4 md:py-0 md:text-sm md:leading-5 ${variant === 'outline' ? 'border-border-input!' : ''} ${className}`}
+      className={`shadow-surface! disabled:shadow-none! md:min-h-10 md:px-4 md:py-0 md:text-sm md:leading-5 ${variant === 'outline' ? 'border-border-input!' : ''} ${className}`}
     />
   );
 }
@@ -87,9 +87,9 @@ export function HeaderUserInfo({
     <button
       {...props}
       type={type}
-      className={`inline-flex min-h-[38px] shrink-0 items-center gap-2 rounded-pill border border-border bg-surface py-1 pl-1 pr-3 font-sans text-sm font-medium leading-5 text-text shadow-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex min-h-[38px] shrink-0 items-center gap-2 rounded-md border border-border bg-surface py-1 pl-1 pr-3 font-sans text-sm font-medium leading-5 text-text shadow-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
-      <span aria-hidden="true" className="inline-flex size-7 shrink-0 items-center justify-center rounded-pill bg-brand-soft text-xs font-bold leading-4 text-brand">
+      <span aria-hidden="true" className="inline-flex size-7 shrink-0 items-center justify-center rounded-(--radius-full) bg-brand-soft text-xs font-bold leading-4 text-brand">
         {initial}
       </span>
       <span className="whitespace-nowrap">{displayName}</span>
@@ -117,7 +117,7 @@ export function Header({
   const isClassroom = variant === 'classroom';
   const isSticky = sticky ?? !isAuth;
   const mark = (
-    <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center rounded-pill bg-brand shadow-brand ${isClassroom ? 'size-7' : 'size-8'}`}>
+    <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center rounded-(--radius-full) bg-brand shadow-brand ${isClassroom ? 'size-7' : 'size-8'}`}>
       <img src={logoMark} alt="" className="block size-4 rotate-45" />
     </span>
   );
@@ -145,7 +145,7 @@ export function Header({
               {title != null && <h1 className="min-w-0 truncate text-base font-bold leading-6 md:text-lg md:leading-7">{title}</h1>}
             </>
           ) : logoHref ? (
-            <a href={logoHref} className="inline-flex shrink-0 items-center gap-2.5 rounded-compact focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <a href={logoHref} className="inline-flex shrink-0 items-center gap-2.5 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
               {brand}
             </a>
           ) : (

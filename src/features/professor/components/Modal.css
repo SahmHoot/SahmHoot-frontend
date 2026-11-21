@@ -1,7 +1,7 @@
 @reference "../../../globals.css";
 
 .professor-modal {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-[min(520px,calc(100%_-_32px))] p-7 text-hoot-foreground;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card w-[min(520px,calc(100%_-_32px))] p-7 text-hoot-foreground;
   margin: auto;
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
@@ -21,5 +21,5 @@
 }
 
 .professor-modal__close-button {
-  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft;
 }

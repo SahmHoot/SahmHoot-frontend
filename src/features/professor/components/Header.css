@@ -29,7 +29,7 @@
 }
 
 .professor-header__logo {
-  @apply flex items-center justify-center rounded-full bg-hoot-primary shadow-hoot-primary;
+  @apply flex items-center justify-center rounded-(--radius-full) bg-hoot-primary shadow-hoot-primary;
 }
 
 .professor-header__logo.professor-header__logo--live {
@@ -66,11 +66,11 @@
 }
 
 .professor-header__participants {
-  @apply hidden items-center gap-1.5 rounded-full bg-hoot-soft px-3 py-1.5 text-xs font-medium text-hoot-primary sm:inline-flex;
+  @apply hidden items-center gap-1.5 rounded-sm bg-hoot-soft px-3 py-1.5 text-xs font-medium text-hoot-primary sm:inline-flex;
 }
 
 .professor-header__end-button {
-  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 h-10 px-4 text-sm;
+  @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 h-10 px-4 text-sm;
 }
 
 .professor-header__account {
@@ -78,19 +78,19 @@
 }
 
 .professor-header__account-toggle {
-  @apply flex list-none items-center gap-2 rounded-full border border-hoot-border bg-white py-1 pr-3 pl-1 text-sm font-medium shadow-hoot-card [&::-webkit-details-marker]:hidden;
+  @apply flex list-none items-center gap-2 rounded-md border border-hoot-border bg-white py-1 pr-3 pl-1 text-sm font-medium shadow-hoot-card [&::-webkit-details-marker]:hidden;
 }
 
 .professor-header__avatar {
-  @apply flex size-7 items-center justify-center rounded-full bg-hoot-selected text-xs font-bold text-hoot-primary;
+  @apply flex size-7 items-center justify-center rounded-(--radius-full) bg-hoot-selected text-xs font-bold text-hoot-primary;
 }
 
 .professor-header__menu {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card absolute top-12 right-0 z-30 w-44 p-2 text-sm;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card absolute top-12 right-0 z-30 w-44 p-2 text-sm;
 }
 
 .professor-header__menu-link {
-  @apply block rounded-xl px-3 py-2 hover:bg-hoot-soft;
+  @apply block rounded-md px-3 py-2 hover:bg-hoot-soft;
 }
 
 .professor-header__menu-button {
