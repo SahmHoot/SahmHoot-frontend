@@ -17,6 +17,7 @@ function harness(file, name, dependencies, extension = 'ts') {
   let index = 0
   let effects = []
   const react = {
+    useId: () => 'test-chat-body',
     useState(initial) {
       const slot = index++
       if (!slots[slot]) {
@@ -308,5 +309,47 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
     assert.match(markup, /class="chat-reactions__emoji"[^>]*>😀<\/span>/)
     assert.doesNotMatch(markup, /최근 1분|professor-chat__reactions/)
     for (const text of ['수업 공지', '고정 해제: 수업 공지', '기존 채팅', '답글 원문']) assert.ok(markup.includes(text))
+  }
+})
+
+test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결과에서 같은 본문을 접었다 펼친다', () => {
+  const ChatComposer = () => null
+  const dependencies = {
+    'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
+    '../../room/ChatReactions': { ChatReactions: () => null },
+    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null },
+  }
+  function find(element, predicate) {
+    if (!element || typeof element !== 'object') return undefined
+    if (predicate(element)) return element
+    for (const child of [element.props?.children].flat()) { const found = find(child, predicate); if (found) return found }
+  }
+  for (const screen of ['waiting', 'quiz', 'results']) {
+    const hook = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')
+    const props = { screen, compact: screen !== 'waiting', notices: [], reactions: [], onUnpin() {},
+      chat: { ...roomChat, messages: [{ id: 1, nickname: '김교원', isOwner: true, content: '교수 안내', parentId: null }] } }
+    const toggle = (tree) => find(tree, el => el.props.className === 'professor-chat__toggle')
+    const body = (tree) => find(tree, el => el.props.id === 'test-chat-body')
+    const composer = (tree) => find(tree, el => el.type === ChatComposer)
+    let tree = hook.render(props)
+    assert.match(renderToStaticMarkup(tree), /김교원 교수/)
+    assert.doesNotMatch(renderToStaticMarkup(tree), /professor-badge/)
+    assert.equal(toggle(tree).props['aria-controls'], body(tree).props.id)
+    assert.equal(toggle(tree).props['aria-expanded'], true)
+    find(tree, el => el.props.className === 'professor-chat__bubble professor-chat__bubble--professor').props.onClick()
+    tree = hook.render(props)
+    assert.equal(composer(tree).props.parentId, 1)
+    toggle(tree).props.onClick()
+    tree = hook.render(props)
+    assert.equal(body(tree).props.hidden, true)
+    assert.equal(toggle(tree).props.children, '채팅 열기')
+    assert.equal(toggle(tree).props['aria-expanded'], false)
+    assert.equal(composer(tree).props.parentId, 1)
+    toggle(tree).props.onClick()
+    tree = hook.render(props)
+    assert.equal(body(tree).props.hidden, false)
+    assert.equal(toggle(tree).props.children, '채팅 닫기')
+    assert.equal(composer(tree).props.parentId, 1)
+    hook.unmount()
   }
 })
