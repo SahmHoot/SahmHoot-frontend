@@ -11,6 +11,7 @@ import mascotBook from "./assets/auth/mascot-book.webp";
 import mascotSu from "./assets/auth/mascot-su.webp";
 import type { AuthRole as Role } from "./features/auth/auth.types";
 import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
+import { EmailVerificationFields } from "./features/auth/components/EmailVerificationFields";
 import { PasswordInput } from "./features/auth/components/PasswordInput";
 import { useAuth } from "./features/auth/AuthProvider";
 import { useLogin } from "./features/auth/hooks/useLogin";
@@ -226,48 +227,17 @@ export function SignupPage() {
             />
           </AuthField>
 
-          <AuthField label="이메일" htmlFor="email">
-            <div className="auth-input-row">
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="example@syu.ac.kr"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setCode("");
-                  signup.resetVerification();
-                }}
-                className="auth-input"
-                required
-              />
-              <button type="button" className="auth-btn-side" onClick={signup.requestCode} disabled={signup.pending || signup.emailVerified}>
-                인증요청
-              </button>
-            </div>
-          </AuthField>
-
-          <AuthField label="인증코드" htmlFor="code">
-            <div className="auth-input-row">
-              <input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                readOnly={signup.emailVerified || signup.pending}
-                maxLength={6}
-                pattern="[0-9]{6}"
-                placeholder="000000"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                className="auth-input"
-                required
-              />
-              <button type="button" className="auth-btn-side" onClick={signup.verifyCode} disabled={signup.pending || !signup.canVerify}>
-                {signup.emailVerified ? "확인 완료" : "확인"}
-              </button>
-            </div>
-          </AuthField>
+          <EmailVerificationFields
+            email={email}
+            code={code}
+            onEmailChange={(value) => {
+              setEmail(value);
+              setCode("");
+              signup.resetVerification();
+            }}
+            onCodeChange={setCode}
+            verification={signup}
+          />
 
           <AuthField label="비밀번호" htmlFor="password">
             <PasswordInput
