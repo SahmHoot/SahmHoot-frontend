@@ -46,8 +46,11 @@ function setup({ send = async () => {}, confirm = async () => {} } = {}) {
         effects.push(() => { slots[slot].cleanup = effect() })
       }
     },
+    useRef(initial) { const slot = index++; return slots[slot] ??= { current: initial } },
   }
+  const clock = { now: 1_000_000 }
   const globals = {
+    Date: { now: () => clock.now },
     setTimeout: (fn) => { timers.push(fn); return timers.length },
     clearTimeout: (id) => { timers[id - 1] = null },
   }
@@ -55,6 +58,7 @@ function setup({ send = async () => {}, confirm = async () => {} } = {}) {
     react, '../api': { toApiError: (error) => error },
   }, globals)
   let input = { email: 'User@Test.ac.kr ', code: '' }
+  let verifiedCount = 0
   const render = () => {
     index = 0; effects = []
     const value = useEmailVerification({
@@ -62,15 +66,17 @@ function setup({ send = async () => {}, confirm = async () => {} } = {}) {
       sendCode: async (email) => { calls.push(['send', email]); await send(email) },
       confirmCode: async (email, code) => { calls.push(['confirm', email, code]); await confirm(email, code) },
       sentMessage: '보냈습니다',
+      onVerified: () => { verifiedCount += 1 },
     })
     effects.forEach((effect) => effect())
     return value
   }
   render()
   return {
-    render, calls, RESEND_SECONDS,
+    render, calls, RESEND_SECONDS, clock, verifiedCalls: () => verifiedCount,
     set(next) { input = { ...input, ...next }; return render() },
-    /** 1초 타이머를 하나 실행한다. */
+    /** 시계를 ms만큼 옮기고 걸린 타이머를 하나 실행한다. */
+    advance(ms) { clock.now += ms; return this.tick() },
     tick() { const i = timers.findIndex(Boolean); if (i >= 0) { const fn = timers[i]; timers[i] = null; fn() } return render() },
     async settle() { for (let i = 0; i < 3; i++) { await new Promise(setImmediate); render() } return render() },
   }
@@ -86,11 +92,11 @@ test('발송 성공 안내는 이메일 칸 아래 초록, 재요청은 30초 �
   assert.equal(state.requested, true)
   assert.equal(state.cooldown, 30)
   assert.equal(hook.RESEND_SECONDS, 30)
-  let left = state
-  for (let i = 0; i < 30; i++) left = hook.tick()
-  assert.equal(left.cooldown, 0)
-  hook.tick()
-  assert.equal(hook.render().cooldown, 0)
+  assert.equal(hook.advance(1000).cooldown, 29)
+  // 탭이 백그라운드에 있어 타이머가 늦게 돌아도 실제 경과 시간으로 다시 계산한다.
+  assert.equal(hook.advance(25_000).cooldown, 4)
+  assert.equal(hook.advance(4_000).cooldown, 0)
+  assert.equal(hook.tick().cooldown, 0)
 })
 
 test('발송 실패는 이메일 칸 아래 빨강, 너무 잦은 요청은 30초 안내', async () => {
@@ -101,6 +107,31 @@ test('발송 실패는 이메일 칸 아래 빨강, 너무 잦은 요청은 30�
   assert.match(state.emailMessage.text, /30초에 한 번/)
   assert.equal(state.requested, false)
   assert.equal(state.cooldown, 0)
+})
+
+test('이메일을 바꾼 뒤 도착한 이전 확인 응답은 버린다', async () => {
+  let finish
+  const hook = setup({ confirm: () => new Promise((done) => { finish = done }) })
+  hook.render().requestCode(click())
+  await hook.settle()
+  hook.set({ code: '123456' }).verifyCode()
+  // 확인 응답을 기다리는 동안 이메일을 바꿨다가 되돌린다(화면은 이때 코드도 지운다).
+  hook.set({ email: 'other@test.ac.kr', code: '' }).reset()
+  hook.set({ email: 'User@Test.ac.kr ' })
+  finish()
+  const state = await hook.settle()
+  assert.equal(state.verified, false)
+  assert.equal(state.codeMessage, null)
+  assert.equal(state.pending, false)
+})
+
+test('확인에 성공하면 onVerified를 부른다', async () => {
+  const hook = setup()
+  hook.render().requestCode(click())
+  await hook.settle()
+  hook.set({ code: '123456' }).verifyCode()
+  await hook.settle()
+  assert.equal(hook.verifiedCalls(), 1)
 })
 
 test('이메일 형식이 틀리면 요청하지 않는다', async () => {

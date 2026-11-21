@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { toApiError } from '../api'
 import type { ApiError } from '../api'
@@ -36,60 +36,73 @@ export function verificationErrorMessage(error: ApiError): string {
  * 이메일 인증 코드 발송·확인 상태. 발송 결과는 이메일 칸 아래, 확인 결과는 인증 코드 칸 아래에 보인다.
  * 발송·확인 API를 받아 회원가입과 비밀번호 찾기(#108)가 같이 쓴다.
  */
-export function useEmailVerification({ email, code, sendCode, confirmCode, sentMessage }: {
+export function useEmailVerification({ email, code, sendCode, confirmCode, sentMessage, onVerified }: {
   email: string
   code: string
   sendCode: (email: string) => Promise<void>
   confirmCode: (email: string, code: string) => Promise<void>
   sentMessage: string
+  /** 확인에 성공했을 때. 가입·변경 버튼 아래에 남은 "인증을 먼저" 같은 안내를 지우는 데 쓴다. */
+  onVerified?: () => void
 }) {
   const [requestedEmail, setRequestedEmail] = useState('')
   const [verifiedEmail, setVerifiedEmail] = useState('')
   const [emailMessage, setEmailMessage] = useState<FieldMessage | null>(null)
   const [codeMessage, setCodeMessage] = useState<FieldMessage | null>(null)
   const [pending, setPending] = useState(false)
-  // 재요청까지 남은 초. 서버도 같은 간격을 검사하므로 화면 표시용이다.
-  const [cooldown, setCooldown] = useState(0)
+  // 재요청 가능 시각(ms). 탭이 백그라운드에서 타이머가 늦게 돌아도 남은 시간은 현재 시각으로 다시 계산한다.
+  // 서버는 코드를 만든 시각부터 세므로 요청을 보낸 시각을 기준으로 한다. 서버도 같은 간격을 검사하므로 화면 표시용이다.
+  const [resendAt, setResendAt] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
+  // reset 때마다 올린다. 이메일을 바꾸기 전에 보낸 요청의 응답은 버린다.
+  const generation = useRef(0)
   const normalizedEmail = email.trim().toLowerCase()
   const verified = normalizedEmail !== '' && verifiedEmail === normalizedEmail
   const requested = requestedEmail !== '' && requestedEmail === normalizedEmail
   const canVerify = requested && !verified
+  const cooldown = Math.max(0, Math.ceil((resendAt - now) / 1000))
 
   useEffect(() => {
-    if (cooldown <= 0) return
-    const timer = setTimeout(() => setCooldown((left) => left - 1), 1000)
+    if (resendAt <= now) return
+    const timer = setTimeout(() => setNow(Date.now()), Math.min(1000, resendAt - now))
     return () => clearTimeout(timer)
-  }, [cooldown])
+  }, [resendAt, now])
 
   function reset() {
+    generation.current += 1
     setRequestedEmail('')
     setVerifiedEmail('')
     setEmailMessage(null)
     setCodeMessage(null)
-    setCooldown(0)
+    setResendAt(0)
+    setPending(false)
   }
 
-  async function run(task: () => Promise<void>, onError: (message: FieldMessage) => void) {
+  async function run(task: () => Promise<void>, onSuccess: () => void, onError: (message: FieldMessage) => void) {
+    const started = generation.current
     setPending(true)
     try {
       await task()
+      if (generation.current === started) onSuccess()
     } catch (error) {
-      onError({ text: verificationErrorMessage(toApiError(error)), tone: 'error' })
+      if (generation.current === started) onError({ text: verificationErrorMessage(toApiError(error)), tone: 'error' })
     } finally {
-      setPending(false)
+      if (generation.current === started) setPending(false)
     }
   }
 
   function requestCode(event: MouseEvent<HTMLButtonElement>) {
     const emailInput = event.currentTarget.form?.querySelector<HTMLInputElement>('input[type="email"]')
     if (!emailInput?.reportValidity()) return
-    void run(async () => {
-      await sendCode(normalizedEmail)
-      setRequestedEmail(normalizedEmail)
+    const target = normalizedEmail
+    const sentAt = Date.now()
+    void run(() => sendCode(target), () => {
+      setRequestedEmail(target)
       setVerifiedEmail('')
       setEmailMessage({ text: sentMessage, tone: 'success' })
       setCodeMessage(null)
-      setCooldown(RESEND_SECONDS)
+      setResendAt(sentAt + RESEND_SECONDS * 1000)
+      setNow(Date.now())
     }, setEmailMessage)
   }
 
@@ -102,12 +115,13 @@ export function useEmailVerification({ email, code, sendCode, confirmCode, sentM
       setCodeMessage({ text: '인증 코드 6자리를 입력해 주세요.', tone: 'error' })
       return
     }
-    void run(async () => {
-      await confirmCode(normalizedEmail, code)
-      setVerifiedEmail(normalizedEmail)
+    const target = normalizedEmail
+    void run(() => confirmCode(target, code), () => {
+      setVerifiedEmail(target)
       // 발송 안내는 지우고 완료 안내만 남긴다. 인증이 끝나면 이메일 칸도 잠긴다.
       setEmailMessage(null)
       setCodeMessage({ text: '이메일 인증이 완료되었습니다.', tone: 'success' })
+      onVerified?.()
     }, setCodeMessage)
   }
 

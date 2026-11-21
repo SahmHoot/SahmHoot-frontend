@@ -15,14 +15,15 @@ export function useSignup({ email, code, name, role }: {
 }) {
   const navigate = useNavigate()
   const auth = useAuth()
+  // 가입하기 결과는 가입하기 버튼 아래에 보인다. 인증 단계 안내는 각 입력칸 아래에 있다.
+  const [feedback, setFeedback] = useState('')
   const verification = useEmailVerification({
     email, code,
     sendCode: sendVerificationCode,
     confirmCode: confirmVerificationCode,
     sentMessage: '인증 코드를 보냈습니다. 메일함을 확인해 주세요. 코드는 10분간 유효합니다.',
+    onVerified: () => setFeedback(''),
   })
-  // 가입하기 결과는 가입하기 버튼 아래에 보인다. 인증 단계 안내는 각 입력칸 아래에 있다.
-  const [feedback, setFeedback] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   function resetVerification() {
