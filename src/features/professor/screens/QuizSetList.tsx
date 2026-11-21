@@ -93,7 +93,7 @@ export function QuizSetList() {
         두세요.
       </p>
       {deleting && (
-        <Modal title="문제 세트 삭제" onClose={() => setDeleting(null)}>
+        <Modal title="문제 세트 삭제" onClose={() => setDeleting(null)} showCloseButton={false}>
           <p className="quiz-set-list__delete-message">‘{deleting.title}’ 세트를 삭제할까요?</p>
           {deleteError && <p role="alert" className="quiz-set-list__error">{deleteError}</p>}
           <div className="quiz-set-list__dialog-actions">

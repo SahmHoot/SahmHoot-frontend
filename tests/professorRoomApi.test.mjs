@@ -196,6 +196,54 @@ test('종료창은 닫기 버튼 없이 취소·확정만 표시하고 종료 �
   assert.equal(closed, 3)
 })
 
+test('퀴즈 중단·세트 삭제 확인창은 닫기 버튼 없이 취소와 확정 동작을 유지한다', () => {
+  function find(element, predicate) {
+    if (!element || typeof element !== 'object') return undefined
+    if (predicate(element)) return element
+    for (const child of [element.props?.children].flat()) { const found = find(child, predicate); if (found) return found }
+  }
+  const modal = harness('professor/components/Modal', 'Modal', {
+    'react/jsx-runtime': jsxRuntime, './Modal.css': {},
+  }, 'tsx')
+  const Modal = () => null
+  const QuizQuestion = () => null
+  const screen = harness('professor/screens/ProfessorRoom', 'ProfessorRoom', {
+    'react/jsx-runtime': jsxRuntime, './ProfessorRoom.css': {}, 'react-router-dom': {},
+    '../components/Icon': {}, '../components/RoomSetPicker': {}, '../components/Reactions': {},
+    '../components/JoinCode': { JoinCode: () => null }, '../components/Chat': { Chat: () => null },
+    '../components/QuizQuestion': { QuizQuestion }, '../components/Modal': { Modal },
+  }, 'tsx')
+  let stops = 0
+  const props = { room: { ...noRoom, active: true }, quiz: { phase: 'question' }, onStopQuiz() { stops++ } }
+  const stopDialog = () => find(screen.render(props), el => el.type === Modal)
+  const openStop = () => find(screen.render(props), el => el.type === QuizQuestion).props.onStop()
+  openStop()
+  const stop = stopDialog()
+  let deleting = { id: 8, title: '삭제할 세트' }
+  let deletes = 0
+  const list = harness('professor/screens/QuizSetList', 'QuizSetList', {
+    'react/jsx-runtime': jsxRuntime, './QuizSetList.css': {},
+    'react-router-dom': { useNavigate: () => () => {} }, '../components/Icon': {}, '../components/Modal': { Modal },
+    '../../questionset/useQuestionSetList': { useQuestionSetList: () => ({ sets: [], deleting,
+      setDeleting(value) { deleting = value }, confirmDelete() { deletes++ } }) },
+  }, 'tsx')
+  const deleteDialog = () => find(list.render(), el => el.type === Modal)
+  for (const [dialog, cancelLabel, confirmLabel] of [[stop, '계속 진행', '퀴즈 중단'], [deleteDialog(), '취소', '삭제']]) {
+    const markup = renderToStaticMarkup(modal.render(dialog.props))
+    assert.doesNotMatch(markup, /professor-modal__close-button/)
+    assert.equal((markup.match(/<button\b/g) ?? []).length, 2)
+    const cancel = find(dialog, el => el.type === 'button' && el.props.children === cancelLabel)
+    const confirm = find(dialog, el => el.type === 'button' && el.props.children === confirmLabel)
+    assert.ok(cancel)
+    assert.ok(confirm)
+    cancel.props.onClick()
+    assert.equal(dialog === stop ? stopDialog() : deleteDialog(), undefined)
+    confirm.props.onClick()
+  }
+  assert.equal(stops, 1)
+  assert.equal(deletes, 1)
+})
+
 test('종료 중 중복 요청·닫기를 막고 실패 시 방을 유지한 뒤 재시도로 종료한다', async () => {
   let reject
   let fail = true
