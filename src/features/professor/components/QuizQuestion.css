@@ -4,13 +4,7 @@
   @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card overflow-hidden;
 }
 
-.quiz-question__progress-track {
-  @apply h-1.5 bg-[#f4f6fb];
-}
-
-.quiz-question__progress-fill {
-  @apply h-full bg-gradient-to-r from-hoot-primary to-[#6378ff] transition-[width];
-}
+.quiz-question__timer.quiz-question__timer--urgent { background: #fff0f0; color: #c9333b; }
 
 .quiz-question__content {
   @apply p-7;
@@ -21,7 +15,7 @@
 }
 
 .quiz-question__timer {
-  @apply inline-flex items-center gap-2 rounded-full bg-hoot-selected px-3 py-1 text-xs font-medium text-hoot-primary;
+  @apply inline-flex min-h-9 flex-wrap items-center gap-2 rounded-full bg-hoot-selected px-3 py-2 text-sm font-semibold text-hoot-primary;
 }
 
 .quiz-question__stop-button {
@@ -29,7 +23,7 @@
 }
 
 .quiz-question__title {
-  @apply mt-6 text-2xl leading-8 font-black tracking-[-0.6px];
+  @apply mt-6 text-2xl leading-relaxed font-bold tracking-[-0.6px] whitespace-pre-wrap break-words sm:text-[32px];
 }
 
 .quiz-question__options {
@@ -38,26 +32,6 @@
 
 .quiz-question__option {
   @apply flex min-h-[58px] items-center gap-3 rounded-[16.8px] border border-hoot-border bg-[#f4f6fb]/40 px-4 py-3;
-}
-
-.quiz-question__option-number {
-  @apply flex size-7 shrink-0 items-center justify-center rounded-full text-xs text-white;
-}
-
-.quiz-question__option-number[data-option-index="0"] {
-  background-color: var(--color-hoot-primary);
-}
-
-.quiz-question__option-number[data-option-index="1"] {
-  background-color: #06aee8;
-}
-
-.quiz-question__option-number[data-option-index="2"] {
-  background-color: #10b9ac;
-}
-
-.quiz-question__option-number[data-option-index="3"] {
-  background-color: #8056ff;
 }
 
 .quiz-question__option-text {
@@ -102,4 +76,26 @@
 
 .quiz-question__response-help {
   @apply text-xs leading-5 text-hoot-muted;
+}
+
+.quiz-question__options.quiz-question__options--true-false {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.quiz-question__options--true-false .quiz-question__option {
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1;
+  justify-content: center;
+  text-align: center;
+}
+
+.quiz-question__options--true-false .quiz-question__option-text {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 10vw, 96px);
+  line-height: 1;
+  font-weight: 700;
 }

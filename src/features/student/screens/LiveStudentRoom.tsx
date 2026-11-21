@@ -54,5 +54,5 @@ function LiveQuestion({ quiz, answer, correctChoiceId, notice, onSelect }: LiveQ
   const selected = indexOf(answer)
   return <StudentQuizQuestion question={{ title: quiz.content, options: quiz.choices.map((choice) => choice.content), correctAnswer: indexOf(correctChoiceId) }}
     index={quiz.questionNo - 1} total={quiz.totalQuestions} phase={quiz.phase === 'between' ? 'feedback' : seconds === 0 ? 'closing' : 'question'}
-    secondsLeft={seconds} selected={selected < 0 ? null : selected} notice={notice} onSelect={(index) => onSelect(quiz.choices[index].id)} />
+    secondsLeft={seconds} timeLimitSeconds={quiz.timeLimitSeconds} closesAt={quiz.closesAt} clockOffsetMs={quiz.clockOffsetMs} selected={selected < 0 ? null : selected} notice={notice} onSelect={(index) => onSelect(quiz.choices[index].id)} />
 }

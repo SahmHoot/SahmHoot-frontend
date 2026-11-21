@@ -16,6 +16,7 @@ export interface ActiveQuestion {
   content: string
   choices: RunChoice[]
   closesAt: string
+  timeLimitSeconds: number
   answeredCount: number
   clockOffsetMs: number
 }
@@ -89,6 +90,7 @@ export function professorQuizReducer(
             content: message.content,
             choices: message.choices,
             closesAt: message.closesAt,
+            timeLimitSeconds: message.timeLimitSeconds,
             answeredCount: 0,
             clockOffsetMs: clockOffsetMs(message.sentAt, receivedAt),
           }
@@ -176,6 +178,7 @@ function fromSnapshot(snapshot: RoomStateResponse, receivedAt: number): Professo
     content: question.content,
     choices: question.choices,
     closesAt: question.closesAt,
+    timeLimitSeconds: question.timeLimitSeconds,
     // 서버는 QUESTION 단계에서만 응답 인원을 준다. 3초 대기 중에 새로고침하면 다음 문항까지 0으로 보인다.
     answeredCount:
       snapshot.progress?.runQuestionId === question.runQuestionId ? snapshot.progress.answeredCount : 0,
