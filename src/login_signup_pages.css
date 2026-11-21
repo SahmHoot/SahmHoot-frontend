@@ -433,3 +433,6 @@
     padding-left: 48px;
   }
 }
+
+/* 로그인 화면 비밀번호 찾기 진입(#108) */
+.auth-find-link { align-self: flex-end; color: var(--auth-muted); font-size: 12px; line-height: 16px; text-decoration: underline; text-underline-offset: 3px; }
