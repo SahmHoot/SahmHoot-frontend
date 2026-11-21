@@ -209,6 +209,7 @@ function setupReset({ reset = async () => {} } = {}) {
   let index = 0
   const navigation = []
   const calls = []
+  let cleanup
   const react = {
     useState(initial) {
       const slot = index++
@@ -219,6 +220,8 @@ function setupReset({ reset = async () => {} } = {}) {
       }
       return [slots[slot].value, slots[slot].set]
     },
+    useRef(initial) { const slot = index++; return slots[slot] ??= { current: initial } },
+    useEffect(effect) { const slot = index++; if (!slots[slot]) { slots[slot] = {}; cleanup = effect() } },
   }
   let verified = true
   const verificationCalls = []
@@ -238,11 +241,12 @@ function setupReset({ reset = async () => {} } = {}) {
       }),
     },
   })
-  const render = () => { index = 0; return usePasswordReset({ email: 'A@test.ac.kr', code: '123456' }) }
+  const render = () => { index = 0; return usePasswordReset({ email: 'A@test.ac.kr', code: '123456', onCodeSent: () => {} }) }
   render()
   return {
     render, navigation, calls, verificationCalls, PASSWORD_RESET_NOTICE,
     unverify() { verified = false },
+    unmount() { cleanup?.() },
     async settle() { for (let i = 0; i < 3; i++) await new Promise(setImmediate); return render() },
   }
 }
@@ -271,4 +275,23 @@ test('인증이 무효가 되면 인증을 다시 받게 하고 안내를 보여
   assert.equal(state.feedback, '안내:EMAIL_NOT_VERIFIED')
   assert.equal(state.pending, false)
   assert.deepEqual(hook.navigation, [])
+})
+
+test('변경 응답 전에 화면을 떠났으면 로그인 화면으로 옮기지 않는다', async () => {
+  let finish
+  const hook = setupReset({ reset: () => new Promise((done) => { finish = done }) })
+  hook.render().finish('newpass456')
+  hook.unmount()
+  finish()
+  await hook.settle()
+  assert.deepEqual(hook.navigation, [])
+})
+
+test('비밀번호 규칙은 서버처럼 이모지를 한 글자로 센다', () => {
+  const source = readFileSync(new URL('../src/login_signup_pages.tsx', import.meta.url), 'utf8')
+  const rule = new RegExp(...source.match(/const PASSWORD_RULE = \/(.+)\/(\w*);/).slice(1))
+  assert.equal(rule.test('a1😀😀😀😀😀'), false)
+  assert.equal(rule.test('a1😀😀😀😀😀😀'), true)
+  assert.equal(rule.test('abcd1234'), true)
+  assert.equal(rule.test('abcdefgh'), false)
 })

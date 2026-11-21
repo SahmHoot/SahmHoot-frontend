@@ -173,8 +173,11 @@ export function LoginPage() {
   );
 }
 
-/** 서버 SignupRequest와 같은 규칙: 영문·숫자를 포함해 8~64자. */
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/;
+/**
+ * 서버 SignupRequest·PasswordResetRequest와 같은 규칙: 영문·숫자를 포함해 8~64자.
+ * u 플래그로 이모지 같은 문자를 서버(Java)처럼 한 글자로 센다.
+ */
+const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/u;
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "PROFESSOR", label: "교수" },
@@ -331,7 +334,7 @@ export function PasswordResetPage() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const reset = usePasswordReset({ email, code });
+  const reset = usePasswordReset({ email, code, onCodeSent: () => setCode("") });
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
