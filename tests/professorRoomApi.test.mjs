@@ -156,7 +156,7 @@ test('개설 화면 이탈·재진입 후에는 이전 응답을 무시하고 �
   }
 })
 
-test('종료 요청 중 cancel 이벤트의 기본 닫기와 닫기 버튼을 막고 실패 후 다시 허용한다', () => {
+test('종료창은 닫기 버튼 없이 취소·확정만 표시하고 종료 중 취소·ESC를 막는다', () => {
   let closed = 0
   const onCancel = () => { closed++ }
   const modal = harness('professor/components/Modal', 'Modal', {
@@ -172,7 +172,11 @@ test('종료 요청 중 cancel 이벤트의 기본 닫기와 닫기 버튼을 �
     element.props.onCancel(cancel)
     assert.equal(cancel.defaultPrevented, pending)
     assert.equal(closed, pending ? 0 : 1)
-    assert.equal(Boolean(element.props.children[0].props.children[1].props.disabled), pending)
+    const markup = renderToStaticMarkup(element)
+    assert.doesNotMatch(markup, /professor-modal__close-button/)
+    assert.equal((markup.match(/<button\b/g) ?? []).length, 2)
+    assert.match(markup, />취소<\/button>/)
+    assert.match(markup, pending ? />종료하는 중…<\/button>/ : />수업 종료<\/button>/)
     for (const button of dialog.props.children[2].props.children) assert.equal(button.props.disabled, pending)
   }
   const ordinary = modal.render({ title: '다른 대화상자', onClose: onCancel })
@@ -181,6 +185,15 @@ test('종료 요청 중 cancel 이벤트의 기본 닫기와 닫기 버튼을 �
   assert.equal(cancel.defaultPrevented, false)
   assert.equal(closed, 2)
   assert.equal(Boolean(ordinary.props.children[0].props.children[1].props.disabled), false)
+  assert.match(renderToStaticMarkup(ordinary), /professor-modal__close-button[^>]*>닫기<\/button>/)
+  ordinary.props.children[0].props.children[1].props.onClick()
+  assert.equal(closed, 3)
+  const locked = modal.render({ title: '처리 중인 대화상자', onClose: onCancel, closable: false })
+  assert.equal(locked.props.children[0].props.children[1].props.disabled, true)
+  const lockedCancel = new Event('cancel', { cancelable: true })
+  locked.props.onCancel(lockedCancel)
+  assert.equal(lockedCancel.defaultPrevented, true)
+  assert.equal(closed, 3)
 })
 
 test('종료 중 중복 요청·닫기를 막고 실패 시 방을 유지한 뒤 재시도로 종료한다', async () => {
