@@ -13,6 +13,7 @@ import type { AuthRole as Role } from "./features/auth/auth.types";
 import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
 import { EmailVerificationFields } from "./features/auth/components/EmailVerificationFields";
 import { PasswordInput } from "./features/auth/components/PasswordInput";
+import { passwordProblem } from "./features/auth/password";
 import { useAuth } from "./features/auth/AuthProvider";
 import { useLogin } from "./features/auth/hooks/useLogin";
 import { usePasswordReset } from "./features/auth/hooks/usePasswordReset";
@@ -173,20 +174,6 @@ export function LoginPage() {
   );
 }
 
-/**
- * 서버 SignupRequest·PasswordResetRequest와 같은 규칙: 영문·숫자를 포함해 8~64자.
- * u 플래그로 이모지 같은 문자를 서버(Java)처럼 한 글자로 센다.
- */
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/u;
-
-/** 비밀번호 규칙 위반 안내. 문제가 없으면 null. BCrypt 한도(72바이트)는 서버 DTO와 같은 기준이다. */
-function passwordProblem(password: string): string | null {
-  if (!PASSWORD_RULE.test(password)) return "비밀번호는 영문·숫자를 포함해 8~64자입니다.";
-  if (new TextEncoder().encode(password).length > 72) {
-    return "비밀번호가 너무 깁니다. 이모지 등은 한 글자를 여러 바이트로 세며 72바이트까지 쓸 수 있습니다.";
-  }
-  return null;
-}
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "PROFESSOR", label: "교수" },

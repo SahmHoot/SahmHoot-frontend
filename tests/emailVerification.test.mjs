@@ -292,29 +292,29 @@ test('변경 응답 전에 화면을 떠났으면 로그인 화면으로 옮기�
   assert.deepEqual(hook.navigation, [])
 })
 
-test('비밀번호 규칙은 서버처럼 이모지를 한 글자로 센다', () => {
-  const source = readFileSync(new URL('../src/login_signup_pages.tsx', import.meta.url), 'utf8')
-  const rule = new RegExp(...source.match(/const PASSWORD_RULE = \/(.+)\/(\w*);/).slice(1))
-  assert.equal(rule.test('a1😀😀😀😀😀'), false)
-  assert.equal(rule.test('a1😀😀😀😀😀😀'), true)
-  assert.equal(rule.test('abcd1234'), true)
-  assert.equal(rule.test('abcdefgh'), false)
-})
 
-test('로그인된 채로 비밀번호를 바꾸면 로그아웃하고 로그인 화면으로 간다', async () => {
+test('비밀번호를 바꾸면 이 기기의 로그인을 지우고 로그인 화면으로 간다', async () => {
   const hook = setupReset()
-  hook.signIn()
   hook.render().finish('newpass456')
   await hook.settle()
   assert.equal(hook.signOuts(), 1)
   assert.deepEqual(hook.navigation, [['/login', { replace: true, state: { notice: hook.PASSWORD_RESET_NOTICE } }]])
 })
 
-test('72바이트를 넘는 비밀번호는 화면에서 먼저 막는다', () => {
+
+test('비밀번호 규칙: 서버처럼 이모지를 한 글자로 세고, 72바이트를 넘으면 막는다', () => {
+  const { passwordProblem } = load('password', {}, { TextEncoder })
+  assert.equal(passwordProblem('abcd1234'), null)
+  assert.match(passwordProblem('abcdefgh'), /8~64자/)
+  assert.match(passwordProblem('a1😀😀😀😀😀'), /8~64자/, '7글자')
+  assert.equal(passwordProblem('a1😀😀😀😀😀😀'), null, '8글자, 26바이트')
+  assert.equal(passwordProblem('a1' + '😀'.repeat(17)), null, '70바이트')
+  assert.match(passwordProblem('a1' + '😀'.repeat(18)), /72바이트/, '74바이트')
+})
+
+test('회원가입·비밀번호 찾기 화면 모두 같은 비밀번호 검사를 쓴다', () => {
   const source = readFileSync(new URL('../src/login_signup_pages.tsx', import.meta.url), 'utf8')
-  assert.match(source, /new TextEncoder\(\)\.encode\(password\)\.length > 72/)
-  const rule = new RegExp(...source.match(/const PASSWORD_RULE = \/(.+)\/(\w*);/).slice(1))
-  const tooLong = 'a1' + '😀'.repeat(18)
-  assert.equal(rule.test(tooLong), true, '글자 수 규칙만으로는 통과한다')
-  assert.equal(new TextEncoder().encode(tooLong).length, 74)
+  assert.doesNotMatch(source, /PASSWORD_RULE/)
+  assert.equal(source.match(/if \(passwordProblem\(password\)\)/g)?.length, 2, '두 화면의 제출 처리')
+  assert.equal(source.match(/passwordProblem\(password\);/g)?.length, 2, '두 화면의 입력 중 안내')
 })

@@ -48,8 +48,9 @@ export function usePasswordReset({ email, code, onCodeSent }: {
     resetPassword(verification.normalizedEmail, code, newPassword)
       .then(() => {
         if (!mounted.current) return
-        // 로그인된 채로 바꿨다면 로그아웃해야 로그인 화면이 홈으로 넘기지 않고 안내를 보여 준다. 이 기기의 옛 토큰도 지운다.
-        if (auth.user) auth.signOut()
+        // 이 기기에 남은 옛 토큰을 지운다(로그인 상태 확인 실패로 user가 비어 있어도 토큰은 남아 있을 수 있음).
+        // 로그아웃해야 로그인 화면이 홈으로 넘기지 않고 안내를 보여 준다.
+        auth.signOut()
         navigate('/login', { replace: true, state: { notice: PASSWORD_RESET_NOTICE } })
       })
       .catch((error: unknown) => {
