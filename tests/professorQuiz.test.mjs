@@ -49,6 +49,7 @@ test('열림 → 마감 → 다음 문항 → 결과 → 대기 순서로 바뀌
   let state = run(quiz.initialProfessorQuiz, open(1))
   assert.equal(state.phase, 'question')
   assert.equal(state.clockOffsetMs, 5000)
+  assert.equal(state.timeLimitSeconds, 10)
   state = run(state, progress(101, 2))
   assert.equal(state.answeredCount, 2)
   state = run(state, closed(101))
@@ -133,6 +134,7 @@ test('새로고침하면 state로 대기·문항·3초·결과 화면을 다시 
     { progress: { runQuestionId: 102, answeredCount: 4 } }))
   assert.equal(question.phase, 'question')
   assert.equal(question.questionNo, 2)
+  assert.equal(question.timeLimitSeconds, 10)
   assert.equal(question.answeredCount, 4)
   assert.equal(question.clockOffsetMs, 2000)
 
@@ -158,4 +160,15 @@ test('서버 시각은 밀리초 아래까지 비교한다', () => {
   assert.equal(clock.compareServerTime('2026-11-05T10:00:00.0005Z', '2026-11-05T10:00:00.000500Z'), 0)
   assert.equal(clock.compareServerTime('2026-11-05T10:00:01Z', '2026-11-05T10:00:00.999999Z') > 0, true)
   assert.equal(clock.compareServerTime('2026-11-05T10:00:00Z', '2026-11-05T10:00:00.000001Z') < 0, true)
+})
+
+test('실시간·재연결 모두 문항별 제한시간을 보존하고 다음 문항에서 교체한다', () => {
+  const first = run(quiz.initialProfessorQuiz, { ...open(1), timeLimitSeconds: 300 })
+  assert.equal(first.timeLimitSeconds, 300)
+  const second = run(first, { ...open(2), timeLimitSeconds: 15 })
+  assert.equal(second.timeLimitSeconds, 15)
+  const restored = restore(quiz.initialProfessorQuiz, snapshot({ runId: 7, totalQuestions: 3, phase: 'QUESTION',
+    currentQuestion: { ...current(2), timeLimitSeconds: 120 }, nextOpensAt: null, result: null }))
+  assert.equal(restored.timeLimitSeconds, 120)
+  assert.equal(run(restored, closed(102)).timeLimitSeconds, 120)
 })

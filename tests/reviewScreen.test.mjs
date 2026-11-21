@@ -30,7 +30,9 @@ function harness() {
     cells[i] ??= { value: initial }
     return [cells[i].value, value => { cells[i].value = typeof value === 'function' ? value(cells[i].value) : value }]
   } }
+  const reveal = load('student/components/AnswerReveal.tsx', { 'react/jsx-runtime': jsx, './AnswerReveal.css': {} })
   const options = load('student/components/StudentAnswerOptions.tsx', {
+    './AnswerReveal': reveal,
     'react/jsx-runtime': jsx, '../../../assets/student/check.svg': 'check.svg',
     '../data/studentFixtures': { optionLabels: ['①', '②', '③', '④'] }, './StudentAnswerOptions.css': {},
   })
@@ -74,10 +76,12 @@ function content(value) {
 }
 const optionNodes = h => h.nodes().filter(n => n.props?.className?.split(' ').includes('student-answers__option'))
 
-test('객관식은 ①~④를 표시하고 확인 전에는 선택을 변경할 수 있다', () => {
+test('선택지 내용만 표시하고 확인 전에는 선택을 변경할 수 있다', () => {
   const h = harness()
-  assert.deepEqual(h.nodes().filter(n => n.props?.className?.startsWith('student-answers__number ')).map(content), ['①', '②', '③', '④'])
+  assert.deepEqual(h.nodes().filter(n => n.props?.className === 'student-answers__text').map(content), ['가', '나', '다', '라'])
+  assert.ok(!h.nodes().some(n => /student-answers__(number|check)/.test(n.props?.className ?? '')))
   h.select(0); h.select(1)
+  assert.ok(!h.nodes().some(n => n.props?.className === 'student-answers__check'))
   assert.equal(optionNodes(h)[0].props['aria-pressed'], false)
   assert.equal(optionNodes(h)[1].props['aria-pressed'], true)
   h.click('정답 확인')
