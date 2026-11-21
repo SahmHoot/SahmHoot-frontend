@@ -1,6 +1,6 @@
 .student-question { overflow: hidden; }
 .student-question__body { padding: 28px; }
-.student-question__timer { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 36px; padding: 8px 12px; border-radius: 100px; background: var(--student-soft); color: var(--student-primary-dark); font-size: 14px; line-height: 20px; font-weight: 600; flex-wrap: wrap; }
+.student-question__timer { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 36px; padding: 8px 12px; border-radius: var(--radius-full); background: var(--student-soft); color: var(--student-primary-dark); font-size: 14px; line-height: 20px; font-weight: 600; flex-wrap: wrap; }
 .student-question__timer--urgent { background: #fff0f0; color: #c9333b; }
 .student-question h2 { margin: 16px 0 24px; font-size: 32px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; font-weight: 700; letter-spacing: -.6px; }
 .student-question__footer { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; }

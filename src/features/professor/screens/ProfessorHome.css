@@ -13,7 +13,7 @@
 }
 
 .professor-home__create-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8];
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8];
 }
 
 .professor-home__section-title {
@@ -25,7 +25,7 @@
 }
 
 .professor-home__room-card {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card relative flex flex-wrap items-center justify-between gap-5 overflow-hidden py-6 pr-6 pl-8;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card relative flex flex-wrap items-center justify-between gap-5 overflow-hidden py-6 pr-6 pl-8;
 }
 
 .professor-home__room-accent {
@@ -37,7 +37,7 @@
 }
 
 .professor-home__status-dot {
-  @apply size-2 rounded-full bg-hoot-success;
+  @apply size-2 rounded-(--radius-full) bg-hoot-success;
 }
 
 .professor-home__status-label {
@@ -62,21 +62,21 @@
 }
 
 .professor-home__open-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .professor-home__empty {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card p-8 text-sm text-hoot-muted;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card p-8 text-sm text-hoot-muted;
 }
 
 .professor-home__error {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card flex flex-wrap items-center justify-between gap-4 p-8 text-sm text-hoot-danger;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card flex flex-wrap items-center justify-between gap-4 p-8 text-sm text-hoot-danger;
 }
 
 .professor-home__retry-button {
-  @apply inline-flex h-10 shrink-0 items-center justify-center rounded-[16.8px] px-5 text-sm font-semibold transition-colors border border-[#dbe2ee] bg-white text-hoot-foreground shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-10 shrink-0 items-center justify-center rounded-md px-5 text-sm font-semibold transition-colors border border-[#dbe2ee] bg-white text-hoot-foreground shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .professor-home__sets-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 mt-6 bg-hoot-soft text-hoot-primary hover:bg-hoot-selected;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 mt-6 bg-hoot-soft text-hoot-primary hover:bg-hoot-selected;
 }

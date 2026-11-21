@@ -27,13 +27,11 @@
   --color-success: #16a34a;
   --color-danger: #e5484d;
 
-  /* Observed radii, rounded only to remove floating-point serialization noise. */
-  --radius-control: 16.8px;
-  --radius-card: 21.6px;
-  --radius-compact: 12px;
-  --radius-bubble-tail: 9.6px;
-  /* CSS representation of Figma's fully rounded radius (33554400). */
-  --radius-pill: 9999px;
+  /* Small labels, controls, large surfaces, and fully rounded shapes. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
 
   /* Inputs/cards: 214:2556, 218:1940, 269:630. */
   --shadow-surface:

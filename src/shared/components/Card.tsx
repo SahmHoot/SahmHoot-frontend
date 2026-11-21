@@ -31,7 +31,7 @@ export function Card({
     <div
       {...props}
       className={`
-        relative min-w-0 rounded-card border border-border bg-surface font-sans text-text shadow-surface
+        relative min-w-0 rounded-lg border border-border bg-surface font-sans text-text shadow-surface
         ${spacing}
         ${variant === 'classroom' ? "overflow-hidden before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:bg-brand before:content-['']" : ''}
         ${className}
