@@ -1,7 +1,7 @@
 import "./QuizQuestion.css";
 import { useServerCountdown } from "../../quiz/hooks/useServerCountdown";
 import type { ProfessorQuizState } from "../../quiz/professorQuizReducer";
-import { choiceLabel } from "../dashboard-quiz";
+import { CountdownBar } from "../../quiz/components/CountdownBar";
 import { Icon } from "./Icon";
 
 /** 남은 시간 문구. 0초가 돼도 자기 시계로 넘어가지 않고 서버의 마감 메시지를 기다린다(06 4절). */
@@ -29,21 +29,21 @@ export function QuizQuestion({
     quiz.phase === "between" ? quiz.nextOpensAt : quiz.closesAt,
     quiz.clockOffsetMs,
   );
+  const remaining = quiz.phase === "question" ? Math.min(seconds, quiz.timeLimitSeconds) : 0;
+  const urgent = quiz.phase === "question" && seconds <= 5;
   const responseCount = quiz.answeredCount;
   return (
     <>
       <section className="quiz-question">
-        <div className="quiz-question__progress-track">
-          <div
-            className="quiz-question__progress-fill"
-            style={{
-              width: `${(quiz.questionNo / quiz.totalQuestions) * 100}%`,
-            }}
-          />
-        </div>
+        <CountdownBar
+          closesAt={quiz.closesAt} clockOffsetMs={quiz.clockOffsetMs}
+          timeLimitSeconds={quiz.timeLimitSeconds} secondsLeft={seconds}
+          active={quiz.phase === "question"} urgent={urgent}
+          valueText={quiz.phase === "between" ? "문항 마감" : seconds === 0 ? "마감 중" : `${remaining}초 남음`}
+        />
         <div className="quiz-question__content">
           <div className="quiz-question__toolbar">
-            <p role="timer" className="quiz-question__timer">
+            <p role="timer" className={`quiz-question__timer ${urgent ? "quiz-question__timer--urgent" : ""}`}>
               <Icon screen="quiz" name="imgFrame3" />
               {quiz.questionNo} / {quiz.totalQuestions} 문항 ·{" "}
               {timerText(quiz, seconds)}
@@ -57,15 +57,9 @@ export function QuizQuestion({
             </button>
           </div>
           <h2 className="quiz-question__title">{quiz.content}</h2>
-          <ul className="quiz-question__options">
-            {quiz.choices.map((choice, index) => (
+          <ul className={`quiz-question__options ${quiz.choices.length === 2 ? "quiz-question__options--true-false" : ""}`}>
+            {quiz.choices.map((choice) => (
               <li key={choice.id} className="quiz-question__option">
-                <span
-                  className="quiz-question__option-number"
-                  data-option-index={index}
-                >
-                  {choiceLabel(choice, quiz.choices.length)}
-                </span>
                 <span className="quiz-question__option-text">
                   {choice.content}
                 </span>
