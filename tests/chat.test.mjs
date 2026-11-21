@@ -292,6 +292,24 @@ test('삭제 확인창은 포털로 목록 밖에 렌더링하고 취소 시 보
   assert.deepEqual(calls, [[40, 8]])
 })
 
+test('작성자 확인은 참가자 메시지에만 표시하고 교수 메시지의 고정·삭제는 유지한다', async () => {
+  const calls = []
+  const render = component('ChatModeration', {
+    'react-dom': {}, '../auth/api': {}, '../professor/components/Modal': {},
+    '../../shared/components/ConfirmDialog': {}, '../room/api': {},
+    './api': { async getChatAuthor(...args) { calls.push(args); return null } },
+  })
+  const button = (tree, name) => find(tree, el => el.type === 'button' && el.props.children === name)
+  const teacher = render({ roomId: 40, message: message(8) })
+  assert.equal(button(teacher, '작성자 확인'), undefined)
+  assert.ok(button(teacher, '공지 고정'))
+  assert.ok(button(teacher, '메시지 삭제'))
+  const student = render({ roomId: 40, message: message(9, { isOwner: false }) })
+  button(student, '작성자 확인').props.onClick()
+  await flush()
+  assert.deepEqual(calls, [[40, 9]])
+})
+
 test('공지 고정은 고른 메시지로 요청하고 삭제·종료 오류를 관리 메뉴에 표시한다', async () => {
   const calls = []
   let code

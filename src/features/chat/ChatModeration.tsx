@@ -23,7 +23,7 @@ export function ChatModeration({ roomId, message }: { roomId: number; message: R
     <details><summary aria-label={`${message.nickname} 메시지 관리`}>관리</summary>
       <div className="room-chat-moderation__menu">
         <button disabled={pending} onClick={() => void run(async () => { await pinMessage(roomId, message.id); setStatus('공지를 고정했습니다.') })}>공지 고정</button>
-        <button disabled={pending} onClick={() => void run(async () => { setAuthor(await getChatAuthor(roomId, message.id)) })}>작성자 확인</button>
+        {!message.isOwner && <button disabled={pending} onClick={() => void run(async () => { setAuthor(await getChatAuthor(roomId, message.id)) })}>작성자 확인</button>}
         {!message.isOwner && [true, false].map((blocked) => <button key={String(blocked)} disabled={pending}
           onClick={() => void run(async () => { const result = await setChatBlocked(roomId, message.senderParticipantId, blocked); setStatus(`${result.nickname} 채팅 ${result.chatBlocked ? '제한' : '제한 해제'} 완료`) })}>{blocked ? '채팅 제한' : '채팅 제한 해제'}</button>)}
         <button disabled={pending} onClick={() => setDeleting(true)}>메시지 삭제</button>
