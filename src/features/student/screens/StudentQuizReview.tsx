@@ -51,7 +51,7 @@ function ReviewContent({ quiz }: { quiz: QuestionSetDetailResponse }) {
       <section className="student-review__question student-card" aria-labelledby="review-question-title">
         <p className="student-review__hint">{question.type === 'TRUE_FALSE' ? 'O/X 문제' : '객관식 문제'}</p>
         <h2 id="review-question-title">{question.content}</h2>
-        <StudentAnswerOptions
+        <StudentAnswerOptions key={question.id}
           options={question.choices.map(choice => choice.content)}
           selected={selectedIndex < 0 ? null : selectedIndex}
           correctAnswer={question.choices.findIndex(choice => choice.isCorrect)}
