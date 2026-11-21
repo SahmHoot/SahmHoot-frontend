@@ -9,14 +9,15 @@ export const PASSWORD_RESET_NOTICE = '비밀번호를 바꿨습니다. 새 비�
 /** 비밀번호 찾기(#108): 이메일 인증 → 새 비밀번호 저장 → 로그인 화면. */
 export function usePasswordReset({ email, code }: { email: string; code: string }) {
   const navigate = useNavigate()
+  const [feedback, setFeedback] = useState('')
   const verification = useEmailVerification({
     email, code,
     sendCode: sendPasswordResetCode,
     confirmCode: confirmPasswordResetCode,
     // 서버는 가입 여부와 관계없이 같은 응답을 준다. 안내도 가입 여부를 단정하지 않는다.
     sentMessage: '가입된 이메일이면 인증 코드를 보냈습니다. 메일함을 확인해 주세요. 코드는 10분간 유효합니다.',
+    onVerified: () => setFeedback(''),
   })
-  const [feedback, setFeedback] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   function resetVerification() {
