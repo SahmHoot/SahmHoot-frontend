@@ -6,9 +6,11 @@ import { useAuth } from '../AuthProvider'
 import { homePath, takeReturnTo } from '../session'
 import { useEmailVerification, verificationErrorMessage } from './useEmailVerification'
 
-export function useSignup({ email, code, name, role }: {
+export function useSignup({ email, code, name, role, onCodeSent }: {
   email: string
   code: string
+  /** 인증 코드를 새로 보냈을 때. 화면의 인증 코드 칸을 비운다. */
+  onCodeSent: () => void
   name: string
   /** 아직 고르지 않았으면 null. 기본값을 두지 않아 학생이 교수로 가입되는 일을 막는다(#93). */
   role: AuthRole | null
@@ -22,6 +24,7 @@ export function useSignup({ email, code, name, role }: {
     sendCode: sendVerificationCode,
     confirmCode: confirmVerificationCode,
     sentMessage: '인증 코드를 보냈습니다. 메일함을 확인해 주세요. 코드는 10분간 유효합니다.',
+    onSent: onCodeSent,
     onVerified: () => setFeedback(''),
   })
   const [submitting, setSubmitting] = useState(false)

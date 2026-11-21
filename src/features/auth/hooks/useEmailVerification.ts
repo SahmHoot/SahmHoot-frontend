@@ -36,12 +36,14 @@ export function verificationErrorMessage(error: ApiError): string {
  * 이메일 인증 코드 발송·확인 상태. 발송 결과는 이메일 칸 아래, 확인 결과는 인증 코드 칸 아래에 보인다.
  * 발송·확인 API를 받아 회원가입과 비밀번호 찾기(#108)가 같이 쓴다.
  */
-export function useEmailVerification({ email, code, sendCode, confirmCode, sentMessage, onVerified }: {
+export function useEmailVerification({ email, code, sendCode, confirmCode, sentMessage, onSent, onVerified }: {
   email: string
   code: string
   sendCode: (email: string) => Promise<void>
   confirmCode: (email: string, code: string) => Promise<void>
   sentMessage: string
+  /** 발송에 성공했을 때. 서버가 이전 코드를 새 코드로 바꾸므로 입력한 이전 코드를 지우는 데 쓴다. */
+  onSent?: () => void
   /** 확인에 성공했을 때. 가입·변경 버튼 아래에 남은 "인증을 먼저" 같은 안내를 지우는 데 쓴다. */
   onVerified?: () => void
 }) {
@@ -103,6 +105,7 @@ export function useEmailVerification({ email, code, sendCode, confirmCode, sentM
       setCodeMessage(null)
       setResendAt(sentAt + RESEND_SECONDS * 1000)
       setNow(Date.now())
+      onSent?.()
     }, setEmailMessage)
   }
 

@@ -59,6 +59,7 @@ function setup({ send = async () => {}, confirm = async () => {} } = {}) {
   }, globals)
   let input = { email: 'User@Test.ac.kr ', code: '' }
   let verifiedCount = 0
+  let sentCount = 0
   const render = () => {
     index = 0; effects = []
     const value = useEmailVerification({
@@ -66,6 +67,7 @@ function setup({ send = async () => {}, confirm = async () => {} } = {}) {
       sendCode: async (email) => { calls.push(['send', email]); await send(email) },
       confirmCode: async (email, code) => { calls.push(['confirm', email, code]); await confirm(email, code) },
       sentMessage: '보냈습니다',
+      onSent: () => { sentCount += 1 },
       onVerified: () => { verifiedCount += 1 },
     })
     effects.forEach((effect) => effect())
@@ -73,7 +75,7 @@ function setup({ send = async () => {}, confirm = async () => {} } = {}) {
   }
   render()
   return {
-    render, calls, RESEND_SECONDS, clock, verifiedCalls: () => verifiedCount,
+    render, calls, RESEND_SECONDS, clock, verifiedCalls: () => verifiedCount, sentCalls: () => sentCount,
     set(next) { input = { ...input, ...next }; return render() },
     /** 시계를 ms만큼 옮기고 걸린 타이머를 하나 실행한다. */
     advance(ms) { clock.now += ms; return this.tick() },
@@ -92,6 +94,7 @@ test('발송 성공 안내는 이메일 칸 아래 초록, 재요청은 30초 �
   assert.equal(state.requested, true)
   assert.equal(state.cooldown, 30)
   assert.equal(hook.RESEND_SECONDS, 30)
+  assert.equal(hook.sentCalls(), 1, '새 코드를 보내면 이전에 입력한 코드를 지우게 한다')
   assert.equal(hook.advance(1000).cooldown, 29)
   // 탭이 백그라운드에 있어 타이머가 늦게 돌아도 실제 경과 시간으로 다시 계산한다.
   assert.equal(hook.advance(25_000).cooldown, 4)
@@ -107,6 +110,7 @@ test('발송 실패는 이메일 칸 아래 빨강, 너무 잦은 요청은 30�
   assert.match(state.emailMessage.text, /30초에 한 번/)
   assert.equal(state.requested, false)
   assert.equal(state.cooldown, 0)
+  assert.equal(hook.sentCalls(), 0, '발송에 실패하면 입력한 코드를 그대로 둔다')
 })
 
 test('이메일을 바꾼 뒤 도착한 이전 확인 응답은 버린다', async () => {

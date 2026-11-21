@@ -179,7 +179,7 @@ export function SignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [role, setRole] = useState<Role | null>(null);
-  const signup = useSignup({ email, code, name, role });
+  const signup = useSignup({ email, code, name, role, onCodeSent: () => setCode("") });
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
