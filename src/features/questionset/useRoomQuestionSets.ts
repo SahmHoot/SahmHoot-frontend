@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getMyQuestionSets, getQuestionSet, toQuestionSetApiError } from './api'
 import type { QuestionSetSummaryResponse } from './questionset.types'
 import type { RoomQuestionSet } from '../professor/dashboard-types'
@@ -13,7 +13,7 @@ function errorMessage(error: unknown): string {
   return failure.message
 }
 
-/** 선택 창을 열 때마다 새로 마운트한다. 닫힌 창의 상세 응답으로 퀴즈를 시작하지 않는다. */
+/** 선택 창을 열 때마다 새로 마운트하고, 닫힌 창의 상세 응답은 무시한다. */
 export function useRoomQuestionSets(onSelect: (set: RoomQuestionSet) => void) {
   const [sets, setSets] = useState<QuestionSetSummaryResponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +40,7 @@ export function useRoomQuestionSets(onSelect: (set: RoomQuestionSet) => void) {
     return () => { active.active = false }
   }, [attempt])
 
-  const reload = () => {
+  const reload = useCallback(() => {
     if (inFlight.current) return
     setSets([])
     setLoading(true)
@@ -48,7 +48,7 @@ export function useRoomQuestionSets(onSelect: (set: RoomQuestionSet) => void) {
     setDetailError('')
     setSelectedId(null)
     setAttempt((value) => value + 1)
-  }
+  }, [])
   const select = async (id: number) => {
     if (loading || listError || inFlight.current || !sets.some((set) => set.id === id)) return
     inFlight.current = true

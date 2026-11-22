@@ -169,7 +169,7 @@ test('문항 생성 응답 유실 시 재조회 전 saveEditor가 후속 POST를
 
 // 기존 의존성만으로 실제 편집기 훅을 실행한다. API·라우터 경계만 대체한다.
 let harnessUserId = 63000
-function editorHarness(routeId, client, state = null, userId = ++harnessUserId) {
+function editorHarness(routeId, client, state = null, userId = ++harnessUserId, search = '') {
   const slots = []
   let index = 0
   let effects = []
@@ -204,11 +204,11 @@ function editorHarness(routeId, client, state = null, userId = ++harnessUserId) 
   const { useQuestionSetEditor } = load('useQuestionSetEditor', {
     react,
     '../auth/AuthProvider': { useAuth: () => ({ user: { id: userId } }) },
-    'react-router-dom': { useLocation: () => ({ state }), useNavigate: () => (path, options) => navigations.push({ path, options }) },
+    'react-router-dom': { useLocation: () => ({ state, search }), useNavigate: () => (path, options) => navigations.push({ path, options }) },
     './api': Object.assign(client, { toQuestionSetApiError: (error) => ({ status: error.status ?? 0, message: error.message, code: 'TEST' }) }),
     './editorDraft': model, './saveEditor': { saveEditor }, './editorRecovery': recovery,
     './editorNavigation': { lockEditorNavigation: () => async () => {} },
-  })
+  }, { URLSearchParams })
   const render = () => {
     index = 0
     effects = []
@@ -225,6 +225,29 @@ const detailOf = (questions = []) => ({ id: 101, title: '세트', description: n
   ...model.questionRequest(q), id: q.serverId, orderNo: index + 1,
   choices: model.questionRequest(q).choices.map((choice, choiceIndex) => ({ ...choice, id: choiceIndex + 1, orderNo: choiceIndex + 1 })),
 })) })
+
+test('수업에서 연 편집기는 공개 초안도 비공개로 저장하고 복구 주소에 수업 진입 정보를 유지한다', async () => {
+  const { client, calls } = fakeApi()
+  client.getQuestionSet = async () => detailOf([question(102)])
+  client.reorderQuestions = async () => { throw new Error('순서 실패') }
+  const search = '?from=room'
+  const initial = editorHarness('new', client, null, undefined, search)
+  initial.render().setDraft({ ...draft(), isPublic: true })
+  await initial.render().save()
+  const recoveryRoute = initial.navigations[0]
+  assert.equal(recoveryRoute.path, `/professor/sets/101${search}`)
+
+  const resumed = editorHarness('101', client, recoveryRoute.options.state, undefined, search)
+  const state = await resumed.settle()
+  assert.equal(state.privateOnly, true)
+  state.restore()
+  client.reorderQuestions = async () => {}
+  await resumed.render().save()
+  assert.equal(resumed.finished, 1)
+  assert.deepEqual(calls.filter(([method]) => method === 'updateQuestionSet'), [
+    ['updateQuestionSet', 101, { title: '세트', description: null, visibility: 'PRIVATE' }],
+  ])
+})
 
 test('실제 훅: 후속 실패 후 신규 ID 주소로 이동하고 재마운트·복원·재저장 시 중복 생성하지 않는다', async () => {
   const { client, calls } = fakeApi()

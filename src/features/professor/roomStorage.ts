@@ -8,10 +8,11 @@ export function readRoomId(userId: number | undefined): number | null {
   } catch { return null }
 }
 
-export function writeRoomId(userId: number | undefined, roomId: number | null): void {
+export function writeRoomId(userId: number | undefined, roomId: number | null, tab?: Window): void {
   if (userId === undefined) return
   try {
-    if (roomId === null) sessionStorage.removeItem(`${prefix}${userId}`)
-    else sessionStorage.setItem(`${prefix}${userId}`, String(roomId))
+    const storage = tab ? tab.sessionStorage : sessionStorage
+    if (roomId === null) storage.removeItem(`${prefix}${userId}`)
+    else storage.setItem(`${prefix}${userId}`, String(roomId))
   } catch { /* 저장소 없이도 현재 화면은 사용할 수 있다. */ }
 }

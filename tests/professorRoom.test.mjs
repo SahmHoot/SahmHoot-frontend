@@ -65,6 +65,7 @@ function harness(client) {
   let value
   const selected = []
   const react = {
+    useCallback(callback) { return callback },
     useState(initial) {
       const slot = index++
       if (!slots[slot]) slots[slot] = { value: typeof initial === 'function' ? initial() : initial }

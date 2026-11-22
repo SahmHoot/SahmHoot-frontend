@@ -1,15 +1,45 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useHref } from 'react-router-dom'
+import { Button } from '../../../shared/components/Button'
+import { useAuth } from '../../auth/AuthProvider'
 import { useRoomQuestionSets } from '../../questionset/useRoomQuestionSets'
 import type { RoomQuestionSet } from '../dashboard-types'
+import { writeRoomId } from '../roomStorage'
 
-export function RoomSetPicker({ onSelect }: { onSelect: (set: RoomQuestionSet) => void }) {
-  const { sets, loading, listError, detailError, selectedId, selecting, reload, select } = useRoomQuestionSets(onSelect)
+export function RoomSetPicker({ onStart }: { onStart: (set: RoomQuestionSet) => void }) {
+  const { user } = useAuth()
+  const [selected, setSelected] = useState<RoomQuestionSet | null>(null)
+  const [editorError, setEditorError] = useState(false)
+  const editorUrl = useHref('/professor/sets/new?from=room')
+  const { sets, loading, listError, detailError, selectedId, selecting, reload, select } = useRoomQuestionSets(setSelected)
+  const ready = !loading && !selecting && !detailError && selected?.id === selectedId ? selected : null
+
+  useEffect(() => {
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible') reload()
+    }
+    document.addEventListener('visibilitychange', refreshOnReturn)
+    return () => document.removeEventListener('visibilitychange', refreshOnReturn)
+  }, [reload])
+
+  const openEditor = () => {
+    // 새 탭은 로그인 세션을 상속하지만 수업에는 연결하지 않는다.
+    const editor = window.open('', '_blank')
+    setEditorError(!editor)
+    if (editor) {
+      writeRoomId(user?.id, null, editor)
+      editor.opener = null
+      editor.location.replace(editorUrl)
+    }
+  }
+
   return (
     <div className="professor-room__set-choices" aria-busy={loading || selecting}>
       {loading && <p role="status" className="professor-room__empty-message">문제 세트 목록을 불러오는 중입니다.</p>}
       {listError && <p role="alert" className="professor-room__set-error">{listError}</p>}
       {!loading && !listError && sets.map((item) => (
-        <button key={item.id} type="button" className="professor-room__set-choice"
+        <button key={item.id} type="button" className="professor-room__set-choice aria-pressed:border-hoot-primary aria-pressed:bg-hoot-soft"
+          aria-pressed={ready?.id === item.id}
           disabled={selecting || item.questionCount === 0} onClick={() => void select(item.id)}>
           <span className="professor-room__choice-name">{item.title}</span>
           <span className="professor-room__choice-meta">
@@ -24,12 +54,14 @@ export function RoomSetPicker({ onSelect }: { onSelect: (set: RoomQuestionSet) =
         <button type="button" className="professor-room__continue-button" disabled={selecting} onClick={() => void select(selectedId)}>선택 다시 시도</button>
       )}
       {!loading && !listError && sets.length === 0 && <p className="professor-room__empty-message">저장된 문제 세트가 없습니다.</p>}
-      {!loading && !listError && !sets.some((set) => set.questionCount > 0) && (
-        <Link to="/professor/sets/new" className="professor-room__create-button">새 세트 만들기</Link>
-      )}
-      {!loading && <button type="button" className="professor-room__continue-button" disabled={selecting} onClick={reload}>
-        {listError ? '다시 불러오기' : '목록 새로고침'}
-      </button>}
+      {editorError && <p role="alert" className="professor-room__set-error">편집기 탭을 열지 못했습니다. 팝업을 허용한 뒤 다시 시도해 주세요.</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={openEditor} aria-label="+ 새 문제 세트 만들기 (새 탭)">+ 새 문제 세트 만들기</Button>
+        {!loading && <Button variant="outline" disabled={selecting} onClick={reload}>
+          {listError ? '다시 불러오기' : '목록 새로고침'}
+        </Button>}
+        <Button disabled={!ready} onClick={() => { if (ready) onStart(ready) }}>선택한 세트로 퀴즈 시작</Button>
+      </div>
     </div>
   )
 }

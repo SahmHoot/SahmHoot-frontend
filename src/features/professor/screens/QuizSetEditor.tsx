@@ -12,7 +12,7 @@ import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 export function QuizSetEditor() {
   const { setId } = useParams()
   const navigate = useNavigate()
-  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError,
+  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
     serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => navigate('/professor/sets', { replace: true }))
   const [cancelling, setCancelling] = useState(false)
@@ -92,13 +92,13 @@ export function QuizSetEditor() {
           >
             취소
           </button>
-          <button
+          {!privateOnly && <button
             type="button"
             onClick={() => setDraft({ ...draft, isPublic: !draft.isPublic })}
             className="quiz-set-editor__visibility-button"
           >
             {draft.isPublic ? '비공개 전환' : '공개 전환'}
-          </button>
+          </button>}
           <button type="button" onClick={() => void save()} className="quiz-set-editor__save-button">
             {saving ? '저장 중…' : '저장'}
           </button>
@@ -109,7 +109,8 @@ export function QuizSetEditor() {
         onChange={(event) => setDraft({ ...draft, description: event.target.value })}
         className="quiz-set-editor__description-input" placeholder="세트 설명을 입력하세요 (선택)" />
       <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
-      {draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
+      {privateOnly && <p className="quiz-set-editor__public-help">수업에서 만든 문제 세트는 비공개로 저장됩니다.</p>}
+      {!privateOnly && draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
       {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
       {error && (
         <p role="alert" className="quiz-set-editor__error">
