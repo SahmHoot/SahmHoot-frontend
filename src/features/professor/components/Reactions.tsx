@@ -3,7 +3,7 @@ import { REACTION_EMOJIS } from "../../room/reactions";
 import type { ReactionStats } from "../../room/reactions";
 
 export function Reactions({ participants, stats }: { participants: number; stats: ReactionStats | null }) {
-  const total = stats ? REACTION_EMOJIS.reduce((sum, emoji) => sum + stats[emoji], 0) : 0;
+  const maxCount = stats ? Math.max(...REACTION_EMOJIS.map((emoji) => stats[emoji])) : 0;
   return (
     <section className="professor-reactions">
       <div className="professor-reactions__header">
@@ -25,7 +25,7 @@ export function Reactions({ participants, stats }: { participants: number; stats
               <span className="professor-reactions__track">
                 <span
                   className={`professor-reactions__fill ${emoji === "❓" ? "professor-reactions__fill--question" : "professor-reactions__fill--default"}`}
-                  style={{ width: `${total === 0 ? 0 : stats[emoji] / total * 100}%` }}
+                  style={{ width: `${maxCount === 0 ? 0 : stats[emoji] / maxCount * 100}%` }}
                 />
               </span>
               <strong className="professor-reactions__count">
