@@ -104,7 +104,7 @@ export function ProfessorRoom({
         </Modal>
       )}
       {stopping && (
-        <Modal title="퀴즈 중단" onClose={() => setStopping(false)}>
+        <Modal title="퀴즈 중단" onClose={() => setStopping(false)} showCloseButton={false}>
           <p className="professor-room__stop-message">
             진행 중인 퀴즈를 중단하고 수업 대기 화면으로 돌아갈까요?
           </p>
