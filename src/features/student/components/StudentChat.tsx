@@ -44,7 +44,7 @@ export default function StudentChat({ nickname, expanded, chat, onlineCount, rea
       <div className="chat-messages-area">
         <div ref={list} className="student-chat__messages" role="log" aria-label="채팅 메시지" aria-live="polite" aria-relevant="additions">
           {chat.messages.map((message) => <div key={message.id} className={`student-chat__message ${message.isOwner ? 'student-chat__message--professor' : ''} ${message.senderParticipantId === chat.meId ? 'student-chat__message--mine' : ''}`}>
-            <p className="student-chat__author">{message.nickname}{message.senderParticipantId === chat.meId && ' (나)'}{message.isOwner && <span>교수</span>}</p>
+            <p className="student-chat__author">{message.nickname}{message.isOwner && ' 교수'}{message.senderParticipantId === chat.meId && ' (나)'}</p>
             {message.parentId !== null && <p className="student-chat__reply"><img src={replyIcon} alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
             <p className="student-chat__bubble">{message.content}</p>
           </div>)}
