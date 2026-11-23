@@ -340,6 +340,29 @@ test('고정 해제는 지금 방으로 요청하고 실패하면 안내한다',
   assert.equal(hook.render().feedback, '고정 해제 실패')
 })
 
+test('반응 추가와 만료로 집계가 바뀌면 현재 최다 반응 수에 맞춰 막대를 채운다', () => {
+  const emojis = ['👍', '❓', '😀', '👏']
+  const reactions = harness('professor/components/Reactions', 'Reactions', {
+    'react/jsx-runtime': jsxRuntime,
+    './Reactions.css': {},
+    '../../room/reactions': { REACTION_EMOJIS: emojis },
+  }, 'tsx')
+  const cases = [
+    [[5, 1, 4, 0], ['100%', '20%', '80%', '0%']],
+    [[5, 2, 4, 0], ['100%', '40%', '80%', '0%']],
+    [[4, 2, 4, 0], ['100%', '50%', '100%', '0%']],
+    [[1, 1, 0, 0], ['100%', '100%', '0%', '0%']],
+    [[0, 0, 0, 0], ['0%', '0%', '0%', '0%']],
+    [[10, 5, 2, 0], ['100%', '50%', '20%', '0%']],
+  ]
+  for (const [counts, expected] of cases) {
+    const stats = Object.fromEntries(emojis.map((emoji, index) => [emoji, counts[index]]))
+    const markup = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
+    const widths = Array.from(markup.matchAll(/style="width:([^"]+)"/g), ([, width]) => width)
+    assert.deepEqual(widths, expected, `반응 집계 ${counts.join(', ')}`)
+  }
+})
+
 test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과 기존 채팅을 렌더링한다', () => {
   const emojis = ['👍', '❓', '😀', '👏']
   const stats = { '👍': 2, '❓': 0, '😀': 1, '👏': 3 }
