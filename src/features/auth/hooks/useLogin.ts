@@ -34,25 +34,42 @@ export function useLogin({ email, password, keepLoggedIn }: { email: string; pas
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalizedEmail = email.trim().toLowerCase()
-    // 개발 서버에서 이메일을 비워 두면 계정 없이 화면 미리보기로 이동한다.
+    let loginEmail = normalizedEmail
+    let loginPassword = password
+    let quickLogin = false
+    // 개발 서버에서 이메일을 비워 두면 로컬 시드 계정(백엔드 LocalSeedRunner)으로 로그인한다. 배포 빌드에서는 이 블록이 빠진다.
     if (import.meta.env.DEV && normalizedEmail === '') {
-      savePreviewRole(previewRole)
-      navigate(homePath(previewRole))
-      return
+      const devPassword = import.meta.env.VITE_DEV_LOGIN_PASSWORD
+      // .env.local에 시드 비밀번호가 없으면 계정 없이 화면 미리보기로 이동한다.
+      if (!devPassword) {
+        savePreviewRole(previewRole)
+        navigate(homePath(previewRole))
+        return
+      }
+      quickLogin = true
+      loginEmail = previewRole === 'PROFESSOR' ? 'professor@local.test' : 'student1@local.test'
+      loginPassword = devPassword
     }
-    if (!password) {
+    if (!loginPassword) {
       setFeedback('비밀번호를 입력해 주세요.')
       return
     }
     setPending(true)
-    login(normalizedEmail, password)
+    login(loginEmail, loginPassword)
       .then((response) => {
         setSignedInHere(true)
         auth.signIn(response, keepLoggedIn)
         navigate(takeReturnTo() ?? homePath(response.user.role), { replace: true })
       })
       .catch((error: unknown) => {
-        setFeedback(loginErrorMessage(toApiError(error)))
+        const apiError = toApiError(error)
+        // 백엔드가 꺼져 있으면 예전처럼 계정 없이 화면 미리보기로 들어간다.
+        if (quickLogin && apiError.code === 'NETWORK_ERROR') {
+          savePreviewRole(previewRole)
+          navigate(homePath(previewRole))
+          return
+        }
+        setFeedback(loginErrorMessage(apiError))
         setPending(false)
       })
   }
