@@ -55,10 +55,19 @@ export function QuizResults({
               </button>
               <button
                 type="button"
-                onClick={() => setIndex((index + 1) % questions.length)}
+                disabled={index === 0}
+                onClick={() => setIndex(index - 1)}
+                className="quiz-results__prev-button"
+              >
+                이전 문항 결과
+              </button>
+              <button
+                type="button"
+                disabled={index === questions.length - 1}
+                onClick={() => setIndex(index + 1)}
                 className="quiz-results__next-button"
               >
-                {index === questions.length - 1 ? '첫 문항 결과' : '다음 문항 결과'}
+                다음 문항 결과
                 <Icon screen="results" name="imgFrame3" />
               </button>
             </div>
