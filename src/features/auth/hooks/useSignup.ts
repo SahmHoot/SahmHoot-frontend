@@ -1,96 +1,37 @@
 import { useState } from 'react'
-import type { MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { confirmVerificationCode, sendVerificationCode, signup, toApiError } from '../api'
-import type { ApiError } from '../api'
 import type { AuthRole } from '../auth.types'
 import { useAuth } from '../AuthProvider'
 import { homePath, takeReturnTo } from '../session'
+import { useEmailVerification, verificationErrorMessage } from './useEmailVerification'
 
-/** 05 API 명세 5절 에러 코드별 안내. 없으면 서버 message를 그대로 쓴다. */
-function signupErrorMessage(error: ApiError): string {
-  switch (error.code) {
-    case 'VALIDATION_FAILED':
-      return error.fieldErrors?.[0]?.message ?? error.message
-    case 'EMAIL_ALREADY_EXISTS':
-      return '이미 가입된 이메일입니다. 로그인해 주세요.'
-    case 'VERIFICATION_TOO_FREQUENT':
-      return '인증 코드는 60초에 한 번 보낼 수 있습니다. 잠시 후 다시 요청해 주세요.'
-    case 'VERIFICATION_NOT_FOUND':
-    case 'VERIFICATION_CODE_EXPIRED':
-      return '인증 코드가 만료되었습니다. 인증요청을 다시 눌러 주세요.'
-    case 'EMAIL_NOT_VERIFIED':
-      return '이메일 인증이 유효하지 않습니다. 인증요청을 다시 눌러 주세요.'
-    // VERIFICATION_CODE_INVALID는 서버 message에 남은 시도 횟수가 들어 있다.
-    default:
-      return error.message
-  }
-}
-
-export function useSignup({ email, code, name, role }: {
+export function useSignup({ email, code, name, role, onCodeSent }: {
   email: string
   code: string
+  /** 인증 코드를 새로 보냈을 때. 화면의 인증 코드 칸을 비운다. */
+  onCodeSent: () => void
   name: string
   /** 아직 고르지 않았으면 null. 기본값을 두지 않아 학생이 교수로 가입되는 일을 막는다(#93). */
   role: AuthRole | null
 }) {
   const navigate = useNavigate()
   const auth = useAuth()
-  const [requestedEmail, setRequestedEmail] = useState('')
-  const [verifiedEmail, setVerifiedEmail] = useState('')
+  // 가입하기 결과는 가입하기 버튼 아래에 보인다. 인증 단계 안내는 각 입력칸 아래에 있다.
   const [feedback, setFeedback] = useState('')
-  const [pending, setPending] = useState(false)
-  const normalizedEmail = email.trim().toLowerCase()
-  const emailVerified = normalizedEmail !== '' && verifiedEmail === normalizedEmail
-  const canVerify = requestedEmail !== '' && requestedEmail === normalizedEmail && !emailVerified
+  const verification = useEmailVerification({
+    email, code,
+    sendCode: sendVerificationCode,
+    confirmCode: confirmVerificationCode,
+    sentMessage: '인증 코드를 보냈습니다. 메일함을 확인해 주세요. 코드는 10분간 유효합니다.',
+    onSent: onCodeSent,
+    onVerified: () => setFeedback(''),
+  })
+  const [submitting, setSubmitting] = useState(false)
 
   function resetVerification() {
-    setRequestedEmail('')
-    setVerifiedEmail('')
+    verification.reset()
     setFeedback('')
-  }
-
-  async function run(task: () => Promise<void>, resetOnVerificationError = false) {
-    setPending(true)
-    try {
-      await task()
-    } catch (error) {
-      const apiError = toApiError(error)
-      if (resetOnVerificationError &&
-        (apiError.code === 'EMAIL_NOT_VERIFIED' || apiError.code.startsWith('VERIFICATION_'))) {
-        resetVerification()
-      }
-      setFeedback(signupErrorMessage(apiError))
-    } finally {
-      setPending(false)
-    }
-  }
-
-  function requestCode(event: MouseEvent<HTMLButtonElement>) {
-    const emailInput = event.currentTarget.form?.querySelector<HTMLInputElement>('input[type="email"]')
-    if (!emailInput?.reportValidity()) return
-    void run(async () => {
-      await sendVerificationCode(normalizedEmail)
-      setRequestedEmail(normalizedEmail)
-      setVerifiedEmail('')
-      setFeedback('인증 코드를 보냈습니다. 메일함을 확인해 주세요. 코드는 10분간 유효합니다.')
-    })
-  }
-
-  function verifyCode() {
-    if (!canVerify) {
-      setFeedback('현재 이메일로 인증요청을 먼저 눌러 주세요.')
-      return
-    }
-    if (!/^\d{6}$/.test(code)) {
-      setFeedback('인증 코드 6자리를 입력해 주세요.')
-      return
-    }
-    void run(async () => {
-      await confirmVerificationCode(normalizedEmail, code)
-      setVerifiedEmail(normalizedEmail)
-      setFeedback('이메일 인증이 완료되었습니다.')
-    })
   }
 
   function finishSignup(password: string) {
@@ -98,7 +39,7 @@ export function useSignup({ email, code, name, role }: {
       setFeedback('이름을 입력해 주세요.')
       return
     }
-    if (!emailVerified) {
+    if (!verification.verified) {
       setFeedback('이메일 인증을 먼저 완료해 주세요.')
       return
     }
@@ -106,13 +47,29 @@ export function useSignup({ email, code, name, role }: {
       setFeedback('교수 또는 학생을 선택해 주세요.')
       return
     }
-    void run(async () => {
-      const response = await signup({ email: normalizedEmail, code, password, name: name.trim(), role })
-      // 가입 화면에는 '로그인 상태 유지' 선택이 없어 기본으로 유지한다.
-      auth.signIn(response, true)
-      navigate(takeReturnTo() ?? homePath(response.user.role), { replace: true })
-    }, true)
+    setSubmitting(true)
+    signup({ email: verification.normalizedEmail, code, password, name: name.trim(), role })
+      .then((response) => {
+        // 가입 화면에는 '로그인 상태 유지' 선택이 없어 기본으로 유지한다.
+        auth.signIn(response, true)
+        navigate(takeReturnTo() ?? homePath(response.user.role), { replace: true })
+      })
+      .catch((error: unknown) => {
+        const apiError = toApiError(error)
+        if (apiError.code === 'EMAIL_NOT_VERIFIED' || apiError.code.startsWith('VERIFICATION_')) {
+          verification.reset()
+        }
+        setFeedback(verificationErrorMessage(apiError))
+      })
+      .finally(() => setSubmitting(false))
   }
 
-  return { feedback, pending, emailVerified, canVerify, resetVerification, requestCode, verifyCode, finishSignup }
+  return {
+    ...verification,
+    emailVerified: verification.verified,
+    pending: verification.pending || submitting,
+    feedback,
+    resetVerification,
+    finishSignup,
+  }
 }
