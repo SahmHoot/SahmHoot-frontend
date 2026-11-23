@@ -14,6 +14,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const isNew = routeId === 'new'
   const validId = routeId !== undefined && /^[1-9]\d*$/.test(routeId) && Number.isSafeInteger(Number(routeId))
   const location = useLocation()
+  const privateOnly = new URLSearchParams(location.search).get('from') === 'room'
   const navigate = useNavigate()
   const { user } = useAuth()
   const [initialRecovery] = useState(() => isNew || validId ? interruptedDraft(user?.id, routeId)
@@ -90,6 +91,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     working.current = true
     const unlock = lockEditorNavigation()
     const submitted = structuredClone(draft)
+    if (privateOnly) submitted.isPublic = false
     const originalQuestionIds = [...checkpoint.current.questionIds]
     let recovered: EditorRecovery | undefined
     let complete = false
@@ -190,7 +192,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     if (complete) onSaved()
     else if (recovered) {
       // 모든 요청과 재조회가 끝난 뒤 교체한다. pathname 키에 의한 재마운트에 초안을 전달한다.
-      navigate(recoveryPath(recovered), { replace: true, state: { questionSetRecovery: recovered } })
+      navigate(recoveryPath(recovered) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered } })
     }
   }
 
@@ -219,7 +221,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     const next = { ...recovery, setId: id, creationUnknown: false }
     rememberInterruptedDraft(user?.id, routeId, next)
     rememberInterruptedDraft(user?.id, String(id), next)
-    navigate(recoveryPath(next), { replace: true, state: { questionSetRecovery: next } })
+    navigate(recoveryPath(next) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: next } })
   }
   const reload = () => {
     if (working.current) return
@@ -242,6 +244,6 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setRecoveryResolved(true)
     forgetInterruptedDraft(user?.id, routeId)
   }
-  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError,
+  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet }
 }

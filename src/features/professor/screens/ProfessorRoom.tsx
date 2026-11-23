@@ -94,9 +94,8 @@ export function ProfessorRoom({
       />
       {choosing && (
         <Modal title="출제할 문제 세트 선택" onClose={() => setChoosing(false)}>
-          {/* 목록·빈 세트·조회 실패 처리는 #63의 선택 창을 그대로 쓰고, 고른 세트 ID로 서버에 시작을 요청한다. */}
           <RoomSetPicker
-            onSelect={(selected) => {
+            onStart={(selected) => {
               onStartQuiz(selected.id)
               setChoosing(false)
             }}
