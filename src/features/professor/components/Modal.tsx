@@ -7,11 +7,13 @@ export function Modal({
   children,
   onClose,
   closable = true,
+  showCloseButton = true,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   closable?: boolean;
+  showCloseButton?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -33,14 +35,16 @@ export function Modal({
         <h2 id="professor-dialog-title" className="professor-modal__title">
           {title}
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={!closable}
-          className="professor-modal__close-button"
-        >
-          닫기
-        </button>
+        {showCloseButton && (
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={!closable}
+            className="professor-modal__close-button"
+          >
+            닫기
+          </button>
+        )}
       </div>
       {children}
     </dialog>

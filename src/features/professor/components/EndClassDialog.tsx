@@ -15,7 +15,7 @@ export function EndClassDialog({
   onConfirm: () => void;
 }) {
   return (
-    <Modal title="수업 종료" onClose={onCancel} closable={!pending}>
+    <Modal title="수업 종료" onClose={onCancel} closable={!pending} showCloseButton={false}>
       <p className="end-class-dialog__message">
         ‘{roomName}’ 수업을 종료할까요?
       </p>

@@ -12,6 +12,27 @@
   @apply h-[759px];
 }
 
+.professor-chat.professor-chat--closed {
+  @apply h-auto min-h-0 self-start;
+}
+
+/* 닫힘 상태는 대기·진행 화면의 2열 배치보다 우선한다. */
+.professor-room:has(> .professor-chat.professor-chat--closed), .quiz-results:has(> .professor-chat--closed) {
+  @apply lg:grid-cols-[minmax(0,1fr)_auto];
+}
+
+.professor-chat__body {
+  @apply flex min-h-0 flex-1 flex-col;
+}
+
+.professor-chat__body[hidden] {
+  display: none;
+}
+
+.professor-chat__toggle {
+  @apply shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-hoot-primary hover:bg-hoot-soft focus-visible:outline-2;
+}
+
 .professor-chat__header {
   @apply flex min-h-[53px] shrink-0 items-center justify-between gap-4 border-b border-hoot-border px-5 py-3.5;
 }
@@ -75,10 +96,6 @@
 
 .professor-chat__author.professor-chat__author--student {
   @apply text-hoot-foreground/70;
-}
-
-.professor-chat__professor-badge {
-  @apply rounded-sm bg-hoot-primary px-1.5 py-0.5 text-[10px] leading-none font-bold text-white;
 }
 
 .professor-chat__quote {

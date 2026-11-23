@@ -17,6 +17,7 @@ function harness(file, name, dependencies, extension = 'ts') {
   let index = 0
   let effects = []
   const react = {
+    useId: () => 'test-chat-body',
     useState(initial) {
       const slot = index++
       if (!slots[slot]) {
@@ -156,7 +157,7 @@ test('개설 화면 이탈·재진입 후에는 이전 응답을 무시하고 �
   }
 })
 
-test('종료 요청 중 cancel 이벤트의 기본 닫기와 닫기 버튼을 막고 실패 후 다시 허용한다', () => {
+test('종료창은 닫기 버튼 없이 취소·확정만 표시하고 종료 중 취소·ESC를 막는다', () => {
   let closed = 0
   const onCancel = () => { closed++ }
   const modal = harness('professor/components/Modal', 'Modal', {
@@ -172,7 +173,11 @@ test('종료 요청 중 cancel 이벤트의 기본 닫기와 닫기 버튼을 �
     element.props.onCancel(cancel)
     assert.equal(cancel.defaultPrevented, pending)
     assert.equal(closed, pending ? 0 : 1)
-    assert.equal(Boolean(element.props.children[0].props.children[1].props.disabled), pending)
+    const markup = renderToStaticMarkup(element)
+    assert.doesNotMatch(markup, /professor-modal__close-button/)
+    assert.equal((markup.match(/<button\b/g) ?? []).length, 2)
+    assert.match(markup, />취소<\/button>/)
+    assert.match(markup, pending ? />종료하는 중…<\/button>/ : />수업 종료<\/button>/)
     for (const button of dialog.props.children[2].props.children) assert.equal(button.props.disabled, pending)
   }
   const ordinary = modal.render({ title: '다른 대화상자', onClose: onCancel })
@@ -181,6 +186,63 @@ test('종료 요청 중 cancel 이벤트의 기본 닫기와 닫기 버튼을 �
   assert.equal(cancel.defaultPrevented, false)
   assert.equal(closed, 2)
   assert.equal(Boolean(ordinary.props.children[0].props.children[1].props.disabled), false)
+  assert.match(renderToStaticMarkup(ordinary), /professor-modal__close-button[^>]*>닫기<\/button>/)
+  ordinary.props.children[0].props.children[1].props.onClick()
+  assert.equal(closed, 3)
+  const locked = modal.render({ title: '처리 중인 대화상자', onClose: onCancel, closable: false })
+  assert.equal(locked.props.children[0].props.children[1].props.disabled, true)
+  const lockedCancel = new Event('cancel', { cancelable: true })
+  locked.props.onCancel(lockedCancel)
+  assert.equal(lockedCancel.defaultPrevented, true)
+  assert.equal(closed, 3)
+})
+
+test('퀴즈 중단·세트 삭제 확인창은 닫기 버튼 없이 취소와 확정 동작을 유지한다', () => {
+  function find(element, predicate) {
+    if (!element || typeof element !== 'object') return undefined
+    if (predicate(element)) return element
+    for (const child of [element.props?.children].flat()) { const found = find(child, predicate); if (found) return found }
+  }
+  const modal = harness('professor/components/Modal', 'Modal', {
+    'react/jsx-runtime': jsxRuntime, './Modal.css': {},
+  }, 'tsx')
+  const Modal = () => null
+  const QuizQuestion = () => null
+  const screen = harness('professor/screens/ProfessorRoom', 'ProfessorRoom', {
+    'react/jsx-runtime': jsxRuntime, './ProfessorRoom.css': {}, 'react-router-dom': {},
+    '../components/Icon': {}, '../components/RoomSetPicker': {}, '../components/Reactions': {},
+    '../components/JoinCode': { JoinCode: () => null }, '../components/Chat': { Chat: () => null },
+    '../components/QuizQuestion': { QuizQuestion }, '../components/Modal': { Modal },
+  }, 'tsx')
+  let stops = 0
+  const props = { room: { ...noRoom, active: true }, quiz: { phase: 'question' }, onStopQuiz() { stops++ } }
+  const stopDialog = () => find(screen.render(props), el => el.type === Modal)
+  const openStop = () => find(screen.render(props), el => el.type === QuizQuestion).props.onStop()
+  openStop()
+  const stop = stopDialog()
+  let deleting = { id: 8, title: '삭제할 세트' }
+  let deletes = 0
+  const list = harness('professor/screens/QuizSetList', 'QuizSetList', {
+    'react/jsx-runtime': jsxRuntime, './QuizSetList.css': {},
+    'react-router-dom': { useNavigate: () => () => {} }, '../components/Icon': {}, '../components/Modal': { Modal },
+    '../../questionset/useQuestionSetList': { useQuestionSetList: () => ({ sets: [], deleting,
+      setDeleting(value) { deleting = value }, confirmDelete() { deletes++ } }) },
+  }, 'tsx')
+  const deleteDialog = () => find(list.render(), el => el.type === Modal)
+  for (const [dialog, cancelLabel, confirmLabel] of [[stop, '계속 진행', '퀴즈 중단'], [deleteDialog(), '취소', '삭제']]) {
+    const markup = renderToStaticMarkup(modal.render(dialog.props))
+    assert.doesNotMatch(markup, /professor-modal__close-button/)
+    assert.equal((markup.match(/<button\b/g) ?? []).length, 2)
+    const cancel = find(dialog, el => el.type === 'button' && el.props.children === cancelLabel)
+    const confirm = find(dialog, el => el.type === 'button' && el.props.children === confirmLabel)
+    assert.ok(cancel)
+    assert.ok(confirm)
+    cancel.props.onClick()
+    assert.equal(dialog === stop ? stopDialog() : deleteDialog(), undefined)
+    confirm.props.onClick()
+  }
+  assert.equal(stops, 1)
+  assert.equal(deletes, 1)
 })
 
 test('종료 중 중복 요청·닫기를 막고 실패 시 방을 유지한 뒤 재시도로 종료한다', async () => {
@@ -278,6 +340,29 @@ test('고정 해제는 지금 방으로 요청하고 실패하면 안내한다',
   assert.equal(hook.render().feedback, '고정 해제 실패')
 })
 
+test('반응 추가와 만료로 집계가 바뀌면 현재 최다 반응 수에 맞춰 막대를 채운다', () => {
+  const emojis = ['👍', '❓', '😀', '👏']
+  const reactions = harness('professor/components/Reactions', 'Reactions', {
+    'react/jsx-runtime': jsxRuntime,
+    './Reactions.css': {},
+    '../../room/reactions': { REACTION_EMOJIS: emojis },
+  }, 'tsx')
+  const cases = [
+    [[5, 1, 4, 0], ['100%', '20%', '80%', '0%']],
+    [[5, 2, 4, 0], ['100%', '40%', '80%', '0%']],
+    [[4, 2, 4, 0], ['100%', '50%', '100%', '0%']],
+    [[1, 1, 0, 0], ['100%', '100%', '0%', '0%']],
+    [[0, 0, 0, 0], ['0%', '0%', '0%', '0%']],
+    [[10, 5, 2, 0], ['100%', '50%', '20%', '0%']],
+  ]
+  for (const [counts, expected] of cases) {
+    const stats = Object.fromEntries(emojis.map((emoji, index) => [emoji, counts[index]]))
+    const markup = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
+    const widths = Array.from(markup.matchAll(/style="width:([^"]+)"/g), ([, width]) => width)
+    assert.deepEqual(widths, expected, `반응 집계 ${counts.join(', ')}`)
+  }
+})
+
 test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과 기존 채팅을 렌더링한다', () => {
   const emojis = ['👍', '❓', '😀', '👏']
   const stats = { '👍': 2, '❓': 0, '😀': 1, '👏': 3 }
@@ -308,5 +393,47 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
     assert.match(markup, /class="chat-reactions__emoji"[^>]*>😀<\/span>/)
     assert.doesNotMatch(markup, /최근 1분|professor-chat__reactions/)
     for (const text of ['수업 공지', '고정 해제: 수업 공지', '기존 채팅', '답글 원문']) assert.ok(markup.includes(text))
+  }
+})
+
+test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결과에서 같은 본문을 접었다 펼친다', () => {
+  const ChatComposer = () => null
+  const dependencies = {
+    'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
+    '../../room/ChatReactions': { ChatReactions: () => null },
+    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null },
+  }
+  function find(element, predicate) {
+    if (!element || typeof element !== 'object') return undefined
+    if (predicate(element)) return element
+    for (const child of [element.props?.children].flat()) { const found = find(child, predicate); if (found) return found }
+  }
+  for (const screen of ['waiting', 'quiz', 'results']) {
+    const hook = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')
+    const props = { screen, compact: screen !== 'waiting', notices: [], reactions: [], onUnpin() {},
+      chat: { ...roomChat, messages: [{ id: 1, nickname: '김교원', isOwner: true, content: '교수 안내', parentId: null }] } }
+    const toggle = (tree) => find(tree, el => el.props.className === 'professor-chat__toggle')
+    const body = (tree) => find(tree, el => el.props.id === 'test-chat-body')
+    const composer = (tree) => find(tree, el => el.type === ChatComposer)
+    let tree = hook.render(props)
+    assert.match(renderToStaticMarkup(tree), /김교원 교수/)
+    assert.doesNotMatch(renderToStaticMarkup(tree), /professor-badge/)
+    assert.equal(toggle(tree).props['aria-controls'], body(tree).props.id)
+    assert.equal(toggle(tree).props['aria-expanded'], true)
+    find(tree, el => el.props.className === 'professor-chat__bubble professor-chat__bubble--professor').props.onClick()
+    tree = hook.render(props)
+    assert.equal(composer(tree).props.parentId, 1)
+    toggle(tree).props.onClick()
+    tree = hook.render(props)
+    assert.equal(body(tree).props.hidden, true)
+    assert.equal(toggle(tree).props.children, '채팅 열기')
+    assert.equal(toggle(tree).props['aria-expanded'], false)
+    assert.equal(composer(tree).props.parentId, 1)
+    toggle(tree).props.onClick()
+    tree = hook.render(props)
+    assert.equal(body(tree).props.hidden, false)
+    assert.equal(toggle(tree).props.children, '채팅 닫기')
+    assert.equal(composer(tree).props.parentId, 1)
+    hook.unmount()
   }
 })
