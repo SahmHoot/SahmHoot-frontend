@@ -5,7 +5,7 @@ import { newQuestion } from '../../questionset/editorDraft'
 import type { EditorQuestion } from '../../questionset/editorDraft'
 import { useQuestionSetEditor } from '../../questionset/useQuestionSetEditor'
 import { EditorRecoveryPanel } from '../../questionset/EditorRecoveryPanel'
-import { getRoomTab, roomSetSaved } from '../roomSetReturn'
+import { getRoomTab, roomSetCancelled, roomSetSaved } from '../roomSetReturn'
 import { labels } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
@@ -19,7 +19,7 @@ export function QuizSetEditor() {
     setFinished(result)
     const room = getRoomTab(roomPath)
     if (!room) return
-    if (result === 'saved') room.postMessage(roomSetSaved, window.location.origin)
+    room.postMessage(result === 'saved' ? roomSetSaved : roomSetCancelled, window.location.origin)
     room.focus()
     window.close()
   }

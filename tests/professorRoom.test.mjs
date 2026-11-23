@@ -3,12 +3,13 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
+import * as jsxRuntime from 'react/jsx-runtime'
 
-function load(path, dependencies = {}) {
-  const source = readFileSync(new URL(`../src/features/${path}.ts`, import.meta.url), 'utf8')
-  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } })
+function load(path, dependencies = {}, { extension = 'ts', globals = {} } = {}) {
+  const source = readFileSync(new URL(`../src/features/${path}.${extension}`, import.meta.url), 'utf8')
+  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } })
   const exports = {}
-  runInNewContext(outputText, { exports, structuredClone, require: (id) => {
+  runInNewContext(outputText, { exports, structuredClone, ...globals, require: (id) => {
     if (!(id in dependencies)) throw new Error(`Unexpected dependency: ${id}`)
     return dependencies[id]
   } })
@@ -194,3 +195,64 @@ test('세트 저장 알림이 상세 조회와 겹쳐도 목록을 갱신하고 
   assert.deepEqual(h.selected, [])
   assert.equal(reads, 2)
 })
+
+
+for (const result of ['saved', 'cancelled']) {
+  test(`편집기 ${result} 완료 알림을 받으면 열린 안내 탭 대신 새 편집기를 연다`, () => {
+    const messages = load('professor/roomSetReturn')
+    const origin = 'https://sahmhoot.local'
+    const tabs = []
+    let receive
+    let cleanup
+    let reloads = 0
+    const window = {
+      location: { origin },
+      addEventListener(type, listener) { assert.equal(type, 'message'); receive = listener },
+      removeEventListener(type, listener) { assert.equal(type, 'message'); assert.equal(listener, receive); receive = undefined },
+      open() {
+        const tab = { closed: false, focuses: 0, focus() { this.focuses++ }, location: { replace() {} } }
+        tabs.push(tab)
+        return tab
+      },
+    }
+    const { RoomSetPicker } = load('professor/components/RoomSetPicker', {
+      react: {
+        useEffect(effect) { cleanup = effect() },
+        useRef: (current) => ({ current }),
+        useState: (value) => [value, () => {}],
+      },
+      'react/jsx-runtime': jsxRuntime,
+      'react-router-dom': { useHref: (url) => url },
+      '../../../shared/components/Button': { Button: 'button' },
+      '../../auth/AuthProvider': { useAuth: () => ({ user: { id: 1 } }) },
+      '../../questionset/useRoomQuestionSets': {
+        useRoomQuestionSets: () => ({ sets: [], reload() { reloads++ } }),
+      },
+      '../roomStorage': { writeRoomId() {} },
+      '../roomSetReturn': messages,
+    }, { extension: 'tsx', globals: { window } })
+    const picker = RoomSetPicker({ onStart() {} })
+    const controls = picker.props.children.at(-1)
+    const open = controls.props.children[0].props.onClick
+    open()
+    const [first] = tabs
+    const data = result === 'saved' ? messages.roomSetSaved : messages.roomSetCancelled
+    receive({ origin: 'https://another.example', source: first, data })
+    receive({ origin, source: {}, data: messages.roomSetCancelled })
+    open()
+    assert.deepEqual(tabs, [first])
+    assert.equal(first.focuses, 1)
+
+    receive({ origin, source: first, data })
+    assert.equal(reloads, result === 'saved' ? 1 : 0)
+    open()
+    assert.equal(tabs.length, 2)
+    assert.equal(first.closed, false)
+    receive({ origin, source: first, data })
+    open()
+    assert.equal(tabs.length, 2)
+    assert.equal(tabs[1].focuses, 1)
+    cleanup()
+    assert.equal(receive, undefined)
+  })
+}

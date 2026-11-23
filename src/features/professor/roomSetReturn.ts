@@ -1,4 +1,5 @@
 export const roomSetSaved = 'sahmhoot:room-set-saved'
+export const roomSetCancelled = 'sahmhoot:room-set-cancelled'
 
 export function getRoomTab(roomPath: string): Window | null {
   const tab: Window | null = window.opener

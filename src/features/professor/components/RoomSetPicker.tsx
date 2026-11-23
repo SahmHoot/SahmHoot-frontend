@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { useRoomQuestionSets } from '../../questionset/useRoomQuestionSets'
 import type { RoomQuestionSet } from '../dashboard-types'
 import { writeRoomId } from '../roomStorage'
-import { roomSetSaved } from '../roomSetReturn'
+import { roomSetCancelled, roomSetSaved } from '../roomSetReturn'
 
 export function RoomSetPicker({ onStart }: { onStart: (set: RoomQuestionSet) => void }) {
   const { user } = useAuth()
@@ -17,11 +17,15 @@ export function RoomSetPicker({ onStart }: { onStart: (set: RoomQuestionSet) => 
   const ready = !loading && !selecting && !detailError && selected?.id === selectedId ? selected : null
 
   useEffect(() => {
-    const refreshAfterSave = (event: MessageEvent) => {
-      if (event.origin === window.location.origin && event.data === roomSetSaved) reload()
+    const handleEditorCompletion = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin ||
+        (event.data !== roomSetSaved && event.data !== roomSetCancelled)) return
+
+      if (event.source === editorTab.current) editorTab.current = null
+      if (event.data === roomSetSaved) reload()
     }
-    window.addEventListener('message', refreshAfterSave)
-    return () => window.removeEventListener('message', refreshAfterSave)
+    window.addEventListener('message', handleEditorCompletion)
+    return () => window.removeEventListener('message', handleEditorCompletion)
   }, [reload])
 
   const openEditor = () => {
