@@ -6,7 +6,6 @@ import type { Room } from '../dashboard-types'
 import type { RoomChat } from '../../chat/useRoomChat'
 import type { FloatingReaction } from '../../room/reactions'
 import { choiceLabel, percentagesOf } from '../dashboard-quiz'
-import { Icon } from '../components/Icon'
 import { JoinCode } from '../components/JoinCode'
 import { Chat } from '../components/Chat'
 
@@ -50,16 +49,24 @@ export function QuizResults({
               보는 중
             </p>
             <div className="quiz-results__actions">
-              <button type="button" onClick={onClose} className="quiz-results__close-button">
-                결과 닫기
+              <button
+                type="button"
+                disabled={index === 0}
+                onClick={() => setIndex(index - 1)}
+                className="quiz-results__prev-button"
+              >
+                이전 문항 결과
               </button>
               <button
                 type="button"
-                onClick={() => setIndex((index + 1) % questions.length)}
+                disabled={index === questions.length - 1}
+                onClick={() => setIndex(index + 1)}
                 className="quiz-results__next-button"
               >
-                {index === questions.length - 1 ? '첫 문항 결과' : '다음 문항 결과'}
-                <Icon screen="results" name="imgFrame3" />
+                다음 문항 결과
+              </button>
+              <button type="button" onClick={onClose} className="quiz-results__close-button">
+                결과 닫기
               </button>
             </div>
           </div>
