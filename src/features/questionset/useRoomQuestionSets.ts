@@ -41,7 +41,9 @@ export function useRoomQuestionSets(onSelect: (set: RoomQuestionSet) => void) {
   }, [attempt])
 
   const reload = useCallback(() => {
-    if (inFlight.current) return
+    generation.current++
+    inFlight.current = false
+    setSelecting(false)
     setSets([])
     setLoading(true)
     setListError('')
@@ -63,8 +65,10 @@ export function useRoomQuestionSets(onSelect: (set: RoomQuestionSet) => void) {
     } catch (error: unknown) {
       if (active.active && request === generation.current) setDetailError(errorMessage(error))
     } finally {
-      inFlight.current = false
-      if (active.active && request === generation.current) setSelecting(false)
+      if (active.active && request === generation.current) {
+        inFlight.current = false
+        setSelecting(false)
+      }
     }
   }
   return { sets, loading, listError, detailError, selectedId, selecting, reload, select }

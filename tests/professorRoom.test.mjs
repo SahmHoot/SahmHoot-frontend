@@ -172,3 +172,25 @@ test('요약에는 문항이 있어도 상세가 빈 세트이면 시작하지 �
   assert.equal(picker.selected.length, 0)
   assert.match(picker.render().detailError, /문항이 없습니다/)
 })
+
+
+test('세트 저장 알림이 상세 조회와 겹쳐도 목록을 갱신하고 늦은 선택 응답을 무시한다', async () => {
+  let resolveDetail
+  let reads = 0
+  const newSet = { ...summaries[0], id: 64 }
+  const h = harness({
+    getMyQuestionSets: async () => ++reads === 1 ? summaries : [...summaries, newSet],
+    getQuestionSet: () => new Promise((resolve) => { resolveDetail = resolve }),
+  })
+  const picker = await h.settle()
+  const selecting = picker.select(63)
+  h.render().reload()
+  const reloaded = await h.settle()
+  assert.deepEqual(reloaded.sets.map((item) => item.id), [63, 64])
+  assert.equal(reloaded.selectedId, null)
+  assert.equal(reloaded.selecting, false)
+  resolveDetail(detail())
+  await selecting
+  assert.deepEqual(h.selected, [])
+  assert.equal(reads, 2)
+})

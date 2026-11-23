@@ -1,34 +1,40 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useHref } from 'react-router-dom'
 import { Button } from '../../../shared/components/Button'
 import { useAuth } from '../../auth/AuthProvider'
 import { useRoomQuestionSets } from '../../questionset/useRoomQuestionSets'
 import type { RoomQuestionSet } from '../dashboard-types'
 import { writeRoomId } from '../roomStorage'
+import { roomSetSaved } from '../roomSetReturn'
 
 export function RoomSetPicker({ onStart }: { onStart: (set: RoomQuestionSet) => void }) {
   const { user } = useAuth()
   const [selected, setSelected] = useState<RoomQuestionSet | null>(null)
   const [editorError, setEditorError] = useState(false)
+  const editorTab = useRef<Window | null>(null)
   const editorUrl = useHref('/professor/sets/new?from=room')
   const { sets, loading, listError, detailError, selectedId, selecting, reload, select } = useRoomQuestionSets(setSelected)
   const ready = !loading && !selecting && !detailError && selected?.id === selectedId ? selected : null
 
   useEffect(() => {
-    const refreshOnReturn = () => {
-      if (document.visibilityState === 'visible') reload()
+    const refreshAfterSave = (event: MessageEvent) => {
+      if (event.origin === window.location.origin && event.data === roomSetSaved) reload()
     }
-    document.addEventListener('visibilitychange', refreshOnReturn)
-    return () => document.removeEventListener('visibilitychange', refreshOnReturn)
+    window.addEventListener('message', refreshAfterSave)
+    return () => window.removeEventListener('message', refreshAfterSave)
   }, [reload])
 
   const openEditor = () => {
     // 새 탭은 로그인 세션을 상속하지만 수업에는 연결하지 않는다.
+    if (editorTab.current && !editorTab.current.closed) {
+      editorTab.current.focus()
+      return
+    }
     const editor = window.open('', '_blank')
     setEditorError(!editor)
     if (editor) {
       writeRoomId(user?.id, null, editor)
-      editor.opener = null
+      editorTab.current = editor
       editor.location.replace(editorUrl)
     }
   }
