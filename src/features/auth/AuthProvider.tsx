@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { setUnauthorizedHandler, tokenStorage } from '../../shared/api/client'
 import { configureStomp, disconnectStomp } from '../../shared/stomp'
 import { fetchMe, isUnauthorized } from './api'
 import type { AuthResponse, AuthUser } from './api'
-import { clearSession, getAccessToken, saveReturnTo, saveSession } from './session'
+import { clearReturnTo, clearSession, getAccessToken, getPreviewRole, saveReturnTo, saveSession } from './session'
 
 /**
  * loading: 저장된 토큰을 /users/me로 확인하는 중.
@@ -16,6 +16,12 @@ export type AuthStatus = 'loading' | 'signedIn' | 'signedOut' | 'unavailable'
 interface AuthContextValue {
   status: AuthStatus
   user: AuthUser | null
+  /**
+   * 이 탭에서 signOut을 부른 화면의 라우터 위치 키. 다른 위치로 이동이 반영되면 null이 된다.
+   * 라우터 이동은 전환(startTransition)으로 늦게 반영되어 로그아웃 상태가 먼저 그 화면에 그려지므로,
+   * RequireAuth가 그 화면을 돌아갈 주소로 저장하지 않게 하는 데 쓴다(#127).
+   */
+  signedOutKey: string | null
   signIn: (response: AuthResponse, keepLoggedIn: boolean) => void
   signOut: () => void
   /** unavailable일 때 저장된 토큰을 /users/me로 다시 확인한다. */
@@ -27,10 +33,26 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 /** 로그인 상태를 앱 전체에 제공한다. BrowserRouter 안에 둔다. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [status, setStatus] = useState<AuthStatus>(() => (getAccessToken() ? 'loading' : 'signedOut'))
   // 확인 중에 토큰이 바뀌면 값을 올려 이전 /users/me 응답을 버린다.
   const [validation, setValidation] = useState(0)
+  const [signedOutKey, setSignedOutKey] = useState<string | null>(null)
+  // signOut이 직전 상태와 화면에 그려진 위치를 본다. 로그인해 있던 탭에 남은 돌아갈 주소는 이전 계정 것이다.
+  const statusRef = useRef(status)
+  const locationKeyRef = useRef(location.key)
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
+  useEffect(() => {
+    locationKeyRef.current = location.key
+  }, [location.key])
+
+  // 다른 위치(로그인 화면, 뒤로 가기로 연 QR 주소 등)로 이동이 반영되면 푼다. 그 뒤로는 평소대로 저장한다(RM-09).
+  useEffect(() => {
+    if (signedOutKey !== null && location.key !== signedOutKey) setSignedOutKey(null)
+  }, [signedOutKey, location.key])
 
   const expire = useCallback(() => {
     clearSession()
@@ -56,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setValidation((n) => n + 1)
       return
     }
+    // 다른 탭의 로그아웃은 직접 로그아웃과 401 만료를 구분할 수 없어, 만료처럼 현재 화면을 돌아갈 주소로 남긴다(RM-09).
     void disconnectStomp()
     setStatus('signedOut')
     navigate('/login', { replace: true })
@@ -89,10 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(() => {
+    // 로그인(또는 화면 미리보기) 중이었다면 남아 있던 돌아갈 주소도 버린다. 다음 계정이 이전 계정의 QR 주소로
+    // 가지 않게 한다. 로그인하지 않은 채 비밀번호를 재설정한 경우에는 QR로 들어와 저장한 주소를 남긴다(RM-09).
+    if (statusRef.current !== 'signedOut' || getPreviewRole()) clearReturnTo()
     clearSession()
     void disconnectStomp()
     setUser(null)
     setStatus('signedOut')
+    setSignedOutKey(locationKeyRef.current)
     navigate('/login', { replace: true })
   }, [navigate])
 
@@ -102,8 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ status, user, signIn, signOut, retry }),
-    [status, user, signIn, signOut, retry],
+    () => ({ status, user, signedOutKey, signIn, signOut, retry }),
+    [status, user, signedOutKey, signIn, signOut, retry],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
