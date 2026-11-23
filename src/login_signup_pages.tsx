@@ -4,7 +4,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import authBg from "./assets/auth/auth-bg.jpg";
 import logoMark from "./assets/auth/logo-mark.svg";
 import mascotBook from "./assets/auth/mascot-book.webp";
@@ -13,8 +13,10 @@ import type { AuthRole as Role } from "./features/auth/auth.types";
 import { AuthPreviewPanel } from "./features/auth/components/AuthPreviewPanel";
 import { EmailVerificationFields } from "./features/auth/components/EmailVerificationFields";
 import { PasswordInput } from "./features/auth/components/PasswordInput";
+import { passwordProblem } from "./features/auth/password";
 import { useAuth } from "./features/auth/AuthProvider";
 import { useLogin } from "./features/auth/hooks/useLogin";
+import { usePasswordReset } from "./features/auth/hooks/usePasswordReset";
 import { homePath } from "./features/auth/session";
 import { useSignup } from "./features/auth/hooks/useSignup";
 import "./login_signup_pages.css";
@@ -88,6 +90,9 @@ export function LoginPage() {
 
   const { user } = useAuth();
   const preview = useLogin({ email, password, keepLoggedIn });
+  // 비밀번호 찾기(#108)를 마치고 돌아오면 안내를 보여 준다.
+  const incoming = useLocation().state as { notice?: unknown } | null;
+  const notice = typeof incoming?.notice === "string" ? incoming.notice : "";
 
   if (user && !preview.signedInHere) return <Navigate to={homePath(user.role)} replace />;
 
@@ -139,6 +144,9 @@ export function LoginPage() {
             />
             로그인 상태 유지 (QR 접속 시 자동 로그인)
           </label>
+          <Link to="/password-reset" className="auth-find-link">
+            비밀번호를 잊으셨나요?
+          </Link>
         </div>
 
         <button
@@ -148,7 +156,9 @@ export function LoginPage() {
         >
           로그인
         </button>
-        {preview.feedback && <p role="status" className="auth-status">{preview.feedback}</p>}
+        {(preview.feedback || notice) && (
+          <p role="status" className="auth-status">{preview.feedback || notice}</p>
+        )}
 
         <div className="auth-divider">
           <span className="auth-divider-line" />
@@ -164,8 +174,6 @@ export function LoginPage() {
   );
 }
 
-/** 서버 SignupRequest와 같은 규칙: 영문·숫자를 포함해 8~64자. */
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/;
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "PROFESSOR", label: "교수" },
@@ -183,14 +191,15 @@ export function SignupPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
-  const passwordInvalid = password !== "" && !PASSWORD_RULE.test(password);
+  const passwordError = password === "" ? null : passwordProblem(password);
+  const passwordInvalid = passwordError !== null;
 
   const passwordMismatch =
     passwordConfirm !== "" && password !== passwordConfirm;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!PASSWORD_RULE.test(password)) {
+    if (passwordProblem(password)) {
       passwordRef.current?.focus();
       return;
     }
@@ -251,7 +260,7 @@ export function SignupPage() {
             />
             {passwordInvalid && (
               <p id="pw-error" role="alert" className="auth-error">
-                비밀번호는 영문·숫자를 포함해 8~64자입니다.
+                {passwordError}
               </p>
             )}
           </AuthField>
@@ -311,6 +320,109 @@ export function SignupPage() {
         </button>
         {signup.feedback && <p role="status" className="auth-status">{signup.feedback}</p>}
         <Link to="/login" className="auth-login-link">이미 계정이 있으신가요? 로그인</Link>
+      </form>
+    </AuthLayout>
+  );
+}
+
+/** 비밀번호 찾기(#108). 가입과 같은 이메일 인증 뒤 새 비밀번호를 저장하고 로그인 화면으로 돌아간다. */
+export function PasswordResetPage() {
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const reset = usePasswordReset({ email, code, onCodeSent: () => setCode("") });
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordConfirmRef = useRef<HTMLInputElement>(null);
+
+  const passwordError = password === "" ? null : passwordProblem(password);
+  const passwordInvalid = passwordError !== null;
+  const passwordMismatch = passwordConfirm !== "" && password !== passwordConfirm;
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (passwordProblem(password)) {
+      passwordRef.current?.focus();
+      return;
+    }
+    if (password !== passwordConfirm) {
+      passwordConfirmRef.current?.focus();
+      return;
+    }
+    reset.finish(password);
+  };
+
+  return (
+    <AuthLayout
+      mascot={{
+        src: mascotSu,
+        alt: "SU 티셔츠를 입은 SahmHoot 마스코트",
+        width: 501,
+        height: 539,
+      }}
+      contentClassName="auth-content--signup"
+    >
+      <form onSubmit={handleSubmit} className="auth-form">
+        <h1 className="auth-title">비밀번호 찾기</h1>
+        <p className="auth-subtitle">가입한 이메일로 인증한 뒤 새 비밀번호를 정합니다.</p>
+
+        <div className="auth-fields">
+          <EmailVerificationFields
+            email={email}
+            code={code}
+            onEmailChange={(value) => {
+              setEmail(value);
+              setCode("");
+              reset.resetVerification();
+            }}
+            onCodeChange={setCode}
+            verification={reset}
+          />
+
+          <AuthField label="새 비밀번호" htmlFor="password">
+            <PasswordInput
+              ref={passwordRef}
+              id="password"
+              autoComplete="new-password"
+              value={password}
+              onValueChange={setPassword}
+              aria-invalid={passwordInvalid}
+              aria-describedby={passwordInvalid ? "pw-error" : undefined}
+            />
+            {passwordInvalid && (
+              <p id="pw-error" role="alert" className="auth-error">
+                {passwordError}
+              </p>
+            )}
+          </AuthField>
+
+          <AuthField label="새 비밀번호 확인" htmlFor="pw2">
+            <PasswordInput
+              ref={passwordConfirmRef}
+              id="pw2"
+              autoComplete="new-password"
+              value={passwordConfirm}
+              onValueChange={setPasswordConfirm}
+              aria-invalid={passwordMismatch}
+              aria-describedby={passwordMismatch ? "pw2-error" : undefined}
+            />
+            {passwordMismatch && (
+              <p id="pw2-error" role="alert" className="auth-error">
+                비밀번호가 일치하지 않습니다.
+              </p>
+            )}
+          </AuthField>
+        </div>
+
+        <button
+          type="submit"
+          className="auth-btn-primary auth-btn-primary--signup"
+          disabled={reset.pending}
+        >
+          비밀번호 변경
+        </button>
+        {reset.feedback && <p role="status" className="auth-status">{reset.feedback}</p>}
+        <Link to="/login" className="auth-login-link">로그인으로 돌아가기</Link>
       </form>
     </AuthLayout>
   );

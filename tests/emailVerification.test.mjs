@@ -188,3 +188,133 @@ test('이메일을 바꾸면 인증이 풀리고 reset은 안내·재요청 대�
   assert.equal(state.codeMessage, null)
   assert.equal(state.cooldown, 0)
 })
+
+test('비밀번호 찾기 API는 정해진 경로로 보낸다', async () => {
+  const calls = []
+  const api = load('api', { axios: { isAxiosError: () => false }, '../../shared/api/client': { apiClient: {
+    post: async (path, body) => { calls.push([path, plain(body)]); return { data: null } },
+  } } })
+  await api.sendPasswordResetCode('a@test.ac.kr')
+  await api.confirmPasswordResetCode('a@test.ac.kr', '123456')
+  await api.resetPassword('a@test.ac.kr', '123456', 'newpass456')
+  assert.deepEqual(calls, [
+    ['/auth/password-reset/email-verifications', { email: 'a@test.ac.kr' }],
+    ['/auth/password-reset/email-verifications/confirm', { email: 'a@test.ac.kr', code: '123456' }],
+    ['/auth/password-reset', { email: 'a@test.ac.kr', code: '123456', newPassword: 'newpass456' }],
+  ])
+})
+
+function setupReset({ reset = async () => {} } = {}) {
+  const slots = []
+  let index = 0
+  const navigation = []
+  const calls = []
+  let cleanup
+  const react = {
+    useState(initial) {
+      const slot = index++
+      if (!slots[slot]) {
+        const cell = { value: initial }
+        cell.set = (value) => { cell.value = typeof value === 'function' ? value(cell.value) : value }
+        slots[slot] = cell
+      }
+      return [slots[slot].value, slots[slot].set]
+    },
+    useRef(initial) { const slot = index++; return slots[slot] ??= { current: initial } },
+    useEffect(effect) { const slot = index++; if (!slots[slot]) { slots[slot] = {}; cleanup = effect() } },
+  }
+  let verified = true
+  let signedIn = false
+  let signOuts = 0
+  const verificationCalls = []
+  const { usePasswordReset, PASSWORD_RESET_NOTICE } = load('hooks/usePasswordReset', {
+    react,
+    'react-router-dom': { useNavigate: () => (...args) => navigation.push(plain(args)) },
+    '../AuthProvider': { useAuth: () => ({ user: signedIn ? { id: 1 } : null, signOut: () => { signOuts += 1 } }) },
+    '../api': {
+      toApiError: (error) => error,
+      sendPasswordResetCode: async () => {}, confirmPasswordResetCode: async () => {},
+      resetPassword: async (...args) => { calls.push(args); await reset() },
+    },
+    './useEmailVerification': {
+      verificationErrorMessage: (error) => `안내:${error.code}`,
+      useEmailVerification: () => ({
+        verified, normalizedEmail: 'a@test.ac.kr', pending: false,
+        reset: () => { verificationCalls.push('reset') },
+      }),
+    },
+  })
+  const render = () => { index = 0; return usePasswordReset({ email: 'A@test.ac.kr', code: '123456', onCodeSent: () => {} }) }
+  render()
+  return {
+    render, navigation, calls, verificationCalls, PASSWORD_RESET_NOTICE,
+    unverify() { verified = false },
+    unmount() { cleanup?.() },
+    signIn() { signedIn = true },
+    signOuts: () => signOuts,
+    async settle() { for (let i = 0; i < 3; i++) await new Promise(setImmediate); return render() },
+  }
+}
+
+test('인증 전에는 비밀번호를 바꾸지 않는다', () => {
+  const hook = setupReset()
+  hook.unverify()
+  hook.render().finish('newpass456')
+  assert.deepEqual(hook.calls, [])
+  assert.match(hook.render().feedback, /인증을 먼저/)
+})
+
+test('변경 성공하면 로그인 화면으로 안내와 함께 이동한다', async () => {
+  const hook = setupReset()
+  hook.render().finish('newpass456')
+  await hook.settle()
+  assert.deepEqual(hook.calls, [['a@test.ac.kr', '123456', 'newpass456']])
+  assert.deepEqual(hook.navigation, [['/login', { replace: true, state: { notice: hook.PASSWORD_RESET_NOTICE } }]])
+})
+
+test('인증이 무효가 되면 인증을 다시 받게 하고 안내를 보여 준다', async () => {
+  const hook = setupReset({ reset: async () => { throw { code: 'EMAIL_NOT_VERIFIED' } } })
+  hook.render().finish('newpass456')
+  const state = await hook.settle()
+  assert.deepEqual(hook.verificationCalls, ['reset'])
+  assert.equal(state.feedback, '안내:EMAIL_NOT_VERIFIED')
+  assert.equal(state.pending, false)
+  assert.deepEqual(hook.navigation, [])
+})
+
+test('변경 응답 전에 화면을 떠났으면 로그인 화면으로 옮기지 않는다', async () => {
+  let finish
+  const hook = setupReset({ reset: () => new Promise((done) => { finish = done }) })
+  hook.render().finish('newpass456')
+  hook.unmount()
+  finish()
+  await hook.settle()
+  assert.deepEqual(hook.navigation, [])
+})
+
+
+test('비밀번호를 바꾸면 이 기기의 로그인을 지우고 로그인 화면으로 간다', async () => {
+  const hook = setupReset()
+  hook.render().finish('newpass456')
+  await hook.settle()
+  assert.equal(hook.signOuts(), 1)
+  assert.deepEqual(hook.navigation, [['/login', { replace: true, state: { notice: hook.PASSWORD_RESET_NOTICE } }]])
+})
+
+
+test('비밀번호 규칙: 서버처럼 이모지를 한 글자로 세고, 72바이트를 넘으면 막는다', () => {
+  const { passwordProblem } = load('password', {}, { TextEncoder })
+  assert.equal(passwordProblem('abcd1234'), null)
+  assert.match(passwordProblem('abcdefgh'), /8~64자/)
+  assert.match(passwordProblem('a1😀😀😀😀😀'), /8~64자/, '7글자')
+  assert.equal(passwordProblem('a1😀😀😀😀😀😀'), null, '8글자, 26바이트')
+  assert.equal(passwordProblem('a1' + '😀'.repeat(17)), null, '70바이트')
+  assert.match(passwordProblem('a1' + '😀'.repeat(18)), /72바이트/, '74바이트')
+})
+
+test('회원가입·비밀번호 찾기 화면 모두 같은 비밀번호 검사를 쓴다', () => {
+  const source = readFileSync(new URL('../src/login_signup_pages.tsx', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /PASSWORD_RULE/)
+  assert.equal(source.match(/if \(passwordProblem\(password\)\)/g)?.length, 2, '두 화면의 제출 처리')
+  assert.equal(source.match(/passwordProblem\(password\);/g)?.length, 2, '두 화면의 입력 중 안내')
+})

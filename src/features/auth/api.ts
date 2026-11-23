@@ -56,6 +56,21 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return data
 }
 
+/** 비밀번호 찾기 코드 발송(#108). 가입되지 않은 이메일도 같은 204가 온다. */
+export async function sendPasswordResetCode(email: string): Promise<void> {
+  await apiClient.post('/auth/password-reset/email-verifications', { email })
+}
+
+/** 비밀번호 찾기 코드 확인(#108). 성공 204. */
+export async function confirmPasswordResetCode(email: string, code: string): Promise<void> {
+  await apiClient.post('/auth/password-reset/email-verifications/confirm', { email, code })
+}
+
+/** 인증을 마친 코드로 새 비밀번호 저장(#108). 성공 204. 로그인은 새 비밀번호로 다시 한다. */
+export async function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+  await apiClient.post('/auth/password-reset', { email, code, newPassword })
+}
+
 /** 05 #5 내 정보. 토큰이 없거나 틀리면 401 UNAUTHORIZED. */
 export async function fetchMe(): Promise<AuthUser> {
   const { data } = await apiClient.get<AuthUser>('/users/me')
