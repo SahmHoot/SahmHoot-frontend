@@ -9,6 +9,7 @@
   --auth-line: #dbe2ee;
   --auth-divider: #e3e8f2;
   --auth-danger: #e5484d;
+  --auth-success: #17803d;
   --auth-shadow-sm:
     0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 4px 16px -4px rgba(30, 58, 138, 0.08);
   --auth-shadow-brand: 0 8px 20px -6px rgba(37, 56, 210, 0.45);
@@ -94,7 +95,7 @@
   height: 32px;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--auth-brand);
   box-shadow: var(--auth-shadow-brand);
 }
@@ -188,7 +189,7 @@
   margin: 0;
   padding: 0 16px;
   border: 1px solid var(--auth-line);
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: #fff;
   box-shadow: var(--auth-shadow-sm);
   color: var(--auth-ink);
@@ -260,7 +261,7 @@
   justify-content: center;
   padding: 0 24px;
   border: 0;
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: var(--auth-brand);
   box-shadow: var(--auth-shadow-brand);
   color: #fff;
@@ -289,7 +290,7 @@
   justify-content: center;
   padding: 0 16px;
   border: 0;
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: var(--auth-brand-soft);
   box-shadow: var(--auth-shadow-sm);
   color: #fff;
@@ -308,7 +309,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--auth-divider);
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: #fff;
   box-shadow:
     0 2px 4px 0 rgba(15, 23, 42, 0.04),
@@ -350,7 +351,7 @@
   height: 44px;
   align-items: center;
   justify-content: center;
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: rgba(101, 119, 240, 0.85);
   box-shadow: var(--auth-shadow-sm);
   color: rgba(255, 255, 255, 0.9);
@@ -410,7 +411,12 @@
 
 .auth-status { margin-top: 16px !important; color: var(--auth-brand); font-size: 12px; line-height: 1.7; }
 .auth-login-link { margin-top: 20px; color: var(--auth-brand); text-align: center; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
-.auth-btn-side:disabled { opacity: .5; cursor: not-allowed; }
+/* 비활성 버튼은 회색으로 구분한다(#109). 대기 중·재요청 대기·인증 완료 모두 같은 모양이다. */
+.auth-btn-side:disabled { background: #c3c9d6; box-shadow: none; cursor: not-allowed; }
+/* 인증이 끝난 이메일·인증 코드 칸(#109) */
+.auth-input:disabled { background: #eef1f6; box-shadow: none; color: var(--auth-muted); cursor: not-allowed; }
+/* 입력칸 바로 아래 성공 안내(#109). 오류는 .auth-error */
+.auth-success { margin: 0; padding-left: 4px; color: var(--auth-success); font-size: 12px; line-height: 16px; }
 
 @media (min-width: 1024px) {
   .auth-aside {
@@ -427,3 +433,6 @@
     padding-left: 48px;
   }
 }
+
+/* 로그인 화면 비밀번호 찾기 진입(#108) */
+.auth-find-link { align-self: flex-end; color: var(--auth-muted); font-size: 12px; line-height: 16px; text-decoration: underline; text-underline-offset: 3px; }

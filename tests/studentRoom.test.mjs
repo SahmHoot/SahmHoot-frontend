@@ -76,3 +76,13 @@ test('학생 화면은 고정 공지를 고정한 순서로 모두 보여 주고
   assert.ok(markup.includes('student-chat__notices'))
   assert.ok(!renderRoom(classroom([])).includes('student-chat__notices'))
 })
+
+test('교수 표시는 박스 대신 이름 뒤 텍스트로 표시하고 참가자에게는 붙이지 않는다', () => {
+  const markup = renderRoom(classroom([], [
+    message(2, '교수 안내', { nickname: '김교원', isOwner: true }),
+    message(1, '교수 계정의 참가자 질문', { nickname: '참가교원', senderParticipantId: 9 }),
+  ]))
+  assert.match(markup, /class="student-chat__author">김교원 교수<\/p>/)
+  assert.match(markup, /class="student-chat__author">참가교원 \(나\)<\/p>/)
+  assert.doesNotMatch(markup, /student-chat__author[^>]*>[^<]*<span/)
+})

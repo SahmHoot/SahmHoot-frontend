@@ -10,7 +10,7 @@ import { AuthUnavailable } from './AuthUnavailable'
  * 서버에 닿지 못해 로그인을 확인하지 못했으면 로그인 화면 대신 연결 안내를 보여 준다.
  */
 export function RequireAuth({ role, children }: { role?: AuthRole; children: ReactNode }) {
-  const { status, user } = useAuth()
+  const { status, user, signedOutKey } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') return null
@@ -19,7 +19,8 @@ export function RequireAuth({ role, children }: { role?: AuthRole; children: Rea
     const previewRole = getPreviewRole()
     if (previewRole && (!role || previewRole === role)) return children
     if (previewRole) return <Navigate to={homePath(previewRole)} replace />
-    saveReturnTo(location.pathname + location.search)
+    // 로그아웃한 화면은 돌아갈 주소로 남기지 않는다. 다음 로그인은 그 계정의 역할별 홈으로 간다(#127).
+    if (!signedOutKey || location.key !== signedOutKey) saveReturnTo(location.pathname + location.search)
     return <Navigate to="/login" replace />
   }
   if (role && user && user.role !== role) return <Navigate to={homePath(user.role)} replace />

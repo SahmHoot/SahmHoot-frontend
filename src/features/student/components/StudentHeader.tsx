@@ -35,7 +35,7 @@ export default function StudentHeader({ title, nickname, onLeave }: Props) {
           <details className="student-header__account">
             <summary><span className="student-header__avatar">{Array.from(displayName)[0]}</span>{displayName}<img src={chevron} alt="" /></summary>
             <div className="student-header__account-menu">
-              <p>{displayName}</p><span className="student-muted">학생 계정</span>
+              <p>{displayName}</p><span className="student-muted">{user?.role === 'PROFESSOR' ? '교수 계정' : '학생 계정'}</span>
               <button type="button" onClick={signOut}>로그아웃</button>
             </div>
           </details>

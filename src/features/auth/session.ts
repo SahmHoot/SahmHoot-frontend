@@ -49,6 +49,13 @@ export function takeReturnTo(): string | null {
   }
 }
 
+/** 보관한 주소를 버린다. 로그인해 있던 계정이 로그아웃할 때 쓴다(#127). */
+export function clearReturnTo(): void {
+  try {
+    sessionStorage.removeItem(RETURN_TO_KEY)
+  } catch { /* 지울 값이 없다. */ }
+}
+
 /** 개발 서버의 화면 미리보기(계정 없이 역할만 골라 이동). 운영 빌드에서는 항상 null. */
 export function getPreviewRole(): AuthRole | null {
   if (!import.meta.env.DEV) return null

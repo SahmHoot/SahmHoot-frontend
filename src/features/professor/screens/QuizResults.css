@@ -9,7 +9,7 @@
 }
 
 .quiz-results__question-panel {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card p-7;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card p-7;
 }
 
 .quiz-results__question-toolbar {
@@ -29,11 +29,11 @@
 }
 
 .quiz-results__close-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft h-10 px-4 text-sm;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft h-10 px-4 text-sm;
 }
 
 .quiz-results__next-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] h-10 px-4 text-sm;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] h-10 px-4 text-sm;
 }
 
 .quiz-results__question-title {
@@ -41,7 +41,7 @@
 }
 
 .quiz-results__distribution-panel {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card space-y-5 p-7;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card space-y-5 p-7;
 }
 
 .quiz-results__summary-row {
@@ -89,11 +89,11 @@
 }
 
 .quiz-results__meter {
-  @apply col-start-1 row-start-2 h-7 overflow-hidden rounded-xl bg-[#f4f6fb] xl:col-auto xl:row-auto;
+  @apply col-start-1 row-start-2 h-7 overflow-hidden rounded-sm bg-[#f4f6fb] xl:col-auto xl:row-auto;
 }
 
 .quiz-results__meter-fill {
-  @apply h-full rounded-xl;
+  @apply h-full rounded-sm;
 }
 
 .quiz-results__meter-fill[data-correct='false'][data-wrong-index='0'] {

@@ -20,7 +20,7 @@ function load(file, dependencies, globals = {}) {
   return exports
 }
 
-function setup(code = '', overrides = {}) {
+function setup(code = '', overrides = {}, random = Math.random) {
   const slots = []
   let index = 0
   let effects = []
@@ -62,7 +62,7 @@ function setup(code = '', overrides = {}) {
       getRoomByCode: async (value) => { calls.push(['lookup', value]); return found },
       joinRoom: async (...args) => { calls.push(['join', ...args]); return joined }, ...overrides,
     },
-  })
+  }, { Math: Object.assign(Object.create(Math), { random }) })
   const render = () => { index = 0; effects = []; const value = useStudentJoin(code); effects.forEach((effect) => effect()); return value }
   render()
   return { render, navigation, sessions, calls,
@@ -117,6 +117,57 @@ test('나갔던 수업의 기존 닉네임을 채우고 재입장 응답의 이�
   state.setNickname('다른이름')
   await hook.render().enter()
   assert.equal(hook.sessions[0].nickname, joined.nickname)
+})
+
+test('추천 닉네임 400가지는 중복 없이 모두 2~10자·허용 문자·금지어 검증을 통과한다', async () => {
+  let random = 0
+  let joins = 0
+  const hook = setup('123456', { joinRoom: async (_, nickname) => { joins++; return { ...joined, nickname } } }, () => random)
+  await hook.settle()
+  const names = new Set()
+  for (let i = 0; i < 400; i++) {
+    hook.render().setNickname('직접지은이름')
+    random = (i + 0.5) / 400
+    hook.render().randomizeNickname()
+    const state = hook.render()
+    assert.ok(state.nickname.length >= 2 && state.nickname.length <= 10)
+    assert.match(state.nickname, /^[가-힣]+ [가-힣]+$/)
+    assert.ok(!state.nickname.includes('교수'))
+    names.add(state.nickname)
+  }
+  assert.equal(names.size, 400)
+  assert.equal(new Set([...names].map(name => name.split(' ')[0])).size, 20)
+  assert.equal(new Set([...names].map(name => name.split(' ')[1])).size, 20)
+  assert.equal(joins, 0)
+  assert.ok(names.has('궁금한 고슴도치'))
+  hook.render().setNickname('궁금한 고슴도치')
+  await hook.render().enter()
+  assert.equal(joins, 1)
+  assert.equal(hook.render().error, '')
+  assert.equal(hook.sessions.length, 1)
+  assert.equal(hook.sessions[0].nickname, '궁금한 고슴도치')
+  hook.unmount()
+})
+
+test('같은 난수가 반복되어도 직전 이름과 다르게 추천하고 직접 입력·오류 뒤에도 변경한다', async () => {
+  const hook = setup('123456', {}, () => 0)
+  await hook.settle()
+  for (const random of [0, 1 - Number.EPSILON]) {
+    const repeated = setup('123456', {}, () => random)
+    await repeated.settle()
+    for (let i = 0; i < 5; i++) {
+      const previous = repeated.render().nickname
+      repeated.render().randomizeNickname()
+      assert.notEqual(repeated.render().nickname, previous)
+    }
+    repeated.unmount()
+  }
+  hook.render().setNickname('직접지은이름')
+  hook.render().setError('이미 사용 중인 닉네임입니다.')
+  hook.render().randomizeNickname()
+  assert.notEqual(hook.render().nickname, '직접지은이름')
+  assert.equal(hook.render().error, '')
+  hook.unmount()
 })
 
 test('방 주인은 참가자로 입장하지 않고 교수 홈으로 이동한다', async () => {

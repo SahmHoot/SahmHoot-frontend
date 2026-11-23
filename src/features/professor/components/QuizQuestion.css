@@ -1,7 +1,7 @@
 @reference "../../../globals.css";
 
 .quiz-question {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card overflow-hidden;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card overflow-hidden;
 }
 
 .quiz-question__timer.quiz-question__timer--urgent { background: #fff0f0; color: #c9333b; }
@@ -15,11 +15,11 @@
 }
 
 .quiz-question__timer {
-  @apply inline-flex min-h-9 flex-wrap items-center gap-2 rounded-full bg-hoot-selected px-3 py-2 text-sm font-semibold text-hoot-primary;
+  @apply inline-flex min-h-9 flex-wrap items-center gap-2 rounded-(--radius-full) bg-hoot-selected px-3 py-2 text-sm font-semibold text-hoot-primary;
 }
 
 .quiz-question__stop-button {
-  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 h-10 px-4 text-sm;
+  @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 h-10 px-4 text-sm;
 }
 
 .quiz-question__title {
@@ -31,7 +31,7 @@
 }
 
 .quiz-question__option {
-  @apply flex min-h-[58px] items-center gap-3 rounded-[16.8px] border border-hoot-border bg-[#f4f6fb]/40 px-4 py-3;
+  @apply flex min-h-[58px] items-center gap-3 rounded-md border border-hoot-border bg-[#f4f6fb]/40 px-4 py-3;
 }
 
 .quiz-question__option-text {
@@ -43,7 +43,7 @@
 }
 
 .quiz-question__responses {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card space-y-3 p-6;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card space-y-3 p-6;
 }
 
 .quiz-question__response-header {
@@ -67,11 +67,11 @@
 }
 
 .quiz-question__response-track {
-  @apply h-2.5 overflow-hidden rounded-full bg-[#f4f6fb];
+  @apply h-2.5 overflow-hidden rounded-(--radius-full) bg-[#f4f6fb];
 }
 
 .quiz-question__response-fill {
-  @apply h-full rounded-full bg-gradient-to-r from-hoot-primary to-[#06aee8];
+  @apply h-full rounded-(--radius-full) bg-gradient-to-r from-hoot-primary to-[#06aee8];
 }
 
 .quiz-question__response-help {

@@ -9,7 +9,7 @@
 }
 
 .create-room__form {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card p-7;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card p-7;
 }
 
 .create-room__label {
@@ -17,7 +17,7 @@
 }
 
 .create-room__name-input {
-  @apply h-12 w-full rounded-[16.8px] border border-[#dbe2ee] px-4 text-sm shadow-hoot-card text-center;
+  @apply h-12 w-full rounded-md border border-[#dbe2ee] px-4 text-sm shadow-hoot-card text-center;
 }
 
 .create-room__actions {
@@ -25,12 +25,12 @@
 }
 
 .create-room__create-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] min-w-40;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] min-w-40;
 }
 
 .create-room__open-button,
 .create-room__cancel-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .create-room__feedback {

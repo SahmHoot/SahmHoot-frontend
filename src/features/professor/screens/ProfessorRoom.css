@@ -17,7 +17,7 @@
 }
 
 .professor-room__set-panel {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card space-y-1 p-5;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card space-y-1 p-5;
 }
 
 .professor-room__set-title {
@@ -29,7 +29,7 @@
 }
 
 .professor-room__start-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-3 w-full;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-3 w-full;
 }
 
 .professor-room__set-help {
@@ -69,7 +69,7 @@
 }
 
 .professor-room__set-choice {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left enabled:hover:border-hoot-primary disabled:cursor-not-allowed disabled:opacity-50;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left enabled:hover:border-hoot-primary disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .professor-room__set-choice[aria-disabled="true"] {
@@ -106,9 +106,9 @@
 }
 
 .professor-room__continue-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .professor-room__stop-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
 }
