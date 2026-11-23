@@ -1,7 +1,7 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { Button, type ButtonProps } from './Button';
 
-const logoMark = new URL('./header-assets/logo-mark.svg', import.meta.url).href;
+const logoMark = new URL('../../assets/brand/sahmhoot-symbol.svg', import.meta.url).href;
 const chevronDown = new URL('./header-assets/chevron-down.svg', import.meta.url).href;
 const participantsIcon = new URL('./header-assets/participants.svg', import.meta.url).href;
 
@@ -117,9 +117,7 @@ export function Header({
   const isClassroom = variant === 'classroom';
   const isSticky = sticky ?? !isAuth;
   const mark = (
-    <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center rounded-(--radius-full) bg-brand shadow-brand ${isClassroom ? 'size-7' : 'size-8'}`}>
-      <img src={logoMark} alt="" className="block size-4 rotate-45" />
-    </span>
+    <img src={logoMark} alt="" aria-hidden="true" className={`block shrink-0 ${isClassroom ? 'size-7' : 'size-8'}`} />
   );
   const brand = (
     <>

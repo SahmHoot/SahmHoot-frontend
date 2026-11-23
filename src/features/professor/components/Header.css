@@ -29,7 +29,7 @@
 }
 
 .professor-header__logo {
-  @apply flex items-center justify-center rounded-(--radius-full) bg-hoot-primary shadow-hoot-primary;
+  @apply flex shrink-0;
 }
 
 .professor-header__logo.professor-header__logo--live {
@@ -41,7 +41,7 @@
 }
 
 .professor-header__logo-icon {
-  @apply rotate-45;
+  @apply size-full;
 }
 
 .professor-header__brand-name {

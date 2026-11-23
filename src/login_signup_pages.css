@@ -95,9 +95,6 @@
   height: 32px;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--auth-brand);
-  box-shadow: var(--auth-shadow-brand);
 }
 
 .auth-logo-text {
