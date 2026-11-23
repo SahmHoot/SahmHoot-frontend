@@ -5,9 +5,9 @@
 }
 
 .professor-layout__skip-link {
-  @apply sr-only z-50 rounded-xl bg-white p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2;
+  @apply sr-only z-50 rounded-md bg-white p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2;
 }
 
 .professor-layout__feedback {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card fixed right-5 bottom-5 z-40 max-w-[calc(100%-40px)] px-5 py-4 text-sm;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card fixed right-5 bottom-5 z-40 max-w-[calc(100%-40px)] px-5 py-4 text-sm;
 }

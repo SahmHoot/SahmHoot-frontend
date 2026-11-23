@@ -1,7 +1,7 @@
 @reference "../../../globals.css";
 
 .professor-reactions {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card space-y-4 p-5;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card space-y-4 p-5;
 }
 
 .professor-reactions__header {
@@ -29,11 +29,11 @@
 }
 
 .professor-reactions__track {
-  @apply h-3 flex-1 overflow-hidden rounded-full bg-[#f4f6fb];
+  @apply h-3 flex-1 overflow-hidden rounded-(--radius-full) bg-[#f4f6fb];
 }
 
 .professor-reactions__fill {
-  @apply block h-full rounded-full;
+  @apply block h-full rounded-(--radius-full);
 }
 
 .professor-reactions__fill.professor-reactions__fill--question {

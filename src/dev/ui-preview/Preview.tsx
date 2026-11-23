@@ -29,7 +29,7 @@ function HeaderExample({ label, children }: { label: string; children: ReactNode
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold">{label}</h3>
-      <div className="max-h-48 overflow-auto rounded-compact border border-border bg-page">
+      <div className="max-h-48 overflow-auto rounded-lg border border-border bg-page">
         {children}
         <p className="min-h-64 p-4 text-xs leading-5 text-text-muted">
           이 영역을 스크롤하면 sticky 동작을 확인할 수 있습니다. 액션은 미리보기 알림만 표시합니다.
@@ -55,10 +55,10 @@ function Gallery() {
         </p>
         <nav aria-label="컴포넌트 바로가기" className="flex flex-wrap gap-3 text-sm text-brand">
           {['buttons', 'inputs', 'cards', 'badges', 'headers'].map(id => (
-            <a key={id} href={`#${id}`} className="rounded-compact underline focus-visible:outline-2 focus-visible:outline-brand">{id}</a>
+            <a key={id} href={`#${id}`} className="rounded-sm underline focus-visible:outline-2 focus-visible:outline-brand">{id}</a>
           ))}
         </nav>
-        <p role="status" className="min-h-10 rounded-compact bg-surface p-3 text-xs text-text-muted">{notice}</p>
+        <p role="status" className="min-h-10 rounded-md bg-surface p-3 text-xs text-text-muted">{notice}</p>
       </div>
 
       <Section id="buttons" title="Button · variant / size / 상태">
@@ -115,7 +115,7 @@ function Gallery() {
                     aria-label="비밀번호 표시"
                     aria-pressed={showPassword}
                     onClick={() => setShowPassword(value => !value)}
-                    className="rounded-compact text-xs text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                    className="rounded-sm text-xs text-brand focus-visible:outline-2 focus-visible:outline-brand"
                   >{showPassword ? '숨김' : '표시'}</button>
                 }
               />
@@ -208,7 +208,7 @@ export function Preview() {
       <fieldset className="flex flex-wrap items-center gap-3">
         <legend className="mb-2 text-sm text-text-muted">실제 iframe 뷰포트 폭</legend>
         {(['auto', 390, 768, 1440] as const).map(value => (
-          <label key={value} className="inline-flex cursor-pointer items-center gap-2 rounded-compact border border-border bg-surface px-3 py-2 text-sm">
+          <label key={value} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm">
             <input type="radio" name="viewport" value={value} checked={width === value} onChange={() => setWidth(value)} />
             {value === 'auto' ? '자동' : `${value}px`}
           </label>
@@ -219,7 +219,7 @@ export function Preview() {
         모바일 기기 에뮬레이션은 브라우저 개발자 도구를 사용하세요.
       </p>
       <a href={canvasUrl.href} target="_blank" rel="noreferrer" className="inline-block text-sm text-brand underline">미리보기만 새 탭에서 열기</a>
-      <div className="overflow-x-auto rounded-compact border border-border bg-border p-2">
+      <div className="overflow-x-auto rounded-lg border border-border bg-border p-2">
         <iframe
           title="SahmHoot 컴포넌트 상태 및 반응형 미리보기"
           src={canvasUrl.href}

@@ -13,7 +13,7 @@
 }
 
 .quiz-set-list__create-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8];
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8];
 }
 
 .quiz-set-list__sets {
@@ -21,7 +21,7 @@
 }
 
 .quiz-set-list__table-header {
-  @apply hidden h-10 grid-cols-[2fr_1.5fr_1fr_132px] items-center rounded-[16.8px] bg-hoot-soft px-6 text-xs font-medium text-hoot-primary md:grid;
+  @apply hidden h-10 grid-cols-[2fr_1.5fr_1fr_132px] items-center rounded-md bg-hoot-soft px-6 text-xs font-medium text-hoot-primary md:grid;
 }
 
 .quiz-set-list__action-label {
@@ -29,7 +29,7 @@
 }
 
 .quiz-set-list__set-row {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card grid grid-cols-[1fr_auto] items-center gap-3 px-6 py-5 md:grid-cols-[2fr_1.5fr_1fr_132px] md:gap-0;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card grid grid-cols-[1fr_auto] items-center gap-3 px-6 py-5 md:grid-cols-[2fr_1.5fr_1fr_132px] md:gap-0;
 }
 
 .quiz-set-list__set-name {
@@ -45,7 +45,7 @@
 }
 
 .quiz-set-list__visibility {
-  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  @apply inline-flex items-center gap-1 rounded-sm px-2.5 py-1 text-xs font-medium;
 }
 
 .quiz-set-list__visibility.quiz-set-list__visibility--public {
@@ -61,15 +61,15 @@
 }
 
 .quiz-set-list__edit-button {
-  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .quiz-set-list__delete-button {
-  @apply inline-flex h-8 items-center justify-center rounded-xl border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .quiz-set-list__retry-button {
-  @apply mt-3 rounded-xl border border-hoot-border px-3 py-2 font-semibold text-hoot-primary hover:bg-hoot-soft;
+  @apply mt-3 rounded-md border border-hoot-border px-3 py-2 font-semibold text-hoot-primary hover:bg-hoot-soft;
 }
 
 .quiz-set-list__error {
@@ -77,7 +77,7 @@
 }
 
 .quiz-set-list__empty {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card p-8 text-sm text-hoot-muted;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card p-8 text-sm text-hoot-muted;
 }
 
 .quiz-set-list__help {
@@ -93,9 +93,9 @@
 }
 
 .quiz-set-list__cancel-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .quiz-set-list__confirm-delete-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-danger text-white;
 }

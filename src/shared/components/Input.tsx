@@ -21,7 +21,7 @@ export function Input({
       {...props}
       aria-invalid={invalid ? true : ariaInvalid}
       className={`
-        block h-11 w-full min-w-0 rounded-control border bg-surface px-4 py-[11px]
+        block h-11 w-full min-w-0 rounded-md border bg-surface px-4 py-[11px]
         font-sans text-sm font-normal leading-[normal] text-text shadow-surface
         placeholder:text-text-muted/70 transition-colors duration-150 motion-reduce:transition-none
         focus-visible:outline-2 focus-visible:outline-offset-2

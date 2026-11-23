@@ -95,7 +95,7 @@
   height: 32px;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--auth-brand);
   box-shadow: var(--auth-shadow-brand);
 }
@@ -189,7 +189,7 @@
   margin: 0;
   padding: 0 16px;
   border: 1px solid var(--auth-line);
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: #fff;
   box-shadow: var(--auth-shadow-sm);
   color: var(--auth-ink);
@@ -261,7 +261,7 @@
   justify-content: center;
   padding: 0 24px;
   border: 0;
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: var(--auth-brand);
   box-shadow: var(--auth-shadow-brand);
   color: #fff;
@@ -290,7 +290,7 @@
   justify-content: center;
   padding: 0 16px;
   border: 0;
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: var(--auth-brand-soft);
   box-shadow: var(--auth-shadow-sm);
   color: #fff;
@@ -309,7 +309,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--auth-divider);
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: #fff;
   box-shadow:
     0 2px 4px 0 rgba(15, 23, 42, 0.04),
@@ -351,7 +351,7 @@
   height: 44px;
   align-items: center;
   justify-content: center;
-  border-radius: 16.8px;
+  border-radius: var(--radius-md);
   background: rgba(101, 119, 240, 0.85);
   box-shadow: var(--auth-shadow-sm);
   color: rgba(255, 255, 255, 0.9);

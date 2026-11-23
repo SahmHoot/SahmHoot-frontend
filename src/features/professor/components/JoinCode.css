@@ -1,7 +1,7 @@
 @reference "../../../globals.css";
 
 .join-code {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card flex items-center;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card flex items-center;
 }
 
 .join-code.join-code--waiting {
@@ -17,7 +17,7 @@
 }
 
 .join-code__qr {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card shrink-0;
+  @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card shrink-0;
 }
 
 .join-code__qr.join-code__qr--large {
@@ -25,7 +25,7 @@
 }
 
 .join-code__qr.join-code__qr--compact {
-  @apply rounded-[16.8px] p-2;
+  @apply rounded-md p-2;
 }
 
 .join-code__details {
@@ -33,7 +33,7 @@
 }
 
 .join-code__status {
-  @apply mb-2 w-fit rounded-[9.6px] bg-white px-2 py-0.5 text-[11px] text-hoot-muted shadow-hoot-card;
+  @apply mb-2 w-fit rounded-sm bg-white px-2 py-0.5 text-[11px] text-hoot-muted shadow-hoot-card;
 }
 
 .join-code__label {
