@@ -36,12 +36,48 @@
   @apply pt-1 text-[11px] leading-[16.5px] text-hoot-muted;
 }
 
+.professor-modal:has(> .professor-room__set-choices) {
+  @apply overflow-hidden;
+}
+
+.professor-modal[open]:has(> .professor-room__set-choices) {
+  @apply flex flex-col;
+}
+
+.professor-modal:has(> .professor-room__set-choices) > .professor-modal__header {
+  @apply shrink-0;
+}
+
 .professor-room__set-choices {
-  @apply space-y-3;
+  @apply flex min-h-0 flex-col;
+}
+
+.professor-room__set-list {
+  @apply min-h-0 space-y-3 overflow-y-auto overscroll-contain p-1.5;
+}
+
+.professor-room__set-feedback {
+  @apply mt-3 shrink-0 space-y-2 text-sm;
+}
+
+.professor-room__set-actions {
+  @apply mt-3 flex shrink-0 flex-wrap gap-2 border-t border-hoot-border pt-3;
+}
+
+.professor-room__set-actions > :last-child {
+  @apply w-full;
 }
 
 .professor-room__set-choice {
-  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left hover:border-hoot-primary disabled:cursor-not-allowed disabled:opacity-50;
+  @apply rounded-[21.6px] border border-hoot-border bg-white shadow-hoot-card w-full p-4 text-left enabled:hover:border-hoot-primary disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.professor-room__set-choice[aria-disabled="true"] {
+  @apply cursor-not-allowed opacity-50;
+}
+
+.professor-room__set-choice[aria-pressed="true"] {
+  @apply border-hoot-primary bg-hoot-soft ring-1 ring-inset ring-hoot-primary;
 }
 
 .professor-room__set-error {
@@ -50,6 +86,7 @@
 
 .professor-room__choice-name {
   @apply block text-sm font-bold;
+  overflow-wrap: anywhere;
 }
 
 .professor-room__choice-meta {
@@ -58,10 +95,6 @@
 
 .professor-room__empty-message {
   @apply text-sm text-hoot-muted;
-}
-
-.professor-room__create-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-[16.8px] px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-hoot-primary text-white shadow-hoot-primary hover:bg-[#1a28a8] mt-4;
 }
 
 .professor-room__stop-message {

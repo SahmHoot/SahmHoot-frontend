@@ -22,7 +22,7 @@ export function RoomSetPicker({ onStart }: { onStart: (set: RoomQuestionSet) => 
         (event.data !== roomSetSaved && event.data !== roomSetCancelled)) return
 
       if (event.source === editorTab.current) editorTab.current = null
-      if (event.data === roomSetSaved) reload()
+      reload()
     }
     window.addEventListener('message', handleEditorCompletion)
     return () => window.removeEventListener('message', handleEditorCompletion)
@@ -44,32 +44,38 @@ export function RoomSetPicker({ onStart }: { onStart: (set: RoomQuestionSet) => 
   }
 
   return (
-    <div className="professor-room__set-choices" aria-busy={loading || selecting}>
-      {loading && <p role="status" className="professor-room__empty-message">문제 세트 목록을 불러오는 중입니다.</p>}
-      {listError && <p role="alert" className="professor-room__set-error">{listError}</p>}
-      {!loading && !listError && sets.map((item) => (
-        <button key={item.id} type="button" className="professor-room__set-choice aria-pressed:border-hoot-primary aria-pressed:bg-hoot-soft"
-          aria-pressed={ready?.id === item.id}
-          disabled={selecting || item.questionCount === 0} onClick={() => void select(item.id)}>
-          <span className="professor-room__choice-name">{item.title}</span>
-          <span className="professor-room__choice-meta">
-            {item.questionCount}문항 · {item.visibility === 'PUBLIC' ? '공개' : '비공개'}
-            {item.questionCount === 0 ? ' · 문항을 추가해 주세요' : ' · 문항별 제한시간 적용'}
-          </span>
-        </button>
-      ))}
-      {selecting && <p role="status">문항 상세를 불러오는 중입니다.</p>}
-      {detailError && <p role="alert" className="professor-room__set-error">{detailError}</p>}
-      {detailError && selectedId !== null && (
-        <button type="button" className="professor-room__continue-button" disabled={selecting} onClick={() => void select(selectedId)}>선택 다시 시도</button>
+    <div className="professor-room__set-choices">
+      <div className="professor-room__set-list">
+        {loading && <p role="status" className="professor-room__empty-message">문제 세트 목록을 불러오는 중입니다.</p>}
+        {listError && <p role="alert" className="professor-room__set-error">{listError}</p>}
+        {!loading && !listError && sets.map((item) => (
+          <button key={item.id} type="button" className="professor-room__set-choice"
+            aria-pressed={ready?.id === item.id}
+            aria-disabled={selecting || undefined} disabled={item.questionCount === 0} onClick={() => void select(item.id)}>
+            <span className="professor-room__choice-name">{item.title}</span>
+            <span className="professor-room__choice-meta">
+              {item.questionCount}문항 · {item.visibility === 'PUBLIC' ? '공개' : '비공개'}
+              {item.questionCount === 0 ? ' · 문항을 추가해 주세요' : ' · 문항별 제한시간 적용'}
+            </span>
+          </button>
+        ))}
+        {!loading && !listError && sets.length === 0 && <p className="professor-room__empty-message">저장된 문제 세트가 없습니다.</p>}
+      </div>
+      {(selecting || detailError || editorError) && (
+        <div className="professor-room__set-feedback">
+          {selecting && <p role="status">문항 상세를 불러오는 중입니다.</p>}
+          {detailError && <p role="alert" className="professor-room__set-error">{detailError}</p>}
+          {detailError && selectedId !== null && (
+            <button type="button" className="professor-room__continue-button" disabled={selecting} onClick={() => void select(selectedId)}>선택 다시 시도</button>
+          )}
+          {editorError && <p role="alert" className="professor-room__set-error">편집기 탭을 열지 못했습니다. 팝업을 허용한 뒤 다시 시도해 주세요.</p>}
+        </div>
       )}
-      {!loading && !listError && sets.length === 0 && <p className="professor-room__empty-message">저장된 문제 세트가 없습니다.</p>}
-      {editorError && <p role="alert" className="professor-room__set-error">편집기 탭을 열지 못했습니다. 팝업을 허용한 뒤 다시 시도해 주세요.</p>}
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={openEditor} aria-label="+ 새 문제 세트 만들기 (새 탭)">+ 새 문제 세트 만들기</Button>
-        {!loading && <Button variant="outline" disabled={selecting} onClick={reload}>
+      <div className="professor-room__set-actions">
+        <Button variant="outline" onClick={openEditor} aria-label="새 문제 세트 만들기 (새 탭)">+ 새 문제 세트 만들기</Button>
+        <Button variant="outline" disabled={loading || selecting} onClick={reload}>
           {listError ? '다시 불러오기' : '목록 새로고침'}
-        </Button>}
+        </Button>
         <Button disabled={!ready} onClick={() => { if (ready) onStart(ready) }}>선택한 세트로 퀴즈 시작</Button>
       </div>
     </div>

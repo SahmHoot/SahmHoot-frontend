@@ -244,7 +244,7 @@ for (const result of ['saved', 'cancelled']) {
     assert.equal(first.focuses, 1)
 
     receive({ origin, source: first, data })
-    assert.equal(reloads, result === 'saved' ? 1 : 0)
+    assert.equal(reloads, 2)
     open()
     assert.equal(tabs.length, 2)
     assert.equal(first.closed, false)
