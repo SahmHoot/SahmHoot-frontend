@@ -2,8 +2,8 @@
 .student-header__inner { height: 64px; max-width: 1135px; margin: auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .student-header--room .student-header__inner { max-width: 1255px; }
 .student-header__brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
-.student-header__logo { width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--student-primary); display: grid; place-items: center; box-shadow: var(--student-primary-shadow); flex-shrink: 0; }
-.student-header__logo img { transform: rotate(45deg); }
+.student-header__logo { width: 32px; height: 32px; display: grid; flex-shrink: 0; }
+.student-header__logo img { width: 100%; height: 100%; }
 .student-header--room .student-header__logo { width: 28px; height: 28px; }
 .student-header__wordmark { font-size: 18px; font-weight: 900; letter-spacing: -.45px; white-space: nowrap; }
 .student-header__wordmark b { font-family: 'Poppins', sans-serif; color: var(--student-primary); font-weight: 700; }

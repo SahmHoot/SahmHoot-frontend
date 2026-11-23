@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import logo from '../../../assets/student/brand-mark.svg'
+import logo from '../../../assets/brand/sahmhoot-symbol.svg'
 import chevron from '../../../assets/student/chevron-down.svg'
 import { useAuth } from '../../auth/AuthProvider'
 import './StudentHeader.css'

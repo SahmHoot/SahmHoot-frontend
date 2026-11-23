@@ -6,7 +6,7 @@ import {
 } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import authBg from "./assets/auth/auth-bg.jpg";
-import logoMark from "./assets/auth/logo-mark.svg";
+import logoMark from "./assets/brand/sahmhoot-symbol.svg";
 import mascotBook from "./assets/auth/mascot-book.webp";
 import mascotSu from "./assets/auth/mascot-su.webp";
 import type { AuthRole as Role } from "./features/auth/auth.types";
@@ -49,7 +49,7 @@ function AuthLayout({
         <header className="auth-header">
           <Link to="/" className="auth-logo">
             <span className="auth-logo-mark">
-              <img src={logoMark} alt="" width={23} height={23} />
+              <img src={logoMark} alt="" width={32} height={32} />
             </span>
             <span className="auth-logo-text">SahmHoot</span>
           </Link>

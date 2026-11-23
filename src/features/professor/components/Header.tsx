@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import type { DesignScreen, Room } from "../dashboard-types";
 import type { ProfessorQuizState } from "../../quiz/professorQuizReducer";
 import { Icon } from "./Icon";
+import logoMark from "../../../assets/brand/sahmhoot-symbol.svg";
 import { Status } from "./Status";
 
 export function Header({
@@ -48,7 +49,7 @@ export function Header({
             <span
               className={`professor-header__logo ${live ? "professor-header__logo--live" : "professor-header__logo--default"}`}
             >
-              <Icon screen={screen} className="professor-header__logo-icon" />
+              <img src={logoMark} alt="" className="professor-header__logo-icon" />
             </span>
             {!live && (
               <span className="professor-header__brand-name">
