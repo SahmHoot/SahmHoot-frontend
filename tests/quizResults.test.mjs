@@ -6,7 +6,7 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import ts from 'typescript'
 
 // 결과 화면은 문항 번호 하나만 상태로 가지므로, useState 한 칸으로 렌더와 클릭을 흉내 낸다.
-function screen(result) {
+function screen(result, onClose = () => {}) {
   const state = { value: undefined }
   const react = { useState: (initial) => {
     state.value ??= initial
@@ -19,7 +19,7 @@ function screen(result) {
     react, 'react/jsx-runtime': jsxRuntime, './QuizResults.css': {},
     'react-router-dom': { Navigate: () => null },
     '../dashboard-quiz': { choiceLabel: () => '', percentagesOf: (counts) => counts.map(() => 0) },
-    '../components/Icon': { Icon: () => null }, '../components/JoinCode': { JoinCode: () => null },
+    '../components/JoinCode': { JoinCode: () => null },
     '../components/Chat': { Chat: () => null },
   }
   runInNewContext(outputText, { exports, require: (id) => {
@@ -27,7 +27,7 @@ function screen(result) {
     return modules[id]
   } })
   const render = () => exports.QuizResults({ room: { active: true }, result, chat: {}, reactions: [], notices: [],
-    onUnpin() {}, onClose() {} })
+    onUnpin() {}, onClose })
   const buttons = () => {
     const found = {}
     const walk = (node) => {
@@ -84,4 +84,14 @@ test('문항이 하나뿐이면 이전·다음 모두 막는다', () => {
   const view = screen({ questions: [question(1)] })
   assert.equal(view.buttons()[prev].disabled, true)
   assert.equal(view.buttons()[next].disabled, true)
+})
+
+test('버튼은 이전·다음·결과 닫기 순서이고 결과 닫기는 언제나 누를 수 있다', () => {
+  let closed = 0
+  const view = screen({ questions: [question(1), question(2)] }, () => { closed++ })
+  assert.deepEqual(Object.keys(view.buttons()), [prev, next, 'quiz-results__close-button'])
+  view.buttons()[next].onClick()
+  assert.equal(view.buttons()['quiz-results__close-button'].disabled, undefined)
+  view.buttons()['quiz-results__close-button'].onClick()
+  assert.equal(closed, 1)
 })
