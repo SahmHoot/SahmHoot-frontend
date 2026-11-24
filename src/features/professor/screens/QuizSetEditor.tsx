@@ -44,9 +44,10 @@ export function QuizSetEditor() {
   /** 저장을 막은 검증 오류가 이 칸(문항 칸이면 지금 보고 있는 문항)의 것이면 그 문구를 돌려준다. */
   const fieldError = (field: DraftField) =>
     invalid?.field === field && (!invalid.questionId || invalid.questionId === question?.id) ? invalid.message : undefined
-  const errorText = (field: DraftField, id: string) => {
+  const errorText = (field: DraftField, id: string, inline = false) => {
     const message = fieldError(field)
-    return message && <p id={id} role="alert" className="quiz-set-editor__field-error">{message}</p>
+    return message && <span id={id} role="alert"
+      className={`quiz-set-editor__field-error ${inline ? 'quiz-set-editor__field-error--inline' : ''}`}>{message}</span>
   }
   const blocked = saving || Boolean(recovery && !recoveryResolved)
   const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload || creationUnknown ? null : serverDraft}
@@ -290,7 +291,9 @@ export function QuizSetEditor() {
           </div>
           <fieldset className="quiz-set-editor__options-fieldset"
             aria-describedby={fieldError('options') ? 'question-options-error' : undefined}>
-            <legend className="quiz-set-editor__options-legend">선택지 (정답 라디오로 선택)</legend>
+            <legend className="quiz-set-editor__options-legend">
+              선택지 (정답 라디오로 선택){errorText('options', 'question-options-error', true)}
+            </legend>
             <div className="quiz-set-editor__options">
               {question.options.map((option, index) => (
                 <div
@@ -326,7 +329,6 @@ export function QuizSetEditor() {
                 </div>
               ))}
             </div>
-            {errorText('options', 'question-options-error')}
           </fieldset>
         </section> : <section className="quiz-set-editor__question-panel"><p>문항이 없습니다. 문항 추가 버튼으로 새 문항을 작성해 주세요.</p></section>}
       </div>

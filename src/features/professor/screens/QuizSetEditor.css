@@ -71,7 +71,12 @@
 }
 
 .quiz-set-editor__field-error {
-  @apply mt-1.5 text-sm text-hoot-danger;
+  @apply mt-1.5 block text-sm text-hoot-danger;
+}
+
+/* 선택지 제목 옆에 붙여, 아래로 길게 이어지는 선택지 목록 끝에 묻히지 않게 한다. */
+.quiz-set-editor__field-error.quiz-set-editor__field-error--inline {
+  @apply mt-0 ml-2 inline;
 }
 
 .quiz-set-editor__duration-label {
