@@ -638,21 +638,44 @@ test('검증 오류는 어느 칸의 문제인지와 문항을 함께 알려 준
   assert.doesNotMatch(model.validateDraft(draft([second])).message, /번 문항/)
 })
 
-test('저장을 막은 뒤에는 입력할 때마다 다시 검증해 고친 칸의 오류를 바로 지운다', async () => {
+test('검증은 고칠 곳을 화면 위쪽부터 모두 돌려주고 첫 번째가 validateDraft 결과와 같다', () => {
+  const first = { ...question(), seconds: 5, prompt: '' }
+  const second = { ...question(), options: ['O', 'O'] }
+  const value = { ...draft([first, question(), second]), name: '', description: '가'.repeat(1001) }
+  const all = Array.from(model.validateDraftAll(value), (item) => [item.field, item.questionId ?? null])
+  assert.deepEqual(all, [['name', null], ['description', null], ['seconds', first.id], ['prompt', first.id], ['options', second.id]])
+  assert.deepEqual(model.validateDraft(value), model.validateDraftAll(value)[0])
+  assert.deepEqual([...model.validateDraftAll(draft())], [])
+})
+
+test('저장을 막으면 고칠 곳을 모두 보여 주고, 입력할 때마다 다시 검증해 고친 곳은 바로 지운다', async () => {
   const { client, calls } = fakeApi()
   const editor = editorHarness('new', client)
   const blank = { ...question(), prompt: '' }
+  const fields = () => Array.from(editor.render().fieldErrors, (item) => [item.field, item.questionId ?? null])
   editor.render().setDraft({ ...draft([question(), blank]), name: '' })
-  assert.equal(editor.render().invalid, null)
+  assert.deepEqual(fields(), [])
   await editor.render().save()
-  assert.equal(editor.render().invalid.field, 'name')
+  assert.deepEqual(fields(), [['name', null], ['prompt', blank.id]])
+  assert.equal(editor.render().selectedId, blank.id)
   assert.equal(editor.render().error, '')
   editor.render().setDraft((current) => ({ ...current, name: '세트' }))
-  assert.equal(editor.render().invalid.field, 'prompt')
-  assert.equal(editor.render().invalid.questionId, blank.id)
+  assert.deepEqual(fields(), [['prompt', blank.id]])
   editor.render().setDraft((current) => ({ ...current, questions: current.questions.map((item) => ({ ...item, prompt: '문제' })) }))
-  assert.equal(editor.render().invalid, null)
+  assert.deepEqual(fields(), [])
   assert.equal(calls.length, 0)
+})
+
+test('저장을 막을 때 보고 있는 문항에도 고칠 곳이 있으면 그 문항에 머문다', async () => {
+  const { client } = fakeApi()
+  const editor = editorHarness('new', client)
+  const first = { ...question(), prompt: '' }
+  const second = { ...question(), prompt: '' }
+  editor.render().setDraft(draft([first, second]))
+  editor.render().setSelectedId(second.id)
+  await editor.render().save()
+  assert.equal(editor.render().selectedId, second.id)
+  assert.deepEqual(Array.from(editor.render().fieldErrors, (item) => item.questionId), [first.id, second.id])
 })
 
 test('1001자 설명은 훅에서도 API 호출 전에 거절하고 입력을 유지한다', async () => {
@@ -663,8 +686,8 @@ test('1001자 설명은 훅에서도 API 호출 전에 거절하고 입력을 �
   editor.render().setDraft({ ...draft(), description: '가'.repeat(1001) })
   await editor.render().save()
   assert.equal(editor.render().draft.description.length, 1001)
-  assert.equal(editor.render().invalid.field, 'description')
-  assert.match(editor.render().invalid.message, /1000/)
+  assert.equal(editor.render().fieldErrors[0].field, 'description')
+  assert.match(editor.render().fieldErrors[0].message, /1000/)
   assert.equal(reads, 0)
   assert.equal(calls.length, 0)
 })

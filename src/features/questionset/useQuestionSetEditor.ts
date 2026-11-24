@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import * as api from './api'
-import { fromDetail, newQuestion, validateDraft } from './editorDraft'
+import { fromDetail, newQuestion, validateDraftAll } from './editorDraft'
 import type { EditorDraft } from './editorDraft'
 import { saveEditor } from './saveEditor'
 import type { SaveCheckpoint } from './saveEditor'
@@ -27,9 +27,9 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(initialRecovery?.creationUnknown
     ? '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.' : '')
-  // 저장을 한 번 막은 뒤부터 입력할 때마다 다시 검증해, 고치면 해당 칸의 오류가 바로 사라진다.
+  // 저장을 한 번 막은 뒤부터 입력할 때마다 모두 다시 검증해, 고친 칸의 오류는 바로 사라진다.
   const [showInvalid, setShowInvalid] = useState(false)
-  const invalid = showInvalid ? validateDraft(draft) : null
+  const fieldErrors = showInvalid ? validateDraftAll(draft) : []
   const [needsReload, setNeedsReload] = useState(existing)
   const [creationUnknown, setCreationUnknown] = useState(initialRecovery?.creationUnknown ?? false)
   const [recovery, setRecovery] = useState<EditorRecovery | null>(initialRecovery)
@@ -85,11 +85,13 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
 
   const save = async () => {
     if (working.current || needsReload || creationUnknown || (recovery && !recoveryResolved)) return
-    const found = validateDraft(draft)
-    setShowInvalid(Boolean(found))
-    if (found) {
+    const found = validateDraftAll(draft)
+    setShowInvalid(found.length > 0)
+    if (found.length > 0) {
       setError('')
-      if (found.questionId) setSelectedId(found.questionId)
+      // 보고 있는 문항에 고칠 곳이 없으면 고칠 곳이 있는 첫 문항을 연다.
+      const questionIds = found.flatMap((item) => item.questionId ? [item.questionId] : [])
+      if (questionIds.length > 0 && !questionIds.includes(selectedId)) setSelectedId(questionIds[0])
       return
     }
     working.current = true
@@ -248,6 +250,6 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setRecoveryResolved(true)
     forgetInterruptedDraft(user?.id, routeId)
   }
-  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, invalid, privateOnly,
+  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet }
 }
