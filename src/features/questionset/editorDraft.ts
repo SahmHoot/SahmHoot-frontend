@@ -50,9 +50,13 @@ export function questionRequest(question: EditorQuestion): QuestionWriteRequest 
 export type DraftField = 'name' | 'description' | 'seconds' | 'prompt' | 'options'
 export interface DraftError { field: DraftField; message: string; questionId?: string }
 
+export function isInvalidOption(option: string): boolean {
+  return !option.trim() || option.length > 200
+}
+
 function optionsMessage(question: EditorQuestion): string | null {
   if (question.options.length !== (question.type === 'ox' ? 2 : 4)
-    || question.options.some((option) => !option.trim() || option.length > 200)) return '선택지 개수와 내용을 확인해 주세요. 선택지는 1~200자입니다.'
+    || question.options.some(isInvalidOption)) return '선택지 개수와 내용을 확인해 주세요. 선택지는 1~200자입니다.'
   if (!Number.isInteger(question.answer) || question.answer < 0 || question.answer >= question.options.length) return '정답을 정확히 하나 선택해 주세요.'
   if (question.type === 'ox' && [...question.options].sort().join(',') !== 'O,X') return 'OX 선택지는 O와 X여야 합니다.'
   return null

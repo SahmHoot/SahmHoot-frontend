@@ -36,10 +36,6 @@
   @apply flex flex-wrap items-center gap-2.5 text-lg font-bold;
 }
 
-.professor-home__status-dot {
-  @apply size-2 rounded-(--radius-full) bg-hoot-success;
-}
-
 .professor-home__status-label {
   @apply text-hoot-success;
 }

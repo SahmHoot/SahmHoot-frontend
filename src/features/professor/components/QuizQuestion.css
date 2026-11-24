@@ -46,10 +46,6 @@
   @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card space-y-3 p-6;
 }
 
-.quiz-question__response-header {
-  @apply flex flex-wrap items-center justify-between gap-3;
-}
-
 .quiz-question__response-count {
   @apply text-base font-bold;
 }
@@ -60,10 +56,6 @@
 
 .quiz-question__participants {
   @apply font-normal text-hoot-muted;
-}
-
-.quiz-question__response-label {
-  @apply text-xs text-hoot-muted;
 }
 
 .quiz-question__response-track {

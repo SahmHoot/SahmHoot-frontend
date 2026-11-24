@@ -65,7 +65,7 @@ function ReviewContent({ quiz }: { quiz: QuestionSetDetailResponse }) {
       </section>
       <div className="student-review__navigation">
         <button className="student-button" disabled={index === 0} onClick={() => setIndex(value => value - 1)}><img src={previousIcon} alt="" />이전 문항</button>
-        <button className="student-button student-button--primary" disabled={!checked || (index === quiz.questions.length - 1 && !allChecked)} onClick={() => index === quiz.questions.length - 1 ? setFinished(true) : setIndex(value => value + 1)}>{index === quiz.questions.length - 1 ? '복습 완료' : '다음 문항'}<img src={nextIcon} alt="" /></button>
+        <button className="student-button student-button--primary student-review__next" disabled={!checked || (index === quiz.questions.length - 1 && !allChecked)} onClick={() => index === quiz.questions.length - 1 ? setFinished(true) : setIndex(value => value + 1)}><span>{index === quiz.questions.length - 1 ? '복습 완료' : '다음 문항'}</span><img src={nextIcon} alt="" /></button>
       </div>
     </>}
   </main>

@@ -38,7 +38,6 @@ export function ProfessorHome({ onOpen }: { onOpen: (room: RoomSummaryResponse) 
                   <span className="professor-home__room-accent" />
                   <div>
                     <h3 className="professor-home__room-title">
-                      <span className="professor-home__status-dot" />
                       <span className="professor-home__status-label">
                         {room.status === 'PLAYING' ? '퀴즈 진행 중' : '진행 중'}
                       </span>

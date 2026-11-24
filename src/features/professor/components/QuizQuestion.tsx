@@ -70,17 +70,12 @@ export function QuizQuestion({
         </div>
       </section>
       <section className="quiz-question__responses">
-        <div className="quiz-question__response-header">
-          <p className="quiz-question__response-count">
-            응답 <span className="quiz-question__count">{responseCount}명</span>{" "}
-            <span className="quiz-question__participants">
-              / 접속 {participants}명
-            </span>
-          </p>
-          <span className="quiz-question__response-label">
-            점수·순위 없음 — 이해도 확인용
+        <p className="quiz-question__response-count">
+          응답 <span className="quiz-question__count">{responseCount}명</span>{" "}
+          <span className="quiz-question__participants">
+            / 접속 {participants}명
           </span>
-        </div>
+        </p>
         <div className="quiz-question__response-track">
           <div
             className="quiz-question__response-fill"

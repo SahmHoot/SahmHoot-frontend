@@ -42,7 +42,7 @@
 }
 
 .quiz-set-editor__description-input {
-  @apply min-h-20 w-full rounded-md border border-hoot-border bg-white p-4 text-sm aria-[invalid=true]:border-hoot-danger;
+  @apply min-h-20 w-full rounded-md border border-hoot-border bg-white p-4 text-sm;
 }
 
 .quiz-set-editor__public-help {
@@ -63,15 +63,11 @@
 }
 
 .quiz-set-editor__name-input {
-  @apply h-12 w-full rounded-md border border-[#dbe2ee] bg-white px-4 text-lg font-bold tracking-[-0.45px] shadow-hoot-card placeholder:font-semibold placeholder:text-hoot-muted focus:border-hoot-primary aria-[invalid=true]:border-hoot-danger;
+  @apply h-12 w-full rounded-md border border-[#dbe2ee] bg-white px-4 text-lg font-bold tracking-[-0.45px] shadow-hoot-card placeholder:font-semibold placeholder:text-hoot-muted focus:border-hoot-primary;
 }
 
 .quiz-set-editor__duration-field {
   @apply flex flex-col;
-}
-
-.quiz-set-editor__field-error {
-  @apply mt-1.5 block text-sm text-hoot-danger;
 }
 
 /* 선택지 제목 옆에 붙여, 아래로 길게 이어지는 선택지 목록 끝에 묻히지 않게 한다. */
@@ -84,7 +80,7 @@
 }
 
 .quiz-set-editor__duration-input {
-  @apply h-8 w-16 rounded-md bg-hoot-selected px-2 text-center font-bold text-hoot-primary aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-hoot-danger;
+  @apply h-8 w-16 rounded-md bg-hoot-selected px-2 text-center font-bold text-hoot-primary;
 }
 
 .quiz-set-editor__duration-help {
@@ -92,7 +88,7 @@
 }
 
 .quiz-set-editor__actions {
-  @apply flex gap-2;
+  @apply flex flex-wrap gap-2;
 }
 
 .quiz-set-editor__visibility-button,
@@ -132,17 +128,15 @@
   @apply border-hoot-border bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
-/* 고칠 내용이 있는 문항: 선택 여부와 관계없이 빨간 테두리와 ! 표시 */
-.quiz-set-editor__question-button.quiz-set-editor__question-button--invalid {
-  @apply border-2 border-hoot-danger;
-}
-
-.quiz-set-editor__question-alert {
-  @apply ml-auto grid size-5 shrink-0 place-items-center rounded-full bg-hoot-danger text-xs font-bold text-white;
-}
-
 .quiz-set-editor__question-number {
   @apply flex size-6 shrink-0 items-center justify-center rounded-(--radius-full) text-xs font-semibold;
+}
+
+.quiz-set-editor__question-digit {
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
 }
 
 .quiz-set-editor__question-number.quiz-set-editor__question-number--selected {
@@ -182,7 +176,7 @@
 }
 
 .quiz-set-editor__prompt-input {
-  @apply h-28 w-full resize-y rounded-md border border-[#dbe2ee] bg-[#f4f6fb]/40 p-5 pt-9 text-center text-base font-semibold aria-[invalid=true]:border-hoot-danger;
+  @apply h-28 w-full resize-y rounded-md border border-[#dbe2ee] bg-[#f4f6fb]/40 p-5 pt-9 text-center text-base font-semibold;
 }
 
 .quiz-set-editor__type-row {
@@ -255,4 +249,56 @@
 
 .quiz-set-editor__option-input.quiz-set-editor__option-input--correct {
   @apply border-hoot-primary bg-hoot-selected font-semibold text-hoot-primary;
+}
+
+.quiz-set-editor__option-field {
+  @apply min-w-0 flex-1;
+}
+
+.quiz-set-editor {
+  --editor-error-border: color-mix(in srgb, var(--color-danger) 72%, var(--color-surface));
+  --editor-error-surface: color-mix(in srgb, var(--color-danger) 4%, var(--color-surface));
+  --editor-error-text: color-mix(in srgb, var(--color-danger) 72%, black);
+}
+
+.quiz-set-editor :is(input, textarea)[aria-invalid='true'] {
+  border-color: var(--editor-error-border);
+  background: var(--editor-error-surface);
+}
+
+.quiz-set-editor__duration-input[aria-invalid='true'] {
+  box-shadow: inset 0 0 0 1px var(--editor-error-border);
+}
+
+.quiz-set-editor__options-fieldset[aria-invalid='true']:not(:has(input[aria-invalid='true'])) > .quiz-set-editor__options {
+  background: var(--editor-error-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--editor-error-border);
+}
+
+.quiz-set-editor :is(input, textarea, fieldset)[aria-invalid='true']:focus-visible {
+  outline: 1px dashed var(--editor-error-text);
+  outline-offset: 2px;
+}
+
+.quiz-set-editor__field-error {
+  @apply mt-1 block text-xs;
+  color: var(--editor-error-text);
+}
+
+.quiz-set-editor__question-error-icon {
+  @apply invisible ml-auto block size-4 shrink-0;
+  color: var(--editor-error-text);
+}
+
+.quiz-set-editor__question-error-icon svg {
+  @apply block size-full;
+}
+
+.quiz-set-editor__question-error-icon[data-error-icon] {
+  @apply visible;
+}
+
+.quiz-set-editor__question-button--selected .quiz-set-editor__question-error-icon {
+  color: color-mix(in srgb, var(--color-danger) 20%, var(--color-surface));
 }

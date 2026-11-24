@@ -67,7 +67,14 @@
 }
 
 .professor-header__end-button {
-  @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 h-10 px-4 text-sm;
+  @apply inline-flex h-10 items-center justify-center rounded-md border px-[15px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger;
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-danger) 27%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-danger) 72%, black);
+}
+
+.professor-header__end-button:hover {
+  background: color-mix(in srgb, var(--color-danger) 13%, var(--color-surface));
 }
 
 .professor-header__account {

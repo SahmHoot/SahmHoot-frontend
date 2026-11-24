@@ -73,15 +73,12 @@ export function QuizResults({
           <h2 className="quiz-results__question-title">{question.content}</h2>
         </section>
         <section className="quiz-results__distribution-panel">
-          <div className="quiz-results__summary-row">
-            <p className="quiz-results__summary">
-              응답 {question.answeredCount}명 ·{' '}
-              <span className="quiz-results__correct-count">정답 {question.correctCount}명</span> ·{' '}
-              <span className="quiz-results__incorrect-count">오답 {question.incorrectCount}명</span>{' '}
-              · <span className="quiz-results__accuracy">정답률 {accuracy}%</span>
-            </p>
-            <span className="quiz-results__summary-help">점수·순위 없음 — 이해도 확인용</span>
-          </div>
+          <p className="quiz-results__summary">
+            응답 {question.answeredCount}명 ·{' '}
+            <span className="quiz-results__correct-count">정답 {question.correctCount}명</span> ·{' '}
+            <span className="quiz-results__incorrect-count">오답 {question.incorrectCount}명</span>{' '}
+            · <span className="quiz-results__accuracy">정답률 {accuracy}%</span>
+          </p>
           <ul className="quiz-results__options">
             {question.choices.map((choice, choiceIndex) => {
               const correct = choice.id === question.correctChoiceId
@@ -124,7 +121,6 @@ export function QuizResults({
               )
             })}
           </ul>
-          <p className="quiz-results__help">정답은 굵게 · 개인별 정답 여부는 표시하지 않음</p>
         </section>
       </div>
       <Chat

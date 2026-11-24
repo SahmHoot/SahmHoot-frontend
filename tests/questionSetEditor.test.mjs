@@ -46,6 +46,11 @@ test('서버 계약: 제목, 문항 내용, 시간, 선택지, 단일 정답, OX
   assert.equal(model.questionRequest(question()).choices.filter((choice) => choice.isCorrect).length, 1)
 })
 
+test('선택지 강조는 저장 검증과 같은 공백·길이 조건을 사용한다', () => {
+  for (const option of ['', '  ', '가'.repeat(201)]) assert.equal(model.isInvalidOption(option), true)
+  for (const option of ['O', ' 가 ', '가'.repeat(200)]) assert.equal(model.isInvalidOption(option), false)
+})
+
 test('서버 순서와 숫자 ID를 화면용 임시 키와 구분한다', () => {
   assert.equal(model.fromDetail({ title: '빈 세트', description: null, visibility: 'PRIVATE', questions: [] }).questions.length, 0)
   const result = model.fromDetail({ title: '기존', description: null, visibility: 'PUBLIC', questions: [

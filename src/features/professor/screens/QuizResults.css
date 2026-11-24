@@ -25,7 +25,7 @@
 }
 
 .quiz-results__actions {
-  @apply flex gap-2;
+  @apply flex flex-wrap gap-2;
 }
 
 .quiz-results__prev-button,
@@ -45,10 +45,6 @@
   @apply rounded-lg border border-hoot-border bg-white shadow-hoot-card space-y-5 p-7;
 }
 
-.quiz-results__summary-row {
-  @apply flex flex-wrap items-center justify-between gap-3;
-}
-
 .quiz-results__summary {
   @apply text-sm font-medium;
 }
@@ -63,10 +59,6 @@
 
 .quiz-results__accuracy {
   @apply text-hoot-primary;
-}
-
-.quiz-results__summary-help {
-  @apply text-xs text-hoot-muted;
 }
 
 .quiz-results__options {
@@ -119,8 +111,4 @@
 
 .quiz-results__percentage.quiz-results__percentage--correct {
   @apply font-semibold text-hoot-primary;
-}
-
-.quiz-results__help {
-  @apply text-xs text-hoot-muted;
 }
