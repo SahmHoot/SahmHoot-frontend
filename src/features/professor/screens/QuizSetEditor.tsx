@@ -23,7 +23,7 @@ export function QuizSetEditor() {
     room.focus()
     window.close()
   }
-  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, invalid, privateOnly,
+  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
     serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => {
     if (privateOnly) finish('saved')
@@ -41,9 +41,11 @@ export function QuizSetEditor() {
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
-  /** 저장을 막은 검증 오류가 이 칸(문항 칸이면 지금 보고 있는 문항)의 것이면 그 문구를 돌려준다. */
-  const fieldError = (field: DraftField) =>
-    invalid?.field === field && (!invalid.questionId || invalid.questionId === question?.id) ? invalid.message : undefined
+  /** 이 칸(문항 칸이면 지금 보고 있는 문항)에 고칠 내용이 있으면 그 문구를 돌려준다. */
+  const fieldError = (field: DraftField) => fieldErrors.find((item) =>
+    item.field === field && (!item.questionId || item.questionId === question?.id))?.message
+  /** 보고 있지 않은 문항의 오류도 놓치지 않도록 문항 목록에 표시한다. */
+  const invalidQuestionIds = new Set(fieldErrors.map((item) => item.questionId))
   const errorText = (field: DraftField, id: string, inline = false) => {
     const message = fieldError(field)
     return message && <span id={id} role="alert"
@@ -189,7 +191,7 @@ export function QuizSetEditor() {
                 type="button"
                 onClick={() => setSelectedId(item.id)}
                 aria-pressed={selectedId === item.id}
-                className={`quiz-set-editor__question-button ${selectedId === item.id ? 'quiz-set-editor__question-button--selected' : 'quiz-set-editor__question-button--default'}`}
+                className={`quiz-set-editor__question-button ${selectedId === item.id ? 'quiz-set-editor__question-button--selected' : 'quiz-set-editor__question-button--default'} ${invalidQuestionIds.has(item.id) ? 'quiz-set-editor__question-button--invalid' : ''}`}
               >
                 <Icon screen="editor" name={selectedId === item.id ? 'imgFrame3' : 'imgFrame4'} />
                 <span
@@ -198,6 +200,7 @@ export function QuizSetEditor() {
                   {index + 1}
                 </span>
                 <span className="quiz-set-editor__question-name">{item.prompt || '새 문항'}</span>
+                {invalidQuestionIds.has(item.id) && <span role="img" aria-label="고칠 내용 있음" className="quiz-set-editor__question-alert">!</span>}
               </button>
             </div>
           ))}

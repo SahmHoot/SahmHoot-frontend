@@ -132,6 +132,15 @@
   @apply border-hoot-border bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
+/* 고칠 내용이 있는 문항: 선택 여부와 관계없이 빨간 테두리와 ! 표시 */
+.quiz-set-editor__question-button.quiz-set-editor__question-button--invalid {
+  @apply border-2 border-hoot-danger;
+}
+
+.quiz-set-editor__question-alert {
+  @apply ml-auto grid size-5 shrink-0 place-items-center rounded-full bg-hoot-danger text-xs font-bold text-white;
+}
+
 .quiz-set-editor__question-number {
   @apply flex size-6 shrink-0 items-center justify-center rounded-(--radius-full) text-xs font-semibold;
 }
