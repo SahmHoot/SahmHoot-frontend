@@ -113,29 +113,44 @@ test('중간 요청 실패 시 후속 요청을 실행하지 않는다', async (
   assert.deepEqual(calls.map(([method]) => method), ['updateQuestionSet'])
 })
 
-test('공개 신규 생성은 PRIVATE로 시작하고 순서 저장 후 visibility만 PATCH한다', async () => {
+test('신규 공개 세트는 PRIVATE로 생성하고 문항 순서 저장 후 공개한다', async () => {
   const { client, calls } = fakeApi()
-  await saveEditor({ ...draft(), isPublic: true }, { questionIds: [], creating: false }, client)
+  await saveEditor({ ...draft(), isPublic: true }, { questionIds: [], creating: false }, client, 'PUBLIC')
   assert.equal(calls[0][1].visibility, 'PRIVATE')
   assert.equal(calls.at(-2)[0], 'reorderQuestions')
   assert.deepEqual(calls.at(-1), ['updateQuestionSet', 101, { visibility: 'PUBLIC' }])
 })
 
-test('PRIVATE→PUBLIC 메타데이터 PATCH는 visibility를 생략하며 중간 실패하면 공개하지 않는다', async () => {
+test('기존 세트 저장이 중간에 실패해도 visibility를 변경하는 PATCH를 보내지 않는다', async () => {
   const { client, calls } = fakeApi()
   client.reorderQuestions = async () => { throw new Error('순서 실패') }
-  await assert.rejects(saveEditor({ ...draft(), isPublic: true }, { setId: 1, questionIds: [], creating: false, visibility: 'PRIVATE' }, client))
+  await assert.rejects(saveEditor({ ...draft(), isPublic: true }, { setId: 1, questionIds: [], creating: false }, client, 'PUBLIC'))
   assert.deepEqual(calls[0], ['updateQuestionSet', 1, { title: '세트', description: null }])
   assert.equal(calls.filter(([method]) => method === 'updateQuestionSet').length, 1)
 })
 
-test('이미 PUBLIC인 세트는 불필요한 공개 전환을 하지 않고 PRIVATE 전환은 먼저 적용한다', async () => {
-  const first = fakeApi()
-  await saveEditor({ ...draft(), isPublic: true }, { setId: 1, questionIds: [], creating: false, visibility: 'PUBLIC' }, first.client)
-  assert.equal(first.calls.filter(([method]) => method === 'updateQuestionSet').length, 1)
-  const second = fakeApi()
-  await saveEditor(draft([]), { setId: 1, questionIds: [], creating: false, visibility: 'PUBLIC' }, second.client)
-  assert.equal(second.calls[0][2].visibility, 'PRIVATE')
+test('기존 세트 저장은 초안의 공개 상태와 관계없이 메타데이터만 PATCH한다', async () => {
+  for (const isPublic of [true, false]) {
+    const { client, calls } = fakeApi()
+    await saveEditor({ ...draft(), isPublic }, { setId: 1, questionIds: [], creating: false }, client)
+    assert.deepEqual(calls.filter(([method]) => method === 'updateQuestionSet'),
+      [['updateQuestionSet', 1, { title: '세트', description: null }]])
+  }
+})
+
+test('명시적으로 비공개로 바꾸면 기존 세트의 메타데이터 PATCH에 반영한다', async () => {
+  const { client, calls } = fakeApi()
+  await saveEditor(draft(), { setId: 1, questionIds: [], creating: false }, client, 'PRIVATE')
+  assert.deepEqual(calls[0], ['updateQuestionSet', 1, { title: '세트', description: null, visibility: 'PRIVATE' }])
+})
+
+test('초안 복구는 공개 상태를 바꾼 경우에만 초안의 공개 상태를 복원한다', () => {
+  const checkpoint = { setId: 1, creating: false }
+  const server = { ...draft([]), isPublic: true }
+  const unchanged = recovery.preserveDraft(draft([]), [], checkpoint)
+  const changed = recovery.preserveDraft(draft([]), [], checkpoint, 'PRIVATE')
+  assert.equal(recovery.planRecovery(unchanged, server).restored.isPublic, true)
+  assert.equal(recovery.planRecovery(changed, server).restored.isPublic, false)
 })
 
 test('초안 보존은 원본과 독립적이며 성공한 새 문항은 숫자 ID로 복원한다', () => {
@@ -231,7 +246,7 @@ const detailOf = (questions = []) => ({ id: 101, title: '세트', description: n
   choices: model.questionRequest(q).choices.map((choice, choiceIndex) => ({ ...choice, id: choiceIndex + 1, orderNo: choiceIndex + 1 })),
 })) })
 
-test('수업에서 연 편집기는 공개 초안도 비공개로 저장하고 복구 주소에 수업 진입 정보를 유지한다', async () => {
+test('수업에서 연 편집기도 공개 선택을 복원하고 복구 주소에 수업 진입 정보를 유지한다', async () => {
   const { client, calls } = fakeApi()
   client.getQuestionSet = async () => detailOf([question(102)])
   client.reorderQuestions = async () => { throw new Error('순서 실패') }
@@ -244,13 +259,14 @@ test('수업에서 연 편집기는 공개 초안도 비공개로 저장하고 �
 
   const resumed = editorHarness('101', client, recoveryRoute.options.state, undefined, search)
   const state = await resumed.settle()
-  assert.equal(state.privateOnly, true)
+  assert.equal(state.fromRoom, true)
   state.restore()
   client.reorderQuestions = async () => {}
   await resumed.render().save()
   assert.equal(resumed.finished, 1)
   assert.deepEqual(calls.filter(([method]) => method === 'updateQuestionSet'), [
-    ['updateQuestionSet', 101, { title: '세트', description: null, visibility: 'PRIVATE' }],
+    ['updateQuestionSet', 101, { title: '세트', description: null }],
+    ['updateQuestionSet', 101, { visibility: 'PUBLIC' }],
   ])
 })
 

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { deleteQuestionSet, getMyQuestionSets, toQuestionSetApiError } from './api'
-import type { QuestionSetSummaryResponse } from './questionset.types'
+import { deleteQuestionSet, getMyQuestionSets, toQuestionSetApiError, updateQuestionSet } from './api'
+import type { QuestionSetSummaryResponse, Visibility } from './questionset.types'
+
+type VisibilityFeedback = { status: 'pending' | 'success' | 'error' | 'unknown'; message: string }
 
 function errorMessage(error: unknown): string {
   const failure = toQuestionSetApiError(error)
@@ -17,6 +19,9 @@ export function useQuestionSetList() {
   const [deleting, setDeleting] = useState<QuestionSetSummaryResponse | null>(null)
   const [deletePending, setDeletePending] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [visibilityFeedback, setVisibilityFeedback] = useState<Record<number, VisibilityFeedback>>({})
+  const visibilityInFlight = useRef(new Set<number>())
+  const unconfirmedVisibility = useRef(new Map<number, Visibility>())
   const deleteInFlight = useRef(false)
   const syncRequired = useRef(false)
   const revision = useRef(0)
@@ -52,13 +57,63 @@ export function useQuestionSetList() {
   }, [loadList])
 
   const reload = async () => {
-    if (deleteInFlight.current) return
+    if (deleteInFlight.current || visibilityInFlight.current.size) return
     setDeleteError('')
     await loadList()
   }
 
+  const toggleVisibility = async (set: QuestionSetSummaryResponse) => {
+    const { id } = set
+    if (deleting || deleteInFlight.current || syncRequired.current || visibilityInFlight.current.has(id)) return
+    const active = session.current
+    const unconfirmed = unconfirmedVisibility.current.get(id)
+    const visibility = unconfirmed ?? (set.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC')
+    // 앞서 시작된 목록 조회가 이번 변경 결과를 덮어쓰지 않게 한다.
+    revision.current++
+    setLoading(false)
+    visibilityInFlight.current.add(id)
+    const report = (status: VisibilityFeedback['status'], message: string) => {
+      if (active.active) setVisibilityFeedback((current) => ({ ...current, [id]: { status, message } }))
+    }
+    try {
+      let updated: QuestionSetSummaryResponse | undefined
+      if (unconfirmed === undefined) {
+        report('pending', '변경 중…')
+        try {
+          updated = await updateQuestionSet(id, { visibility })
+        } catch (error: unknown) {
+          if (!active.active) return
+          const { status } = toQuestionSetApiError(error)
+          if (status !== 0 && status !== 408 && status < 500) {
+            report('error', `공개 상태를 변경하지 못했습니다. ${errorMessage(error)}`)
+            return
+          }
+          unconfirmedVisibility.current.set(id, visibility)
+        }
+      }
+      if (!updated) {
+        report('pending', '상태 확인 중…')
+        const rows = await getMyQuestionSets().catch(() => undefined)
+        updated = rows?.find((item) => item.id === id)
+      }
+      if (!active.active) return
+      if (!updated) {
+        report('unknown', '상태 확인 불가 · 토글로 재확인')
+        return
+      }
+      unconfirmedVisibility.current.delete(id)
+      const confirmed = updated
+      setSets((current) => current.map((item) => item.id === id ? confirmed : item))
+      const label = confirmed.visibility === 'PUBLIC' ? '공개' : '비공개'
+      if (confirmed.visibility === visibility) report('success', `${label}로 변경했습니다.`)
+      else report('error', `서버에서 ${label} 상태를 확인했습니다. 다시 시도해 주세요.`)
+    } finally {
+      visibilityInFlight.current.delete(id)
+    }
+  }
+
   const confirmDelete = async () => {
-    if (!deleting || deleteInFlight.current || syncRequired.current) return
+    if (!deleting || deleting.used || deleteInFlight.current || visibilityInFlight.current.size || syncRequired.current) return
     const active = session.current
     const id = deleting.id
     deleteInFlight.current = true
@@ -77,6 +132,10 @@ export function useQuestionSetList() {
     } catch (error: unknown) {
       if (!active.active) return
       const failure = toQuestionSetApiError(error)
+      if (failure.code === 'QUESTION_SET_IN_USE') {
+        setSets((current) => current.map((set) => set.id === id ? { ...set, used: true } : set))
+        setDeleting((current) => current?.id === id ? { ...current, used: true } : current)
+      }
       if (failure.status === 0 || (failure.status === 404 && failure.code === 'QUESTION_SET_NOT_FOUND')) {
         syncRequired.current = true
         setDeleting(null)
@@ -91,5 +150,7 @@ export function useQuestionSetList() {
     }
   }
 
-  return { sets, loading, loadError, deleting, setDeleting, deletePending, deleteError, setDeleteError, reload, confirmDelete }
+  const visibilityPending = Object.values(visibilityFeedback).some(({ status }) => status === 'pending')
+  return { sets, loading, loadError, deleting, setDeleting, deletePending, deleteError, setDeleteError, reload,
+    confirmDelete, toggleVisibility, visibilityFeedback, visibilityPending }
 }

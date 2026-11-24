@@ -41,23 +41,43 @@
 }
 
 .quiz-set-list__visibility-cell {
-  @apply col-start-1 row-start-3 md:col-auto md:row-auto;
+  @apply relative col-start-1 row-start-3 h-6 md:col-auto md:row-auto;
 }
 
 .quiz-set-list__visibility {
-  @apply inline-flex h-6 w-16 items-center justify-center gap-1 rounded-sm whitespace-nowrap text-xs font-medium;
+  @apply inline-flex h-6 w-16 items-center gap-1 rounded-sm align-top whitespace-nowrap text-xs font-medium text-hoot-muted disabled:cursor-not-allowed disabled:opacity-60;
 }
 
-.quiz-set-list__visibility.quiz-set-list__visibility--public {
-  @apply bg-hoot-selected text-hoot-primary;
+.quiz-set-list__switch-track {
+  @apply inline-flex h-4 w-6 shrink-0 items-center rounded-full bg-hoot-muted p-0.5;
 }
 
-.quiz-set-list__visibility.quiz-set-list__visibility--private {
-  @apply bg-[#f4f6fb] text-hoot-muted;
+.quiz-set-list__switch-track::before {
+  @apply block size-3 rounded-full bg-white content-[''];
+}
+
+.quiz-set-list__visibility[aria-checked="true"] {
+  @apply text-hoot-primary;
+}
+
+.quiz-set-list__visibility[aria-checked="true"] .quiz-set-list__switch-track {
+  @apply justify-end bg-hoot-primary;
+}
+
+.quiz-set-list__visibility-feedback {
+  @apply absolute top-[26px] left-0 whitespace-nowrap text-[11px] leading-4 text-hoot-muted;
+}
+
+.quiz-set-list__visibility-feedback[data-status="success"] {
+  @apply text-hoot-primary;
+}
+
+.quiz-set-list__visibility-feedback[data-status="error"] {
+  @apply text-hoot-danger;
 }
 
 .quiz-set-list__actions {
-  @apply col-start-2 row-span-3 row-start-1 flex justify-end gap-2 md:col-auto md:row-auto;
+  @apply relative col-start-2 row-span-3 row-start-1 flex justify-end gap-2 md:col-auto md:row-auto;
 }
 
 .quiz-set-list__edit-button {
@@ -66,6 +86,14 @@
 
 .quiz-set-list__delete-button {
   @apply inline-flex h-8 items-center justify-center rounded-md border border-[#dbe2ee] bg-white px-3 text-xs font-semibold shadow-hoot-card hover:bg-hoot-soft border-hoot-danger/25 text-hoot-danger hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.quiz-set-list__delete-button:disabled {
+  @apply border-hoot-border bg-slate-100 text-hoot-muted opacity-100;
+}
+
+.quiz-set-list__delete-reason {
+  @apply absolute top-full right-0 whitespace-nowrap text-[11px] leading-4 text-hoot-muted;
 }
 
 .quiz-set-list__retry-button {
