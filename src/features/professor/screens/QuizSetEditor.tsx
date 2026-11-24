@@ -2,7 +2,7 @@ import './QuizSetEditor.css'
 import { useRef, useState } from 'react'
 import { Link, useHref, useNavigate, useParams } from 'react-router-dom'
 import { newQuestion } from '../../questionset/editorDraft'
-import type { EditorQuestion } from '../../questionset/editorDraft'
+import type { DraftField, EditorQuestion } from '../../questionset/editorDraft'
 import { useQuestionSetEditor } from '../../questionset/useQuestionSetEditor'
 import { EditorRecoveryPanel } from '../../questionset/EditorRecoveryPanel'
 import { getRoomTab, roomSetCancelled, roomSetSaved } from '../roomSetReturn'
@@ -23,7 +23,7 @@ export function QuizSetEditor() {
     room.focus()
     window.close()
   }
-  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, privateOnly,
+  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, invalid, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
     serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => {
     if (privateOnly) finish('saved')
@@ -41,6 +41,14 @@ export function QuizSetEditor() {
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
+  /** 저장을 막은 검증 오류가 이 칸(문항 칸이면 지금 보고 있는 문항)의 것이면 그 문구를 돌려준다. */
+  const fieldError = (field: DraftField) =>
+    invalid?.field === field && (!invalid.questionId || invalid.questionId === question?.id) ? invalid.message : undefined
+  const errorText = (field: DraftField, id: string, inline = false) => {
+    const message = fieldError(field)
+    return message && <span id={id} role="alert"
+      className={`quiz-set-editor__field-error ${inline ? 'quiz-set-editor__field-error--inline' : ''}`}>{message}</span>
+  }
   const blocked = saving || Boolean(recovery && !recoveryResolved)
   const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload || creationUnknown ? null : serverDraft}
     resolved={recoveryResolved} disabled={saving || loading} onRestore={restore} onUseServer={useServer} />
@@ -86,15 +94,20 @@ export function QuizSetEditor() {
       {recoveryPanel}
       <fieldset disabled={blocked} className="quiz-set-editor__form">
       <div className="quiz-set-editor__toolbar">
-        <input
-          aria-label="세트 이름"
-          maxLength={50}
-          placeholder="새 세트 이름"
-          value={draft.name}
-          onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-          className="quiz-set-editor__name-input"
-        />
-        {question && <label className="quiz-set-editor__duration-label">
+        <div className="quiz-set-editor__name-field">
+          <input
+            aria-label="세트 이름"
+            maxLength={50}
+            placeholder="세트 이름을 입력하세요"
+            value={draft.name}
+            onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+            aria-invalid={Boolean(fieldError('name'))}
+            aria-describedby={fieldError('name') ? 'set-name-error' : undefined}
+            className="quiz-set-editor__name-input"
+          />
+          {errorText('name', 'set-name-error')}
+        </div>
+        {question && <div className="quiz-set-editor__duration-field"><label className="quiz-set-editor__duration-label">
           <Icon screen="editor" name="imgFrame2" />
           {selectedIndex + 1}번 제한시간
           <input
@@ -104,10 +117,12 @@ export function QuizSetEditor() {
             max={300}
             value={question.seconds}
             onChange={(event) => update({ seconds: Number(event.target.value) })}
+            aria-invalid={Boolean(fieldError('seconds'))}
+            aria-describedby={fieldError('seconds') ? 'question-seconds-error' : undefined}
             className="quiz-set-editor__duration-input"
           />
           <span className="quiz-set-editor__duration-help">초 · 선택한 문항에 적용 · 10~300초</span>
-        </label>}
+        </label>{errorText('seconds', 'question-seconds-error')}</div>}
         <div className="quiz-set-editor__actions">
           <button
             type="button"
@@ -131,10 +146,13 @@ export function QuizSetEditor() {
         </div>
       </div>
       <label className="quiz-set-editor__description-label" htmlFor="set-description">세트 설명</label>
-      <textarea id="set-description" value={draft.description} maxLength={1000} aria-describedby="set-description-help"
+      <textarea id="set-description" value={draft.description} maxLength={1000}
+        aria-describedby={fieldError('description') ? 'set-description-help set-description-error' : 'set-description-help'}
+        aria-invalid={Boolean(fieldError('description'))}
         onChange={(event) => setDraft({ ...draft, description: event.target.value })}
         className="quiz-set-editor__description-input" placeholder="세트 설명을 입력하세요 (선택)" />
       <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
+      {errorText('description', 'set-description-error')}
       {privateOnly && <p className="quiz-set-editor__public-help">수업에서 만든 문제 세트는 비공개로 저장됩니다.</p>}
       {!privateOnly && draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
       {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
@@ -243,8 +261,11 @@ export function QuizSetEditor() {
             maxLength={500}
             onChange={(event) => update({ prompt: event.target.value })}
             placeholder="문제 내용을 입력하세요"
+            aria-invalid={Boolean(fieldError('prompt'))}
+            aria-describedby={fieldError('prompt') ? 'question-prompt-error' : undefined}
             className="quiz-set-editor__prompt-input"
           />
+          {errorText('prompt', 'question-prompt-error')}
           <div className="quiz-set-editor__type-row">
             <span className="quiz-set-editor__type-label">유형</span>
             <div className="quiz-set-editor__type-switch">
@@ -268,8 +289,11 @@ export function QuizSetEditor() {
               ))}
             </div>
           </div>
-          <fieldset className="quiz-set-editor__options-fieldset">
-            <legend className="quiz-set-editor__options-legend">선택지 (정답 라디오로 선택)</legend>
+          <fieldset className="quiz-set-editor__options-fieldset"
+            aria-describedby={fieldError('options') ? 'question-options-error' : undefined}>
+            <legend className="quiz-set-editor__options-legend">
+              선택지 (정답 라디오로 선택){errorText('options', 'question-options-error', true)}
+            </legend>
             <div className="quiz-set-editor__options">
               {question.options.map((option, index) => (
                 <div

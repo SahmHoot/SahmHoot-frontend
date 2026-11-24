@@ -8,16 +8,13 @@
   @apply mx-auto flex h-16 items-center justify-between gap-4 px-5 sm:px-8;
 }
 
+/* 로고와 오른쪽 버튼이 아래 본문 카드와 같은 선에서 시작·끝나도록 본문 최대 폭과 맞춘다. */
 .professor-header__container.professor-header__container--live {
-  @apply max-w-[1255px];
-}
-
-.professor-header__container.professor-header__container--editor {
-  @apply max-w-[1135px];
+  @apply max-w-[1400px];
 }
 
 .professor-header__container.professor-header__container--default {
-  @apply max-w-[1120px];
+  @apply max-w-[1280px];
 }
 
 .professor-header__brand {

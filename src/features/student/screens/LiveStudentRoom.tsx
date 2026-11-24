@@ -22,7 +22,8 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
   const waiting = quiz.phase === 'waiting'
 
   return <div className="student-app">
-    <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} onLeave={() => setLeaving(true)} />
+    <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} onLeave={() => setLeaving(true)}
+      layout={waiting ? 'waiting' : undefined} />
     {ended ? <RoomEndedNotice onHome={home} /> : !snapshot || error ? <ClassroomStatus error={error} onHome={home} /> :
       <main className={`student-room ${waiting ? 'student-room--waiting' : ''}`}>
         {waiting ? <div className="student-room__waiting-banner"><p><strong>대기 중</strong><span>교수님의 다음 안내를 기다려 주세요.</span></p><span>접속 {onlineCount}명</span></div> :

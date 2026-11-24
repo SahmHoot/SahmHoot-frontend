@@ -22,6 +22,8 @@
 .student-app a { text-decoration: none; color: inherit; }
 .student-app button:disabled { cursor: not-allowed; opacity: .5; }
 .student-app :focus-visible { outline: 3px solid #90a2ff; outline-offset: 3px; }
+/* 글자를 쓰는 칸은 포커스 테두리를 칸 테두리 위에 겹쳐 한 줄로 보이게 한다(바깥에 띄우면 두 줄로 보인다). */
+.student-app :where(input:not([type='radio'], [type='checkbox']), textarea, select):focus-visible { outline-width: 2px; outline-offset: -1px; }
 .student-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 40px; padding: 9px 16px; border: 1px solid #dbe2ee;

@@ -85,14 +85,13 @@ export function QuizResults({
           <ul className="quiz-results__options">
             {question.choices.map((choice, choiceIndex) => {
               const correct = choice.id === question.correctChoiceId
+              const label = choiceLabel(choice, question.choices.length)
               return (
                 <li key={choice.id} className="quiz-results__option">
                   <span
                     className={`quiz-results__option-label ${correct ? 'quiz-results__option-label--correct' : ''}`}
                   >
-                    <span className="quiz-results__option-number">
-                      {choiceLabel(choice, question.choices.length)}
-                    </span>
+                    {label && <span className="quiz-results__option-number">{label}</span>}
                     {choice.content}
                   </span>
                   <div

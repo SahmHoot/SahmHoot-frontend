@@ -113,10 +113,11 @@ test('결과 비율은 합이 100이고, 응답이 없으면 모두 0이다', ()
   assert.equal(display.percentagesOf([17, 7, 3, 1]).reduce((a, b) => a + b), 100)
 })
 
-test('선택지 표시는 개수로 OX와 객관식을 구분한다', () => {
-  assert.equal(display.choiceLabel({ orderNo: 2, content: '큐' }, 4), '②')
-  assert.equal(display.choiceLabel({ orderNo: 1, content: 'O' }, 4), '①')
-  assert.equal(display.choiceLabel({ orderNo: 1, content: 'O' }, 2), 'O')
+test('선택지 번호는 객관식에만 붙이고 OX는 내용(O·X)만 보인다', () => {
+  assert.equal(display.choiceLabel({ orderNo: 2 }, 4), '②')
+  assert.equal(display.choiceLabel({ orderNo: 4 }, 4), '④')
+  assert.equal(display.choiceLabel({ orderNo: 1 }, 2), null)
+  assert.equal(display.choiceLabel({ orderNo: 2 }, 2), null)
 })
 
 const snapshot = (quiz, extra = {}) => ({ serverTime: '2026-11-05T10:00:00.000500Z', quiz, ...extra })

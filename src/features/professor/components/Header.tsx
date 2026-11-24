@@ -38,7 +38,7 @@ export function Header({
   return (
     <header className="professor-header">
       <div
-        className={`professor-header__container ${live ? "professor-header__container--live" : screen === "editor" ? "professor-header__container--editor" : "professor-header__container--default"}`}
+        className={`professor-header__container ${live ? "professor-header__container--live" : "professor-header__container--default"}`}
       >
         <div className="professor-header__brand">
           <Link
