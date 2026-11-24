@@ -625,6 +625,36 @@ for (const status of [0, 502, 504]) test(`문항 POST ${status}: 재조회에 �
   assert.equal(calls.filter(([name]) => name === 'post').length, 1)
 })
 
+test('검증 오류는 어느 칸의 문제인지와 문항을 함께 알려 준다', () => {
+  const second = { ...question(), prompt: '' }
+  const field = (value) => { const found = model.validateDraft(value); return found && [found.field, found.questionId ?? null] }
+  assert.deepEqual(field({ ...draft(), name: '' }), ['name', null])
+  assert.deepEqual(field({ ...draft(), description: '가'.repeat(1001) }), ['description', null])
+  assert.deepEqual(field(draft([question(), second])), ['prompt', second.id])
+  const first = question()
+  assert.deepEqual(field(draft([{ ...first, seconds: 5 }])), ['seconds', first.id])
+  assert.deepEqual(field(draft([{ ...first, options: ['O', ''] }])), ['options', first.id])
+  assert.deepEqual(field(draft([{ ...first, answer: 3 }])), ['options', first.id])
+  assert.doesNotMatch(model.validateDraft(draft([second])).message, /번 문항/)
+})
+
+test('저장을 막은 뒤에는 입력할 때마다 다시 검증해 고친 칸의 오류를 바로 지운다', async () => {
+  const { client, calls } = fakeApi()
+  const editor = editorHarness('new', client)
+  const blank = { ...question(), prompt: '' }
+  editor.render().setDraft({ ...draft([question(), blank]), name: '' })
+  assert.equal(editor.render().invalid, null)
+  await editor.render().save()
+  assert.equal(editor.render().invalid.field, 'name')
+  assert.equal(editor.render().error, '')
+  editor.render().setDraft((current) => ({ ...current, name: '세트' }))
+  assert.equal(editor.render().invalid.field, 'prompt')
+  assert.equal(editor.render().invalid.questionId, blank.id)
+  editor.render().setDraft((current) => ({ ...current, questions: current.questions.map((item) => ({ ...item, prompt: '문제' })) }))
+  assert.equal(editor.render().invalid, null)
+  assert.equal(calls.length, 0)
+})
+
 test('1001자 설명은 훅에서도 API 호출 전에 거절하고 입력을 유지한다', async () => {
   const { client, calls } = fakeApi()
   let reads = 0
@@ -633,7 +663,8 @@ test('1001자 설명은 훅에서도 API 호출 전에 거절하고 입력을 �
   editor.render().setDraft({ ...draft(), description: '가'.repeat(1001) })
   await editor.render().save()
   assert.equal(editor.render().draft.description.length, 1001)
-  assert.match(editor.render().error, /1000/)
+  assert.equal(editor.render().invalid.field, 'description')
+  assert.match(editor.render().invalid.message, /1000/)
   assert.equal(reads, 0)
   assert.equal(calls.length, 0)
 })
