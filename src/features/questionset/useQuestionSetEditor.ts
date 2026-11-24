@@ -27,6 +27,9 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(initialRecovery?.creationUnknown
     ? '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.' : '')
+  // 저장을 한 번 막은 뒤부터 입력할 때마다 다시 검증해, 고치면 해당 칸의 오류가 바로 사라진다.
+  const [showInvalid, setShowInvalid] = useState(false)
+  const invalid = showInvalid ? validateDraft(draft) : null
   const [needsReload, setNeedsReload] = useState(existing)
   const [creationUnknown, setCreationUnknown] = useState(initialRecovery?.creationUnknown ?? false)
   const [recovery, setRecovery] = useState<EditorRecovery | null>(initialRecovery)
@@ -82,10 +85,11 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
 
   const save = async () => {
     if (working.current || needsReload || creationUnknown || (recovery && !recoveryResolved)) return
-    const invalid = validateDraft(draft)
-    if (invalid) {
-      setError(invalid.message)
-      if (invalid.questionId) setSelectedId(invalid.questionId)
+    const found = validateDraft(draft)
+    setShowInvalid(Boolean(found))
+    if (found) {
+      setError('')
+      if (found.questionId) setSelectedId(found.questionId)
       return
     }
     working.current = true
@@ -244,6 +248,6 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setRecoveryResolved(true)
     forgetInterruptedDraft(user?.id, routeId)
   }
-  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, privateOnly,
+  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, invalid, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet }
 }
