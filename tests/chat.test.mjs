@@ -251,8 +251,7 @@ function component(file, dependencies = {}, globals = {}) {
   const slots = []
   let index = 0
   const { [file]: render } = load(file, { 'react/jsx-runtime': jsxRuntime, './Chat.css': {},
-    '../../assets/student/send.svg': { __esModule: true, default: 'send.svg' },
-    react: { useState(initial) { const slot = index++; slots[slot] ??= { value: initial }; return [slots[slot].value, value => { slots[slot].value = value }] } },
+    react: { useId: () => 'moderation-menu', useRef: current => ({ current }), useState(initial) { const slot = index++; slots[slot] ??= { value: initial }; return [slots[slot].value, value => { slots[slot].value = value }] } },
     ...dependencies }, 'tsx', globals)
   return props => { index = 0; return render(props) }
 }
@@ -277,7 +276,7 @@ test('삭제 확인창은 포털로 목록 밖에 렌더링하고 취소 시 보
   }, { document: { body } })
   const props = { roomId: 40, message: message(8) }
   const view = () => { portal = undefined; return render(props) }
-  const request = () => find(view(), element => element.type === 'button' && element.props.children === '메시지 삭제').props.onClick()
+  const request = () => find(view(), element => element.type === 'button' && element.props.children?.at(-1) === '메시지 삭제').props.onClick()
   request()
   assert.equal(calls.length, 0)
   assert.equal(find(view(), element => element.type === ConfirmDialog), undefined)
@@ -299,7 +298,7 @@ test('작성자 확인은 참가자 메시지에만 표시하고 교수 메시�
     '../../shared/components/ConfirmDialog': {}, '../room/api': {},
     './api': { async getChatAuthor(...args) { calls.push(args); return null } },
   })
-  const button = (tree, name) => find(tree, el => el.type === 'button' && el.props.children === name)
+  const button = (tree, name) => find(tree, el => el.type === 'button' && el.props.children?.at(-1) === name)
   const teacher = render({ roomId: 40, message: message(8) })
   assert.equal(button(teacher, '작성자 확인'), undefined)
   assert.ok(button(teacher, '공지 고정'))
@@ -319,7 +318,7 @@ test('공지 고정은 고른 메시지로 요청하고 삭제·종료 오류를
     '../room/api': { async pinMessage(...args) { calls.push(args); if (code) throw { code, message: code === 'MESSAGE_DELETED' ? '삭제된 메시지입니다' : '종료된 방입니다' } } },
   })
   const props = { roomId: 40, message: message(8) }
-  const pin = async () => { find(render(props), element => element.type === 'button' && element.props.children === '공지 고정').props.onClick(); await flush() }
+  const pin = async () => { find(render(props), element => element.type === 'button' && element.props.children?.at(-1) === '공지 고정').props.onClick(); await flush() }
   await pin()
   assert.deepEqual(calls, [[40, 8]])
   assert.match(find(render(props), element => element.props.role === 'status').props.children, /고정했습니다/)

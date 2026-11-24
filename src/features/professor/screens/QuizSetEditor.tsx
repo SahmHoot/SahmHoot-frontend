@@ -1,7 +1,7 @@
 import './QuizSetEditor.css'
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, useHref, useNavigate, useParams } from 'react-router-dom'
-import { newQuestion } from '../../questionset/editorDraft'
+import { isInvalidOption, newQuestion } from '../../questionset/editorDraft'
 import type { DraftField, EditorQuestion } from '../../questionset/editorDraft'
 import { useQuestionSetEditor } from '../../questionset/useQuestionSetEditor'
 import { EditorRecoveryPanel } from '../../questionset/EditorRecoveryPanel'
@@ -9,6 +9,14 @@ import { getRoomTab, roomSetCancelled, roomSetSaved } from '../roomSetReturn'
 import { labels } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
+
+const errorTargets = {
+  name: 'set-name',
+  description: 'set-description',
+  seconds: 'question-duration',
+  prompt: 'question-prompt',
+  options: 'question-options',
+} satisfies Record<DraftField, string>
 
 export function QuizSetEditor() {
   const { setId } = useParams()
@@ -41,15 +49,35 @@ export function QuizSetEditor() {
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
-  /** 이 칸(문항 칸이면 지금 보고 있는 문항)에 고칠 내용이 있으면 그 문구를 돌려준다. */
-  const fieldError = (field: DraftField) => fieldErrors.find((item) =>
-    item.field === field && (!item.questionId || item.questionId === question?.id))?.message
-  /** 보고 있지 않은 문항의 오류도 놓치지 않도록 문항 목록에 표시한다. */
-  const invalidQuestionIds = new Set(fieldErrors.map((item) => item.questionId))
-  const errorText = (field: DraftField, id: string, inline = false) => {
-    const message = fieldError(field)
-    return message && <span id={id} role="alert"
-      className={`quiz-set-editor__field-error ${inline ? 'quiz-set-editor__field-error--inline' : ''}`}>{message}</span>
+  const [focusRequest, setFocusRequest] = useState(0)
+  const handledFocusRequest = useRef(0)
+  const messageFor = (field: DraftField) => fieldErrors.find((error) =>
+    error.field === field && (!error.questionId || error.questionId === question?.id))?.message
+  const optionError = messageFor('options')
+  const firstInvalidOption = optionError ? question?.options.findIndex(isInvalidOption) : undefined
+  const focusField = fieldErrors.find((error) => !error.questionId || error.questionId === question?.id)?.field
+  useLayoutEffect(() => {
+    if (focusRequest === handledFocusRequest.current) return
+    handledFocusRequest.current = focusRequest
+    if (!focusField) return
+    const fieldId = focusField === 'options' && firstInvalidOption !== undefined && firstInvalidOption >= 0
+      ? `question-option-${firstInvalidOption}` : errorTargets[focusField]
+    const field = document.getElementById(fieldId)
+    field?.focus({ preventScroll: true })
+    field?.scrollIntoView({ block: 'center' })
+  }, [focusField, focusRequest, firstInvalidOption])
+  const invalidProps = (field: DraftField) => ({
+    'aria-invalid': messageFor(field) ? true : undefined,
+    'aria-describedby': messageFor(field) ? `${errorTargets[field]}-error` : undefined,
+  })
+  const feedback = (field: DraftField) => {
+    const message = messageFor(field)
+    return message && <span id={`${errorTargets[field]}-error`} role="alert"
+      className={field === 'options' ? 'quiz-set-editor__field-error quiz-set-editor__field-error--inline' : 'quiz-set-editor__field-error'}>{message}</span>
+  }
+  const submit = () => {
+    void save()
+    setFocusRequest((request) => request + 1)
   }
   const blocked = saving || Boolean(recovery && !recoveryResolved)
   const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload || creationUnknown ? null : serverDraft}
@@ -98,33 +126,36 @@ export function QuizSetEditor() {
       <div className="quiz-set-editor__toolbar">
         <div className="quiz-set-editor__name-field">
           <input
+            id="set-name"
+            {...invalidProps('name')}
             aria-label="세트 이름"
             maxLength={50}
             placeholder="세트 이름을 입력하세요"
             value={draft.name}
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-            aria-invalid={Boolean(fieldError('name'))}
-            aria-describedby={fieldError('name') ? 'set-name-error' : undefined}
             className="quiz-set-editor__name-input"
           />
-          {errorText('name', 'set-name-error')}
+          {feedback('name')}
         </div>
-        {question && <div className="quiz-set-editor__duration-field"><label className="quiz-set-editor__duration-label">
-          <Icon screen="editor" name="imgFrame2" />
-          {selectedIndex + 1}번 제한시간
-          <input
-            aria-label="문제당 시간(초)"
-            type="number"
-            min={10}
-            max={300}
-            value={question.seconds}
-            onChange={(event) => update({ seconds: Number(event.target.value) })}
-            aria-invalid={Boolean(fieldError('seconds'))}
-            aria-describedby={fieldError('seconds') ? 'question-seconds-error' : undefined}
-            className="quiz-set-editor__duration-input"
-          />
-          <span className="quiz-set-editor__duration-help">초 · 선택한 문항에 적용 · 10~300초</span>
-        </label>{errorText('seconds', 'question-seconds-error')}</div>}
+        {question && <div className="quiz-set-editor__duration-field">
+          <label className="quiz-set-editor__duration-label">
+            <Icon screen="editor" name="imgFrame2" />
+            {selectedIndex + 1}번 제한시간
+            <input
+              id="question-duration"
+              {...invalidProps('seconds')}
+              aria-label="문제당 시간(초)"
+              type="number"
+              min={10}
+              max={300}
+              value={question.seconds}
+              onChange={(event) => update({ seconds: Number(event.target.value) })}
+              className="quiz-set-editor__duration-input"
+            />
+            <span className="quiz-set-editor__duration-help">초 · 선택한 문항에 적용 · 10~300초</span>
+          </label>
+          {feedback('seconds')}
+        </div>}
         <div className="quiz-set-editor__actions">
           <button
             type="button"
@@ -142,19 +173,18 @@ export function QuizSetEditor() {
           >
             {draft.isPublic ? '비공개 전환' : '공개 전환'}
           </button>}
-          <button type="button" onClick={() => void save()} className="quiz-set-editor__save-button">
+          <button type="button" onClick={submit} className="quiz-set-editor__save-button">
             {saving ? '저장 중…' : '저장'}
           </button>
         </div>
       </div>
       <label className="quiz-set-editor__description-label" htmlFor="set-description">세트 설명</label>
-      <textarea id="set-description" value={draft.description} maxLength={1000}
-        aria-describedby={fieldError('description') ? 'set-description-help set-description-error' : 'set-description-help'}
-        aria-invalid={Boolean(fieldError('description'))}
+      <textarea id="set-description" value={draft.description} maxLength={1000} {...invalidProps('description')}
+        aria-describedby={messageFor('description') ? 'set-description-help set-description-error' : 'set-description-help'}
         onChange={(event) => setDraft({ ...draft, description: event.target.value })}
         className="quiz-set-editor__description-input" placeholder="세트 설명을 입력하세요 (선택)" />
+      {feedback('description')}
       <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
-      {errorText('description', 'set-description-error')}
       {privateOnly && <p className="quiz-set-editor__public-help">수업에서 만든 문제 세트는 비공개로 저장됩니다.</p>}
       {!privateOnly && draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
       {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
@@ -166,44 +196,54 @@ export function QuizSetEditor() {
       <div className="quiz-set-editor__layout">
         <aside className="quiz-set-editor__sidebar">
           <h2 className="quiz-set-editor__sidebar-title">문항 (드래그로 순서 변경)</h2>
-          {draft.questions.map((item, index) => (
-            <div
-              key={item.id}
-              draggable={!blocked}
-              onDragStart={(event) => {
-                dragId.current = item.id
-                event.dataTransfer.effectAllowed = 'move'
-                event.dataTransfer.setData('text/plain', item.id)
-              }}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault()
-                if (blocked) return
-                const source = draft.questions.findIndex((entry) => entry.id === dragId.current)
-                if (source < 0 || source === index) return
-                const questions = [...draft.questions]
-                questions.splice(index, 0, questions.splice(source, 1)[0])
-                setDraft({ ...draft, questions })
-                dragId.current = null
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setSelectedId(item.id)}
-                aria-pressed={selectedId === item.id}
-                className={`quiz-set-editor__question-button ${selectedId === item.id ? 'quiz-set-editor__question-button--selected' : 'quiz-set-editor__question-button--default'} ${invalidQuestionIds.has(item.id) ? 'quiz-set-editor__question-button--invalid' : ''}`}
+          {draft.questions.map((item, index) => {
+            const hasError = fieldErrors.some((error) => error.questionId === item.id)
+            return (
+              <div
+                key={item.id}
+                draggable={!blocked}
+                onDragStart={(event) => {
+                  dragId.current = item.id
+                  event.dataTransfer.effectAllowed = 'move'
+                  event.dataTransfer.setData('text/plain', item.id)
+                }}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  if (blocked) return
+                  const source = draft.questions.findIndex((entry) => entry.id === dragId.current)
+                  if (source < 0 || source === index) return
+                  const questions = [...draft.questions]
+                  questions.splice(index, 0, questions.splice(source, 1)[0])
+                  setDraft({ ...draft, questions })
+                  dragId.current = null
+                }}
               >
-                <Icon screen="editor" name={selectedId === item.id ? 'imgFrame3' : 'imgFrame4'} />
-                <span
-                  className={`quiz-set-editor__question-number ${selectedId === item.id ? 'quiz-set-editor__question-number--selected' : 'quiz-set-editor__question-number--default'}`}
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(item.id)}
+                  aria-pressed={selectedId === item.id}
+                  aria-description={hasError ? '필수 입력 오류가 있는 문항' : undefined}
+                  className={`quiz-set-editor__question-button ${selectedId === item.id ? 'quiz-set-editor__question-button--selected' : 'quiz-set-editor__question-button--default'}`}
                 >
-                  {index + 1}
-                </span>
-                <span className="quiz-set-editor__question-name">{item.prompt || '새 문항'}</span>
-                {invalidQuestionIds.has(item.id) && <span role="img" aria-label="고칠 내용 있음" className="quiz-set-editor__question-alert">!</span>}
-              </button>
-            </div>
-          ))}
+                  <Icon screen="editor" name={selectedId === item.id ? 'imgFrame3' : 'imgFrame4'} />
+                  <span
+                    className={`quiz-set-editor__question-number ${selectedId === item.id ? 'quiz-set-editor__question-number--selected' : 'quiz-set-editor__question-number--default'}`}
+                  >
+                    <span className="quiz-set-editor__question-digit">{index + 1}</span>
+                  </span>
+                  <span className="quiz-set-editor__question-name">{item.prompt || '새 문항'}</span>
+                  <span className="quiz-set-editor__question-error-icon" data-error-icon={hasError || undefined} aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="7.5" stroke="currentColor" />
+                      <path d="M8 5v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="8" cy="11" r=".75" fill="currentColor" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            )
+          })}
           <button
             type="button"
             onClick={() => {
@@ -260,15 +300,14 @@ export function QuizSetEditor() {
           </label>
           <textarea
             id="question-prompt"
+            {...invalidProps('prompt')}
             value={question.prompt}
             maxLength={500}
             onChange={(event) => update({ prompt: event.target.value })}
             placeholder="문제 내용을 입력하세요"
-            aria-invalid={Boolean(fieldError('prompt'))}
-            aria-describedby={fieldError('prompt') ? 'question-prompt-error' : undefined}
             className="quiz-set-editor__prompt-input"
           />
-          {errorText('prompt', 'question-prompt-error')}
+          {feedback('prompt')}
           <div className="quiz-set-editor__type-row">
             <span className="quiz-set-editor__type-label">유형</span>
             <div className="quiz-set-editor__type-switch">
@@ -292,10 +331,10 @@ export function QuizSetEditor() {
               ))}
             </div>
           </div>
-          <fieldset className="quiz-set-editor__options-fieldset"
-            aria-describedby={fieldError('options') ? 'question-options-error' : undefined}>
+          <fieldset id="question-options" tabIndex={-1} {...invalidProps('options')}
+            className="quiz-set-editor__options-fieldset">
             <legend className="quiz-set-editor__options-legend">
-              선택지 (정답 라디오로 선택){errorText('options', 'question-options-error', true)}
+              선택지 (정답 라디오로 선택){feedback('options')}
             </legend>
             <div className="quiz-set-editor__options">
               {question.options.map((option, index) => (
@@ -314,21 +353,26 @@ export function QuizSetEditor() {
                   <span className="quiz-set-editor__option-number" data-option-index={index}>
                     {question.type === 'ox' ? option : labels[index]}
                   </span>
-                  <input
-                    aria-label={`선택지 ${index + 1} 내용`}
-                    readOnly={question.type === 'ox'}
-                    value={option}
-                    maxLength={200}
-                    placeholder={`선택지 ${index + 1}`}
-                    onChange={(event) =>
-                      update({
-                        options: question.options.map((value, optionIndex) =>
-                          optionIndex === index ? event.target.value : value,
-                        ),
-                      })
-                    }
-                    className={`quiz-set-editor__option-input ${question.answer === index ? 'quiz-set-editor__option-input--correct' : ''}`}
-                  />
+                  <div className="quiz-set-editor__option-field">
+                    <input
+                      id={`question-option-${index}`}
+                      aria-invalid={optionError && isInvalidOption(option) ? true : undefined}
+                      aria-describedby={optionError && isInvalidOption(option) ? 'question-options-error' : undefined}
+                      aria-label={`선택지 ${index + 1} 내용`}
+                      readOnly={question.type === 'ox'}
+                      value={option}
+                      maxLength={200}
+                      placeholder={`선택지 ${index + 1}`}
+                      onChange={(event) =>
+                        update({
+                          options: question.options.map((value, optionIndex) =>
+                            optionIndex === index ? event.target.value : value,
+                          ),
+                        })
+                      }
+                      className={`quiz-set-editor__option-input ${question.answer === index ? 'quiz-set-editor__option-input--correct' : ''}`}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
