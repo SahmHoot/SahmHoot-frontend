@@ -11,7 +11,7 @@ import './StudentQuizReview.css'
 
 export default function StudentQuizReview() {
   const { setId = '' } = useParams()
-  return <div className="student-app"><StudentHeader /><ReviewLoader key={setId} setId={setId} /></div>
+  return <div className="student-app"><StudentHeader layout="review" /><ReviewLoader key={setId} setId={setId} /></div>
 }
 
 function ReviewLoader({ setId }: { setId: string }) {

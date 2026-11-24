@@ -8,14 +8,16 @@ interface Props {
   title?: string
   nickname?: string
   onLeave?: () => void
+  /** 헤더 폭을 맞출 본문. 없으면 학생 홈, 제목이 있으면 퀴즈 중 수업 화면 폭을 쓴다. */
+  layout?: 'waiting' | 'review'
 }
 
-export default function StudentHeader({ title, nickname, onLeave }: Props) {
+export default function StudentHeader({ title, nickname, onLeave, layout }: Props) {
   const { user, signOut } = useAuth()
   // 개발용 화면 미리보기에는 로그인 사용자가 없어서 시안의 이름을 보여 준다.
   const displayName = user?.name ?? '김상윤'
   return (
-    <header className={`student-header ${title ? 'student-header--room' : ''}`}>
+    <header className={`student-header ${title ? 'student-header--room' : ''} ${layout ? `student-header--${layout}` : ''}`}>
       <div className="student-header__inner">
         <Link className="student-header__brand" to="/student" aria-label="삼훗 학생 홈" onClick={event => {
           if (onLeave && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
