@@ -20,6 +20,8 @@ function harness(client = {}) {
   let value
   let reads = 0
   const deletes = []
+  let now = 0
+  const timers = new Map()
   const react = {
     useState(initial) {
       const slot = index++
@@ -48,12 +50,20 @@ function harness(client = {}) {
   const api = {
     getMyQuestionSets: async () => { reads++; return client.getMyQuestionSets ? client.getMyQuestionSets(reads) : [row] },
     deleteQuestionSet: async (id) => { deletes.push(id); return client.deleteQuestionSet?.(id) },
+    updateQuestionSet: (id, body) => client.updateQuestionSet(id, body),
     toQuestionSetApiError: (error) => ({ status: error.status ?? 0, code: error.code ?? 'NETWORK_ERROR', message: error.message ?? '서버 연결 실패' }),
   }
   const source = readFileSync(new URL('../src/features/questionset/useQuestionSetList.ts', import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } })
   const exports = {}
-  runInNewContext(outputText, { exports, require: (id) => {
+  runInNewContext(outputText, { exports,
+    setTimeout(callback, delay) {
+      const timer = { callback, expires: now + delay }
+      timers.set(timer, timer.expires)
+      return timer
+    },
+    clearTimeout(timer) { timers.delete(timer) },
+    require: (id) => {
     if (id === 'react') return react
     if (id === './api') return api
     throw new Error(`Unexpected dependency: ${id}`)
@@ -65,7 +75,16 @@ function harness(client = {}) {
     return value
   }
   render()
-  return { render, deletes, get reads() { return reads },
+  return { render, deletes, timers, get reads() { return reads },
+    advance(ms) {
+      now += ms
+      for (const [timer, expires] of timers) {
+        if (expires > now) continue
+        timers.delete(timer)
+        timer.callback()
+      }
+      return render()
+    },
     openDelete() { render().setDeleting(row); return render() },
     unmount() { slots.forEach((slot) => slot.cleanup?.()) },
     async settle() { for (let i = 0; i < 3; i++) { await new Promise(setImmediate); render() } return value },
@@ -145,6 +164,13 @@ test('409·401·403 안내를 유지하고 목록 재조회나 자동 DELETE를 
     await list.openDelete().confirmDelete()
     assert.match(list.render().deleteError, expected)
     assert.equal(list.render().sets.length, 1)
+    assert.equal(list.render().sets[0].used, code === 'QUESTION_SET_IN_USE')
+    assert.equal(list.render().deleting.used, code === 'QUESTION_SET_IN_USE')
+    if (code === 'QUESTION_SET_IN_USE') {
+      await list.render().confirmDelete()
+      list.render().setDeleting(null)
+      assert.equal(list.render().sets[0].used, true)
+    }
     assert.equal(list.reads, 1)
     assert.deepEqual(list.deletes, [63])
   }
@@ -213,4 +239,194 @@ test('삭제 도중 화면을 떠나면 늦은 실패 응답으로 복구 GET을
   deletion.reject(failure(0, 'NETWORK_ERROR'))
   await pending
   assert.equal(list.reads, 1)
+})
+
+test('같은 세트는 PATCH·재확인 중 중복을 막고 다른 세트는 병렬로 변경한다', async () => {
+  const secondRow = { ...row, id: 64, visibility: 'PUBLIC' }
+  const first = deferred()
+  const second = deferred()
+  const recovery = deferred()
+  const writes = []
+  const list = harness({
+    getMyQuestionSets: async (reads) => reads === 1 ? [row, secondRow] : recovery.promise,
+    updateQuestionSet: (id, { visibility }) => {
+      writes.push([id, visibility])
+      return id === row.id ? first.promise : second.promise
+    },
+  })
+  const state = await list.settle()
+  const publishing = state.toggleVisibility(row)
+  await state.toggleVisibility(row)
+  const unpublishing = state.toggleVisibility(secondRow)
+  assert.deepEqual(writes, [[63, 'PUBLIC'], [64, 'PRIVATE']])
+  assert.equal(list.render().visibilityFeedback[63].status, 'pending')
+  first.reject(failure(500, 'HTTP_ERROR'))
+  await list.settle()
+  assert.equal(list.render().visibilityFeedback[63].message, '상태 확인 중…')
+  assert.equal(list.render().visibilityFeedback[64].status, 'pending')
+  await state.toggleVisibility(row)
+  second.resolve({ ...secondRow, visibility: 'PRIVATE' })
+  await unpublishing
+  // 먼저 찍힌 조회 스냅샷에 다른 세트의 이전 공개 상태가 포함돼 있다.
+  recovery.resolve([{ ...row, visibility: 'PUBLIC' }, secondRow])
+  await publishing
+  const result = list.render()
+  assert.equal(result.sets[0].visibility, 'PUBLIC')
+  assert.equal(result.sets[1].visibility, 'PRIVATE')
+  assert.equal(result.visibilityFeedback[63].status, 'success')
+  assert.equal(result.visibilityFeedback[64].status, 'success')
+  assert.equal(result.visibilityPending, false)
+  assert.deepEqual(writes, [[63, 'PUBLIC'], [64, 'PRIVATE']])
+  assert.equal(list.reads, 2)
+})
+
+test('명확한 공개 변경 거절은 실패를 안내하고 재조회하지 않는다', async () => {
+  const list = harness({ updateQuestionSet: async () => { throw failure(403, 'FORBIDDEN') } })
+  const state = await list.settle()
+  await state.toggleVisibility(row)
+  assert.equal(list.reads, 1)
+  assert.equal(list.render().sets[0].visibility, 'PRIVATE')
+  assert.match(list.render().visibilityFeedback[63].message, /권한/)
+})
+
+test('성공 알림은 표시 후 3초에 세트별로 독립적으로 사라진다', async () => {
+  const other = { ...row, id: 64 }
+  const list = harness({
+    getMyQuestionSets: async () => [row, other],
+    updateQuestionSet: async (id, { visibility }) => ({ ...row, id, visibility }),
+  })
+  await (await list.settle()).toggleVisibility(row)
+  await list.advance(0).toggleVisibility(other)
+  // 두 번째 알림은 1초 뒤 화면에 표시된다.
+  list.advance(1000)
+  assert.equal(list.advance(1999).visibilityFeedback[63].status, 'success')
+  assert.equal(list.advance(1).visibilityFeedback[63], undefined)
+  assert.equal(list.render().visibilityFeedback[64].status, 'success')
+  assert.equal(list.advance(1000).visibilityFeedback[64], undefined)
+  assert.equal(list.timers.size, 0)
+})
+
+test('같은 세트 재변경은 이전 타이머를 취소하고 새 성공 알림의 3초를 센다', async () => {
+  const list = harness({ updateQuestionSet: async (id, { visibility }) => ({ ...row, id, visibility }) })
+  await (await list.settle()).toggleVisibility(row)
+  const published = list.advance(2000)
+  const [oldTimer] = list.timers.keys()
+  await published.toggleVisibility(published.sets[0])
+  assert.equal(list.render().visibilityFeedback[63].message, '비공개로 변경했습니다.')
+  assert.equal(list.timers.has(oldTimer), false)
+  oldTimer.callback()
+  assert.equal(list.advance(2999).visibilityFeedback[63].status, 'success')
+  assert.equal(list.advance(1).visibilityFeedback[63], undefined)
+})
+
+test('진행, 실패, 상태 확인 불가 알림은 이전 성공 타이머의 영향을 받지 않는다', async () => {
+  for (const [status, error] of [['error', failure(403, 'FORBIDDEN')], ['unknown', failure(0, 'NETWORK_ERROR')]]) {
+    const pending = deferred()
+    const list = harness({
+      getMyQuestionSets: async (reads) => { if (reads > 1) throw error; return [row] },
+      updateQuestionSet: (id, { visibility }) => visibility === 'PUBLIC'
+        ? Promise.resolve({ ...row, id, visibility }) : pending.promise,
+    })
+    await (await list.settle()).toggleVisibility(row)
+    list.render()
+    const [oldTimer] = list.timers.keys()
+    const state = list.advance(1000)
+    const changing = state.toggleVisibility(state.sets[0])
+    assert.equal(list.advance(4000).visibilityFeedback[63].status, 'pending')
+    pending.reject(error)
+    await changing
+    oldTimer.callback()
+    assert.equal(list.advance(4000).visibilityFeedback[63].status, status)
+    assert.equal(list.timers.size, 0)
+  }
+})
+
+test('PATCH 응답 유실 후 GET으로 확인된 성공도 3초 후 사라진다', async () => {
+  const list = harness({
+    getMyQuestionSets: async (reads) => [reads === 1 ? row : { ...row, visibility: 'PUBLIC' }],
+    updateQuestionSet: async () => { throw failure(0, 'NETWORK_ERROR') },
+  })
+  await (await list.settle()).toggleVisibility(row)
+  assert.equal(list.render().visibilityFeedback[63].status, 'success')
+  assert.equal(list.reads, 2)
+  assert.equal(list.advance(3000).visibilityFeedback[63], undefined)
+})
+
+test('삭제 성공, 삭제 재조회, 화면 이탈은 예약된 알림 타이머를 정리한다', async () => {
+  for (const action of ['delete', 'reconcile', 'unmount']) {
+    const list = harness({
+      getMyQuestionSets: async (reads) => reads === 1 ? [row] : [],
+      updateQuestionSet: async (id, { visibility }) => ({ ...row, id, visibility }),
+      deleteQuestionSet: async () => {
+        if (action === 'reconcile') throw failure(0, 'NETWORK_ERROR')
+      },
+    })
+    await (await list.settle()).toggleVisibility(row)
+    list.render()
+    assert.equal(list.timers.size, 1)
+    if (action === 'unmount') list.unmount()
+    else {
+      await list.openDelete().confirmDelete()
+      assert.equal(list.render().visibilityFeedback[63], undefined)
+    }
+    assert.equal(list.timers.size, 0)
+  }
+})
+
+test('응답 유실과 재조회 실패 뒤 첫 클릭은 GET만 하고 확인 결과에 따라 다음 클릭을 처리한다', async () => {
+  for (const committed of [true, false]) {
+    const writes = []
+    let server = row
+    const list = harness({
+      getMyQuestionSets: async (reads) => {
+        if (reads === 2) throw failure(0, 'NETWORK_ERROR')
+        return [server]
+      },
+      updateQuestionSet: async (id, { visibility }) => {
+        writes.push([id, visibility])
+        if (writes.length > 1 || committed) server = { ...row, visibility }
+        if (writes.length === 1) throw failure(0, 'NETWORK_ERROR')
+        return server
+      },
+    })
+    await (await list.settle()).toggleVisibility(row)
+    assert.equal(list.render().sets[0].visibility, 'PRIVATE')
+    assert.equal(list.render().visibilityFeedback[63].status, 'unknown')
+    assert.match(list.render().visibilityFeedback[63].message, /토글로 재확인/)
+    await list.render().toggleVisibility(row)
+    const checked = list.render()
+    assert.equal(list.reads, 3)
+    assert.deepEqual(writes, [[63, 'PUBLIC']])
+    assert.equal(checked.sets[0].visibility, committed ? 'PUBLIC' : 'PRIVATE')
+    assert.equal(checked.visibilityFeedback[63].status, committed ? 'success' : 'error')
+    await checked.toggleVisibility(checked.sets[0])
+    assert.deepEqual(writes[1], [63, committed ? 'PRIVATE' : 'PUBLIC'])
+    assert.equal(list.render().visibilityFeedback[63].status, 'success')
+  }
+})
+
+test('토글 전에 시작한 목록 GET이 늦게 와도 재확인 결과를 덮어쓰지 않는다', async () => {
+  const oldList = deferred()
+  const list = harness({
+    getMyQuestionSets: async (reads) => reads === 2 ? oldList.promise : [reads === 1 ? row : { ...row, visibility: 'PUBLIC' }],
+    updateQuestionSet: async () => { throw failure(0, 'NETWORK_ERROR') },
+  })
+  const state = await list.settle()
+  const old = state.reload()
+  await state.toggleVisibility(row)
+  oldList.resolve([row])
+  await old
+  assert.equal(list.render().sets[0].visibility, 'PUBLIC')
+  assert.equal(list.render().visibilityFeedback[63].status, 'success')
+  assert.equal(list.render().loading, false)
+})
+
+test('used sets cannot be deleted regardless of visibility', async () => {
+  const list = harness()
+  await list.settle()
+  for (const visibility of ['PUBLIC', 'PRIVATE']) {
+    list.render().setDeleting({ ...row, used: true, visibility })
+    await list.render().confirmDelete()
+  }
+  assert.deepEqual(list.deletes, [])
 })

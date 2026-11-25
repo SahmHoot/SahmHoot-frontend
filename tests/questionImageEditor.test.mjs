@@ -52,6 +52,21 @@ test('신규 세트 ID 발급 → 이미지 업로드 → 문항 POST 순서와 
   assert.equal(submitted.image, metadata)
 })
 
+test('공개 세트는 이미지 연결과 문항 순서 저장을 마친 뒤 공개한다', async () => {
+  const { fake, calls } = api()
+  const submitted = question(undefined, attach())
+  fake.updateQuestionSet = async (_id, data) => { calls.push(data.visibility) }
+  const progress = []
+
+  await saveEditor({ ...draft(submitted), isPublic: true }, { creating: false, questionIds: [] }, fake,
+    'PUBLIC', (questionId) => progress.push(questionId))
+
+  assert.deepEqual(calls.map((call) => Array.isArray(call) ? call[0] : call),
+    ['createSet', 'upload', 'POST', 'reorder', 'PUBLIC'])
+  assert.equal(calls[2][2].imageRef, upload.imageRef)
+  assert.deepEqual(progress, [submitted.id, undefined])
+})
+
 test('기존 이미지는 imageRef 생략으로 유지하고 제거는 null로 전송한다', async () => {
   const { fake, calls } = api()
   const point = { creating: false, setId: 11, questionIds: [9] }

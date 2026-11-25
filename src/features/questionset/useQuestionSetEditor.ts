@@ -10,12 +10,18 @@ import type { SaveCheckpoint } from './saveEditor'
 import { forgetInterruptedDraft, imageQuestionCandidates, interruptedDraft, planRecovery, preserveDraft, recoveryErrorFromRoute, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
 import type { EditorRecovery } from './editorRecovery'
 import { lockEditorNavigation } from './editorNavigation'
+import type { Visibility } from './questionset.types'
+
+function requestedVisibility(isPublic: boolean, previousPublic: boolean | undefined): Visibility | undefined {
+  if (isPublic === previousPublic) return undefined
+  return isPublic ? 'PUBLIC' : 'PRIVATE'
+}
 
 export function useQuestionSetEditor(routeId: string | undefined, onSaved: () => void) {
   const isNew = routeId === 'new'
   const validId = routeId !== undefined && /^[1-9]\d*$/.test(routeId) && Number.isSafeInteger(Number(routeId))
   const location = useLocation()
-  const privateOnly = new URLSearchParams(location.search).get('from') === 'room'
+  const fromRoom = new URLSearchParams(location.search).get('from') === 'room'
   const navigate = useNavigate()
   const { user } = useAuth()
   const [initialRecovery] = useState(() => isNew || validId ? interruptedDraft(user?.id, routeId)
@@ -51,7 +57,6 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const install = useCallback((detail: Awaited<ReturnType<typeof api.getQuestionSet>>) => {
     const next = fromDetail(detail)
     checkpoint.current.questionIds = detail.questions.map((question) => question.id)
-    checkpoint.current.visibility = detail.visibility
     checkpoint.current.pendingQuestionId = undefined
     setRecovery((current) => {
       if (!current?.confirmedQuestionFailure) return current
@@ -96,9 +101,11 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
       if (getAccessToken() || working.current || needsReload || (recovery && !recoveryResolved)
           || JSON.stringify(draft) === originalDraft.current) return
       const point = checkpoint.current
-      rememberInterruptedDraft(user?.id, routeId, preserveDraft(draft, point.questionIds, point))
+      const previousPublic = point.setId === undefined ? false : serverDraft?.isPublic
+      const visibilityChange = requestedVisibility(draft.isPublic, previousPublic)
+      rememberInterruptedDraft(user?.id, routeId, preserveDraft(draft, point.questionIds, point, visibilityChange))
     }
-  }, [draft, needsReload, recovery, recoveryResolved, routeId, user?.id])
+  }, [draft, needsReload, recovery, recoveryResolved, routeId, serverDraft, user?.id])
   useLayoutEffect(() => () => rememberUnsaved.current(), [routeId, user?.id])
 
   const save = async () => {
@@ -115,7 +122,8 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     working.current = true
     const unlock = lockEditorNavigation()
     const submitted = structuredClone(draft)
-    if (privateOnly) submitted.isPublic = false
+    const previousPublic = checkpoint.current.setId === undefined ? false : serverDraft?.isPublic
+    const visibilityChange = requestedVisibility(submitted.isPublic, previousPublic)
     const originalQuestionIds = [...checkpoint.current.questionIds]
     let recovered: EditorRecovery | undefined
     let complete = false
@@ -130,7 +138,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
       if (checkpoint.current.setId === undefined) {
         creationBaseline = (await api.getMyQuestionSets()).map((item) => item.id)
       }
-      const savedId = await saveEditor(submitted, checkpoint.current, api, setUploadingQuestionId)
+      const savedId = await saveEditor(submitted, checkpoint.current, api, visibilityChange, setUploadingQuestionId)
       // 최종 상세 조회까지 완료된 뒤 이동한다.
       install(await api.getQuestionSet(savedId))
       forgetInterruptedDraft(user?.id, routeId)
@@ -151,7 +159,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
         // AuthProvider가 이미 편집기를 언마운트했어도 보존한다.
         // 인증 없이 재조회하거나 복구 주소로 로그인 이동을 덮어쓰지 않는다.
         checkpoint.current.creating = false
-        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current, visibilityChange)
         rememberInterruptedDraft(user?.id, routeId, recovered)
         setRecovery(recovered)
         setRecoveryResolved(false)
@@ -159,7 +167,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
         return
       }
       if (checkpoint.current.setId !== undefined) {
-        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current, visibilityChange)
         recovered.confirmedQuestionFailure = confirmedFailure
         setRecovery(recovered)
         setRecoveryResolved(false)
@@ -182,12 +190,12 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
         }
       } else if (rejected || !checkpoint.current.creating) {
         checkpoint.current.creating = false
-        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current, visibilityChange)
         setRecovery(recovered)
         setRecoveryResolved(true)
         setError(message)
       } else {
-        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current)
+        recovered = preserveDraft(submitted, originalQuestionIds, checkpoint.current, visibilityChange)
         recovered.creationBaseline = creationBaseline
         recovered.creationFailed = failure.status === 500
         setRecovery(recovered)
@@ -225,7 +233,9 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     if (complete) onSaved()
     else if (recovered) {
       // 모든 요청과 재조회가 끝난 뒤 교체한다. pathname 키에 의한 재마운트에 초안을 전달한다.
-      navigate(recoveryPath(recovered) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered, recoveryUserId: user?.id, recoveryError: failureMessage } })
+      navigate(recoveryPath(recovered) + (fromRoom ? location.search : ''), {
+        replace: true, state: { questionSetRecovery: recovered, recoveryUserId: user?.id, recoveryError: failureMessage },
+      })
     }
   }
 
@@ -254,7 +264,9 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     const next = { ...recovery, setId: id, creationUnknown: false }
     rememberInterruptedDraft(user?.id, routeId, next)
     rememberInterruptedDraft(user?.id, String(id), next)
-    navigate(recoveryPath(next) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: next, recoveryUserId: user?.id } })
+    navigate(recoveryPath(next) + (fromRoom ? location.search : ''), {
+      replace: true, state: { questionSetRecovery: next, recoveryUserId: user?.id },
+    })
   }
   const reload = () => {
     if (working.current) return
@@ -290,6 +302,6 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     rememberInterruptedDraft(user?.id, routeId, next)
     rememberInterruptedDraft(user?.id, String(next.setId ?? 'new'), next)
   }
-  return { draft, setDraft, selectedId, setSelectedId, loading, saving, uploadingQuestionId, error, setError, fieldErrors, privateOnly,
+  return { draft, setDraft, selectedId, setSelectedId, loading, saving, uploadingQuestionId, error, setError, fieldErrors, fromRoom,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet, resolveImageQuestion }
 }

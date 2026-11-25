@@ -2,12 +2,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
+import * as jsx from 'react/jsx-runtime'
 import ts from 'typescript'
 
 // Node의 내장 테스트 러너와 기존 TypeScript만 사용한다. 앱 설정/의존성 변경 없음.
-function load(name, dependencies = {}, globals = {}) {
-  const source = readFileSync(new URL(`../src/features/questionset/${name}.ts`, import.meta.url), 'utf8')
-  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } })
+function load(name, dependencies = {}, globals = {}, extension = 'ts') {
+  const source = readFileSync(new URL(`../src/features/questionset/${name}.${extension}`, import.meta.url), 'utf8')
+  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } })
   const exports = {}
   runInNewContext(outputText, { exports, crypto: globalThis.crypto, structuredClone, ...globals, require: (id) => {
     if (!(id in dependencies)) throw new Error(`Unexpected dependency: ${id}`)
@@ -31,6 +33,68 @@ function fakeApi() {
   client.getMyQuestionSets = async () => []
   return { client, calls }
 }
+
+test('생성·편집 스위치는 초안과 문구만 바꾸고 저장·취소를 기존 동작에 맡긴다', () => {
+  const descendants = (node) => {
+    if (Array.isArray(node)) return node.flatMap(descendants)
+    if (!node?.props) return []
+    return [node, ...descendants(node.props.children)]
+  }
+  for (const initialPublic of [false, true]) {
+    let value = { ...draft([]), isPublic: initialPublic }
+    let cursor = 0
+    const slots = []
+    const saves = []
+    const navigations = []
+    const dialog = () => null
+    const originalDraft = { current: JSON.stringify(value) }
+    const { QuizSetEditor } = load('../professor/screens/QuizSetEditor', {
+      'react/jsx-runtime': jsx,
+      react: {
+        useLayoutEffect() {},
+        useRef: (current) => ({ current }),
+        useState(initial) {
+          const slot = cursor++
+          if (!(slot in slots)) slots[slot] = initial
+          return [slots[slot], (next) => { slots[slot] = typeof next === 'function' ? next(slots[slot]) : next }]
+        },
+      },
+      'react-router-dom': {
+        useParams: () => ({ setId: initialPublic ? '101' : undefined }),
+        useHref: (path) => path,
+        useNavigate: () => (path) => navigations.push(path),
+      },
+      '../../questionset/editorDraft': model,
+      '../../questionset/useQuestionSetEditor': { useQuestionSetEditor: () => ({
+        draft: value, setDraft: (next) => { value = next }, originalDraft, fieldErrors: [],
+        save: () => { saves.push(value.isPublic) },
+      }) },
+      '../../questionset/EditorRecoveryPanel': { EditorRecoveryPanel: () => null },
+      '../../questionset/QuestionImageField': { QuestionImageField: () => null },
+      '../../../shared/components/ConfirmDialog': { ConfirmDialog: dialog },
+      '../roomSetReturn': {}, '../dashboard-quiz': {}, '../components/Icon': {}, './QuizSetEditor.css': {},
+    }, {}, 'tsx')
+    const render = () => { cursor = 0; return descendants(QuizSetEditor()) }
+    const switchControl = () => render().find(({ props }) => props.role === 'switch')
+    for (const checked of [initialPublic, !initialPublic, initialPublic]) {
+      const toggle = switchControl()
+      assert.equal(toggle.type, 'button')
+      assert.equal(toggle.props.type, 'button')
+      assert.equal(toggle.props['aria-checked'], checked)
+      assert.equal(toggle.props['aria-label'], '문제 세트 공개 여부')
+      assert.deepEqual([...descendants(toggle).map(({ props }) => props.children).filter((child) => typeof child === 'string')],
+        [checked ? '공개' : '비공개'])
+      toggle.props.onClick()
+    }
+    assert.equal(saves.length, 0)
+    render().find(({ props }) => props.className === 'quiz-set-editor__cancel-button').props.onClick()
+    render().find(({ type }) => type === dialog).props.onConfirm()
+    assert.deepEqual(navigations, ['/professor/sets'])
+    assert.equal(saves.length, 0)
+    render().find(({ props }) => props.className === 'quiz-set-editor__save-button').props.onClick()
+    assert.deepEqual(saves, [!initialPublic])
+  }
+})
 
 test('서버 계약: 제목, 문항 내용, 시간, 선택지, 단일 정답, OX 검증', () => {
   assert.equal(model.validateDraft(draft()), null)
@@ -113,29 +177,44 @@ test('중간 요청 실패 시 후속 요청을 실행하지 않는다', async (
   assert.deepEqual(calls.map(([method]) => method), ['updateQuestionSet'])
 })
 
-test('공개 신규 생성은 PRIVATE로 시작하고 순서 저장 후 visibility만 PATCH한다', async () => {
+test('신규 공개 세트는 PRIVATE로 생성하고 문항 순서 저장 후 공개한다', async () => {
   const { client, calls } = fakeApi()
-  await saveEditor({ ...draft(), isPublic: true }, { questionIds: [], creating: false }, client)
+  await saveEditor({ ...draft(), isPublic: true }, { questionIds: [], creating: false }, client, 'PUBLIC')
   assert.equal(calls[0][1].visibility, 'PRIVATE')
   assert.equal(calls.at(-2)[0], 'reorderQuestions')
   assert.deepEqual(calls.at(-1), ['updateQuestionSet', 101, { visibility: 'PUBLIC' }])
 })
 
-test('PRIVATE→PUBLIC 메타데이터 PATCH는 visibility를 생략하며 중간 실패하면 공개하지 않는다', async () => {
+test('기존 세트 저장이 중간에 실패해도 visibility를 변경하는 PATCH를 보내지 않는다', async () => {
   const { client, calls } = fakeApi()
   client.reorderQuestions = async () => { throw new Error('순서 실패') }
-  await assert.rejects(saveEditor({ ...draft(), isPublic: true }, { setId: 1, questionIds: [], creating: false, visibility: 'PRIVATE' }, client))
+  await assert.rejects(saveEditor({ ...draft(), isPublic: true }, { setId: 1, questionIds: [], creating: false }, client, 'PUBLIC'))
   assert.deepEqual(calls[0], ['updateQuestionSet', 1, { title: '세트', description: null }])
   assert.equal(calls.filter(([method]) => method === 'updateQuestionSet').length, 1)
 })
 
-test('이미 PUBLIC인 세트는 불필요한 공개 전환을 하지 않고 PRIVATE 전환은 먼저 적용한다', async () => {
-  const first = fakeApi()
-  await saveEditor({ ...draft(), isPublic: true }, { setId: 1, questionIds: [], creating: false, visibility: 'PUBLIC' }, first.client)
-  assert.equal(first.calls.filter(([method]) => method === 'updateQuestionSet').length, 1)
-  const second = fakeApi()
-  await saveEditor(draft([]), { setId: 1, questionIds: [], creating: false, visibility: 'PUBLIC' }, second.client)
-  assert.equal(second.calls[0][2].visibility, 'PRIVATE')
+test('기존 세트 저장은 초안의 공개 상태와 관계없이 메타데이터만 PATCH한다', async () => {
+  for (const isPublic of [true, false]) {
+    const { client, calls } = fakeApi()
+    await saveEditor({ ...draft(), isPublic }, { setId: 1, questionIds: [], creating: false }, client)
+    assert.deepEqual(calls.filter(([method]) => method === 'updateQuestionSet'),
+      [['updateQuestionSet', 1, { title: '세트', description: null }]])
+  }
+})
+
+test('명시적으로 비공개로 바꾸면 기존 세트의 메타데이터 PATCH에 반영한다', async () => {
+  const { client, calls } = fakeApi()
+  await saveEditor(draft(), { setId: 1, questionIds: [], creating: false }, client, 'PRIVATE')
+  assert.deepEqual(calls[0], ['updateQuestionSet', 1, { title: '세트', description: null, visibility: 'PRIVATE' }])
+})
+
+test('초안 복구는 공개 상태를 바꾼 경우에만 초안의 공개 상태를 복원한다', () => {
+  const checkpoint = { setId: 1, creating: false }
+  const server = { ...draft([]), isPublic: true }
+  const unchanged = recovery.preserveDraft(draft([]), [], checkpoint)
+  const changed = recovery.preserveDraft(draft([]), [], checkpoint, 'PRIVATE')
+  assert.equal(recovery.planRecovery(unchanged, server).restored.isPublic, true)
+  assert.equal(recovery.planRecovery(changed, server).restored.isPublic, false)
 })
 
 test('초안 보존은 원본과 독립적이며 성공한 새 문항은 숫자 ID로 복원한다', () => {
@@ -234,26 +313,30 @@ const detailOf = (questions = []) => ({ id: 101, title: '세트', description: n
   choices: model.questionRequest(q).choices.map((choice, choiceIndex) => ({ ...choice, id: choiceIndex + 1, orderNo: choiceIndex + 1 })),
 })) })
 
-test('수업에서 연 편집기는 공개 초안도 비공개로 저장하고 복구 주소에 수업 진입 정보를 유지한다', async () => {
+test('수업에서 연 편집기도 공개 선택을 복원하고 복구 주소에 수업 진입 정보를 유지한다', async () => {
   const { client, calls } = fakeApi()
   client.getQuestionSet = async () => detailOf([question(102)])
   client.reorderQuestions = async () => { throw new Error('순서 실패') }
   const search = '?from=room'
-  const initial = editorHarness('new', client, null, undefined, search)
+  const userId = ++harnessUserId
+  const initial = editorHarness('new', client, null, userId, search)
   initial.render().setDraft({ ...draft(), isPublic: true })
   await initial.render().save()
   const recoveryRoute = initial.navigations[0]
   assert.equal(recoveryRoute.path, `/professor/sets/101${search}`)
 
-  const resumed = editorHarness('101', client, recoveryRoute.options.state, undefined, search)
+  recovery.forgetInterruptedDraft(userId, '101')
+  const resumed = editorHarness('101', client, recoveryRoute.options.state, userId, search)
   const state = await resumed.settle()
-  assert.equal(state.privateOnly, true)
+  assert.equal(state.fromRoom, true)
+  assert.equal(state.recovery.visibilityChange, 'PUBLIC')
   state.restore()
   client.reorderQuestions = async () => {}
   await resumed.render().save()
   assert.equal(resumed.finished, 1)
   assert.deepEqual(calls.filter(([method]) => method === 'updateQuestionSet'), [
-    ['updateQuestionSet', 101, { title: '세트', description: null, visibility: 'PRIVATE' }],
+    ['updateQuestionSet', 101, { title: '세트', description: null }],
+    ['updateQuestionSet', 101, { visibility: 'PUBLIC' }],
   ])
 })
 
@@ -796,11 +879,12 @@ test('세트 500 검증 GET의 401은 로그인 이동을 덮어쓰지 않고 �
   assert.equal(recovery.interruptedDraft(userId, 'new').draft.name, '세트')
 })
 
-test('unsaved image draft survives session expiry before the first save', async () => {
+test('첫 저장 전 인증이 만료되어도 이미지 파일과 공개 선택을 보관한다', async () => {
   const { client, calls } = fakeApi()
   const userId = ++harnessUserId
   const editor = editorHarness('new', client, null, userId)
   const pending = draft()
+  pending.isPublic = true
   pending.questions[0].imageChange = { kind: 'attach', file: new File(['image'], 'draft.png', { type: 'image/png' }) }
   editor.render().setDraft(pending)
   editor.render()
@@ -808,5 +892,7 @@ test('unsaved image draft survives session expiry before the first save', async 
   editor.unmount()
   const signedInAgain = editorHarness('new', client, null, userId).render()
   assert.equal(signedInAgain.draft.questions[0].imageChange.file.name, 'draft.png')
+  assert.equal(signedInAgain.recovery.visibilityChange, 'PUBLIC')
+  assert.equal(signedInAgain.draft.isPublic, true)
   assert.deepEqual(calls, [])
 })
