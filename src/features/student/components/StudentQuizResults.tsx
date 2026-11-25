@@ -28,7 +28,7 @@ export default function StudentQuizResults({ result, answerOf }: Props) {
     <section className="student-results student-card" aria-labelledby="result-question-title">
       <p className="student-results__counter">퀴즈 결과 · <strong>{index + 1} / {total}</strong></p>
       <h2 id="result-question-title">{question.content}</h2>
-      <QuestionImage key={question.runQuestionId} image={question.image} />
+      <QuestionImage key={`image:${question.runQuestionId}`} image={question.image} />
       <StudentAnswerOptions key={question.runQuestionId} mode="results" options={question.choices.map((choice) => choice.content)} selected={answer < 0 ? null : answer} correctAnswer={correctAnswer}
         stats={percentages.map((percentage) => `${percentage}%`)} />
       <div className="student-results__footer">
