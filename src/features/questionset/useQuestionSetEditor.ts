@@ -7,7 +7,7 @@ import { fromDetail, newQuestion, validateDraftAll } from './editorDraft'
 import type { EditorDraft } from './editorDraft'
 import { saveEditor } from './saveEditor'
 import type { SaveCheckpoint } from './saveEditor'
-import { forgetInterruptedDraft, imageQuestionCandidates, interruptedDraft, planRecovery, preserveDraft, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
+import { forgetInterruptedDraft, imageQuestionCandidates, interruptedDraft, planRecovery, preserveDraft, recoveryErrorFromRoute, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
 import type { EditorRecovery } from './editorRecovery'
 import { lockEditorNavigation } from './editorNavigation'
 
@@ -27,8 +27,13 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const [loading, setLoading] = useState(existing)
   const [saving, setSaving] = useState(false)
   const [uploadingQuestionId, setUploadingQuestionId] = useState<string>()
-  const [error, setError] = useState(initialRecovery?.creationUnknown
-    ? '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.' : '')
+  // 마지막 저장 실패 사유. 재조회 상태 안내와 따로 두어 재조회를 다시 해도 사라지지 않게 한다.
+  const saveFailure = useRef('')
+  const [error, setError] = useState(() => {
+    if (initialRecovery?.creationUnknown) return '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.'
+    saveFailure.current = initialRecovery ? recoveryErrorFromRoute(location.state, user?.id) : ''
+    return saveFailure.current
+  })
   // 저장을 한 번 막은 뒤부터 입력할 때마다 모두 다시 검증해, 고친 칸의 오류는 바로 사라진다.
   const [showInvalid, setShowInvalid] = useState(false)
   const fieldErrors = showInvalid ? validateDraftAll(draft) : []
@@ -73,7 +78,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     api.getQuestionSet(id).then((detail) => {
       if (active) install(detail)
     }).catch((cause: unknown) => {
-      if (active) setError(api.toQuestionSetApiError(cause).message)
+      if (active) setError(`${saveFailure.current} ${api.toQuestionSetApiError(cause).message}`.trim())
     }).finally(() => {
       if (active) setLoading(false)
     })
@@ -115,6 +120,10 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     let recovered: EditorRecovery | undefined
     let complete = false
     let creationBaseline: number[] | undefined
+    // 새 세트 주소로 재마운트되면 화면 상태가 초기화되므로 저장 실패 사유만 이동 state로 넘긴다.
+    // 재조회 결과는 새 화면이 직접 조회해 알린다.
+    let failureMessage = ''
+    saveFailure.current = ''
     setSaving(true)
     setError('')
     try {
@@ -133,6 +142,8 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
       const message = uploadFailed || /^(QUESTION_IMAGE_|IMAGE_|UNSUPPORTED_IMAGE_FORMAT$)/.test(failure.code)
         ? api.imageErrorMessage(failure, uploadFailed ? '이미지를 업로드하지 못했습니다. 초안을 복원한 뒤 다시 저장해 주세요.' : failure.message)
         : `${failure.message} ${fields}`.trim()
+      failureMessage = message
+      saveFailure.current = message
       const rejected = failure.status >= 400 && failure.status < 500
       const confirmedFailure = rejected || failure.status === 500
       if (rejected) checkpoint.current.pendingQuestionId = undefined
@@ -214,7 +225,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     if (complete) onSaved()
     else if (recovered) {
       // 모든 요청과 재조회가 끝난 뒤 교체한다. pathname 키에 의한 재마운트에 초안을 전달한다.
-      navigate(recoveryPath(recovered) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered, recoveryUserId: user?.id } })
+      navigate(recoveryPath(recovered) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered, recoveryUserId: user?.id, recoveryError: failureMessage } })
     }
   }
 
@@ -248,7 +259,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const reload = () => {
     if (working.current) return
     setLoading(true)
-    setError('')
+    setError(saveFailure.current)
     setLoadAttempt((attempt) => attempt + 1)
   }
   const restore = () => {
