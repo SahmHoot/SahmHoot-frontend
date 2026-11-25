@@ -5,6 +5,8 @@ import { runInNewContext } from 'node:vm'
 import * as jsxRuntime from 'react/jsx-runtime'
 import ts from 'typescript'
 
+const QuestionImage = () => null
+
 // 결과 화면은 문항 번호 하나만 상태로 가지므로, useState 한 칸으로 렌더와 클릭을 흉내 낸다.
 function screen(result, onClose = () => {}) {
   const state = { value: undefined }
@@ -21,6 +23,7 @@ function screen(result, onClose = () => {}) {
     '../dashboard-quiz': { choiceLabel: () => '', percentagesOf: (counts) => counts.map(() => 0) },
     '../components/JoinCode': { JoinCode: () => null },
     '../components/Chat': { Chat: () => null },
+    '../../../shared/components/QuestionImage': { QuestionImage },
   }
   runInNewContext(outputText, { exports, require: (id) => {
     if (!(id in modules)) throw new Error(`Unexpected import: ${id}`)
@@ -51,13 +54,31 @@ function screen(result, onClose = () => {}) {
     walk(render())
     return text
   }
-  return { buttons, title }
+  const image = () => {
+    const walk = (node) => {
+      if (Array.isArray(node)) return node.flatMap(walk)
+      if (!node || typeof node !== 'object') return []
+      return node.type === QuestionImage ? [node.props.image] : walk(node.props?.children)
+    }
+    return walk(render())
+  }
+  return { buttons, title, image }
 }
 
 const question = (no) => ({ runQuestionId: no, questionNo: no, content: `${no}번 문항`, correctChoiceId: 1,
   answeredCount: 0, correctCount: 0, incorrectCount: 0, choices: [{ id: 1, orderNo: 1, content: 'O', count: 0 }] })
 const prev = 'quiz-results__prev-button'
 const next = 'quiz-results__next-button'
+
+test('결과는 보고 있는 실행 문항의 이미지만 넘긴다', () => {
+  const image = { url: '/api/rooms/1/quiz-runs/2/questions/3/image' }
+  const view = screen({ questions: [{ ...question(3), image }, { ...question(4), image: null }] })
+  assert.deepEqual(view.image(), [image])
+  view.buttons()[next].onClick()
+  assert.deepEqual(view.image(), [null])
+  view.buttons()[prev].onClick()
+  assert.deepEqual(view.image(), [image])
+})
 
 test('교수 결과 화면은 이전·다음으로 문항을 오가고 첫 문항에서 이전, 마지막 문항에서 다음을 막는다', () => {
   const view = screen({ questions: [question(1), question(2), question(3)] })
