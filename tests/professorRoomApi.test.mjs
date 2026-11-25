@@ -375,7 +375,7 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
     './Icon': { Icon: () => null }, './Modal': { Modal: () => null },
     '../../room/reactions': { REACTION_EMOJIS: emojis },
     '../../room/ChatReactions': { ChatReactions: (props) => overlay.render(props) },
-    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null },
+    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/ChatAvatar': { ChatAvatar: () => null },
   }
   const reactions = harness('professor/components/Reactions', 'Reactions', dependencies, 'tsx')
   const waiting = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
@@ -401,7 +401,7 @@ test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결�
   const dependencies = {
     'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
     '../../room/ChatReactions': { ChatReactions: () => null },
-    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null },
+    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/ChatAvatar': { ChatAvatar: () => null },
   }
   function find(element, predicate) {
     if (!element || typeof element !== 'object') return undefined

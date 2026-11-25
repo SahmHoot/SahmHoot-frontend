@@ -2,17 +2,20 @@ import { Link } from 'react-router-dom'
 import logo from '../../../assets/brand/sahmhoot-symbol.svg'
 import chevron from '../../../assets/student/chevron-down.svg'
 import { useAuth } from '../../auth/AuthProvider'
+import { ChatAvatar } from '../../chat/ChatAvatar'
 import './StudentHeader.css'
 
 interface Props {
   title?: string
   nickname?: string
+  /** 수업 참가자 번호. 채팅의 내 동그라미와 같은 색을 고르는 데 쓴다. */
+  participantId?: number
   onLeave?: () => void
   /** 헤더 폭을 맞출 본문. 없으면 학생 홈, 제목이 있으면 퀴즈 중 수업 화면 폭을 쓴다. */
   layout?: 'waiting' | 'review'
 }
 
-export default function StudentHeader({ title, nickname, onLeave, layout }: Props) {
+export default function StudentHeader({ title, nickname, participantId, onLeave, layout }: Props) {
   const { user, signOut } = useAuth()
   // 개발용 화면 미리보기에는 로그인 사용자가 없어서 시안의 이름을 보여 준다.
   const displayName = user?.name ?? '김상윤'
@@ -30,7 +33,10 @@ export default function StudentHeader({ title, nickname, onLeave, layout }: Prop
         </Link>
         {title ? (
           <div className="student-header__participation">
-            <p><strong>{nickname}</strong><span className="student-muted">으로 참여 중</span></p>
+            {nickname && <p className="student-header__me">
+              {participantId !== undefined && <ChatAvatar className="student-header__avatar" name={nickname} participantId={participantId} />}
+              <strong>{nickname}</strong>
+            </p>}
             <button className="student-button" onClick={onLeave}>나가기</button>
           </div>
         ) : (

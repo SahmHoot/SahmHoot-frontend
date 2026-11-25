@@ -14,6 +14,8 @@
 .student-header__wordmark b { font-family: 'Poppins', sans-serif; color: var(--student-primary); font-weight: 700; }
 .student-header h1 { font-size: 18px; font-weight: 700; }
 .student-header__participation { display: flex; align-items: center; gap: 12px; }
+.student-header__me { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 15px; }
+.student-header__me strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .student-header__account { position: relative; }
 .student-header__account summary { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; background: white; border: 1px solid var(--student-border); border-radius: var(--radius-md); box-shadow: var(--student-shadow); cursor: pointer; font-weight: 500; }
 .student-header__account summary::-webkit-details-marker { display: none; }
@@ -24,8 +26,8 @@
 @media (max-width: 600px) {
   .student-header__inner { padding: 0 16px; }
   .student-header h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .student-header__participation p { max-width: 100px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .student-header__participation .student-muted { display: none; }
+  .student-header__me { max-width: 140px; font-size: 13px; gap: 6px; }
+  .student-header__me .student-header__avatar { width: 24px; height: 24px; font-size: 11px; flex-shrink: 0; }
   .student-header__participation { gap: 8px; flex-shrink: 0; }
   .student-header__participation .student-button { flex-shrink: 0; }
 }

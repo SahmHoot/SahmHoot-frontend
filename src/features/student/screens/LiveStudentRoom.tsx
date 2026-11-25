@@ -22,7 +22,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
   const waiting = quiz.phase === 'waiting'
 
   return <div className="student-app">
-    <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} onLeave={() => setLeaving(true)}
+    <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} participantId={snapshot?.me.participantId} onLeave={() => setLeaving(true)}
       layout={waiting ? 'waiting' : undefined} />
     {ended ? <RoomEndedNotice onHome={home} /> : !snapshot || error ? <ClassroomStatus error={error} onHome={home} /> :
       <main className={`student-room ${waiting ? 'student-room--waiting' : ''}`}>

@@ -20,12 +20,14 @@ function load(file, dependencies) {
 }
 
 const none = { __esModule: true, default: () => null }
+const avatar = load('chat/ChatAvatar', { './Chat.css': {} })
 const composer = load('chat/ChatComposer', { './Chat.css': {}, '../../assets/student/send.svg': { __esModule: true, default: 'send.svg' } })
 const StudentChat = load('student/components/StudentChat', {
   '../../../assets/student/pin.svg': { __esModule: true, default: 'pin.svg' },
   '../../../assets/student/reply.svg': { __esModule: true, default: 'reply.svg' },
   '../../../assets/student/send.svg': { __esModule: true, default: 'send.svg' },
   '../../room/ChatReactions': { ChatReactions: () => null },
+  '../../chat/ChatAvatar': avatar,
   '../../chat/ChatComposer': composer,
   './StudentReactionBar': none,
   './StudentChat.css': {},
@@ -84,7 +86,27 @@ test('교수 표시는 박스 대신 이름 뒤 텍스트로 표시하고 참가
     message(2, '교수 안내', { nickname: '김교원', isOwner: true }),
     message(1, '교수 계정의 참가자 질문', { nickname: '참가교원', senderParticipantId: 9 }),
   ]))
-  assert.match(markup, /class="student-chat__author">김교원 교수<\/p>/)
-  assert.match(markup, /class="student-chat__author">참가교원 \(나\)<\/p>/)
-  assert.doesNotMatch(markup, /student-chat__author[^>]*>[^<]*<span/)
+  // 이름 앞 동그라미는 닉네임 첫 글자이고, 교수는 기본색, 학생은 참가자 번호로 고른 색이다.
+  assert.match(markup, /class="student-chat__author"><span class="chat-avatar" aria-hidden="true" style="background:#2538d2;color:white">김<\/span>김교원 교수<\/p>/)
+  assert.match(markup, /class="student-chat__author"><span class="chat-avatar" aria-hidden="true" style="background:#9333ea;color:white">참<\/span>참가교원 \(나\)<\/p>/)
+})
+
+test('참가자 색은 번호마다 돌아가며 정해지고 교수는 늘 기본색이다', () => {
+  assert.equal(avatar.avatarColor(3), avatar.avatarColor(10))
+  assert.notEqual(avatar.avatarColor(3), avatar.avatarColor(4))
+  assert.equal(avatar.avatarColor(3, true), '#2538d2')
+})
+
+test('수업 헤더는 「으로 참여 중」 없이 동그라미와 닉네임만 보여 준다', () => {
+  const { default: StudentHeader } = load('student/components/StudentHeader', {
+    'react-router-dom': { Link: ({ children }) => children },
+    '../../../assets/brand/sahmhoot-symbol.svg': { __esModule: true, default: 'logo.svg' },
+    '../../../assets/student/chevron-down.svg': { __esModule: true, default: 'chevron.svg' },
+    '../../auth/AuthProvider': { useAuth: () => ({ user: null, signOut() {} }) },
+    '../../chat/ChatAvatar': avatar,
+    './StudentHeader.css': {},
+  })
+  const markup = renderToStaticMarkup(jsxRuntime.jsx(StudentHeader, { title: '실제 수업', nickname: '반짝이는 고래', participantId: 9 }))
+  assert.match(markup, /<p class="student-header__me"><span class="student-header__avatar" aria-hidden="true" style="background:#9333ea;color:white">반<\/span><strong>반짝이는 고래<\/strong><\/p>/)
+  assert.doesNotMatch(markup, /참여 중/)
 })

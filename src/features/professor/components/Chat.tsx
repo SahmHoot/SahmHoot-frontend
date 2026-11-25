@@ -1,5 +1,6 @@
 import './Chat.css'
 import { useEffect, useId, useRef, useState } from 'react'
+import { ChatAvatar } from '../../chat/ChatAvatar'
 import { ChatComposer } from '../../chat/ChatComposer'
 import { ChatModeration } from '../../chat/ChatModeration'
 import type { RoomChat } from '../../chat/useRoomChat'
@@ -37,6 +38,7 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin, parti
       <div ref={list} className="professor-chat__messages" role="log" aria-label="채팅 메시지" aria-live="polite" aria-relevant="additions">
         {chat.messages.map((message) => <article key={message.id} className="professor-chat__message">
           <p className={`professor-chat__author ${message.isOwner ? 'professor-chat__author--professor' : 'professor-chat__author--student'}`}>
+            <ChatAvatar name={message.nickname} participantId={message.senderParticipantId} isOwner={message.isOwner} />
             {message.nickname}{message.isOwner && ' 교수'}
           </p>
           {message.parentId !== null && <p className="professor-chat__quote"><Icon screen={screen} name="imgFrame5" alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
