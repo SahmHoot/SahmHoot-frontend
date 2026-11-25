@@ -70,6 +70,7 @@ test('생성·편집 스위치는 초안과 문구만 바꾸고 저장·취소�
         save: () => { saves.push(value.isPublic) },
       }) },
       '../../questionset/EditorRecoveryPanel': { EditorRecoveryPanel: () => null },
+      '../../questionset/QuestionImageField': { QuestionImageField: () => null },
       '../../../shared/components/ConfirmDialog': { ConfirmDialog: dialog },
       '../roomSetReturn': {}, '../dashboard-quiz': {}, '../components/Icon': {}, './QuizSetEditor.css': {},
     }, {}, 'tsx')
@@ -283,10 +284,13 @@ function editorHarness(routeId, client, state = null, userId = ++harnessUserId, 
       }
     },
   }
+  react.useLayoutEffect = react.useEffect
+  let accessToken = 'test-session'
   let finished = 0
   const { useQuestionSetEditor } = load('useQuestionSetEditor', {
     react,
     '../auth/AuthProvider': { useAuth: () => ({ user: { id: userId } }) },
+    '../auth/session': { getAccessToken: () => accessToken },
     'react-router-dom': { useLocation: () => ({ state, search }), useNavigate: () => (path, options) => navigations.push({ path, options }) },
     './api': Object.assign(client, { toQuestionSetApiError: (error) => ({ status: error.status ?? 0, message: error.message, code: 'TEST' }) }),
     './editorDraft': model, './saveEditor': { saveEditor }, './editorRecovery': recovery,
@@ -300,7 +304,7 @@ function editorHarness(routeId, client, state = null, userId = ++harnessUserId, 
     return value
   }
   render()
-  return { render, navigations, get finished() { return finished },
+  return { expireSession: () => { accessToken = null }, render, navigations, get finished() { return finished },
     unmount() { slots.forEach((slot) => slot.cleanup?.()) },
     async settle() { for (let i = 0; i < 3; i++) { await new Promise(setImmediate); render() } return value } }
 }
@@ -314,15 +318,18 @@ test('수업에서 연 편집기도 공개 선택을 복원하고 복구 주소�
   client.getQuestionSet = async () => detailOf([question(102)])
   client.reorderQuestions = async () => { throw new Error('순서 실패') }
   const search = '?from=room'
-  const initial = editorHarness('new', client, null, undefined, search)
+  const userId = ++harnessUserId
+  const initial = editorHarness('new', client, null, userId, search)
   initial.render().setDraft({ ...draft(), isPublic: true })
   await initial.render().save()
   const recoveryRoute = initial.navigations[0]
   assert.equal(recoveryRoute.path, `/professor/sets/101${search}`)
 
-  const resumed = editorHarness('101', client, recoveryRoute.options.state, undefined, search)
+  recovery.forgetInterruptedDraft(userId, '101')
+  const resumed = editorHarness('101', client, recoveryRoute.options.state, userId, search)
   const state = await resumed.settle()
   assert.equal(state.fromRoom, true)
+  assert.equal(state.recovery.visibilityChange, 'PUBLIC')
   state.restore()
   client.reorderQuestions = async () => {}
   await resumed.render().save()
@@ -343,7 +350,9 @@ test('실제 훅: 후속 실패 후 신규 ID 주소로 이동하고 재마운�
   assert.equal(initial.finished, 0)
   assert.equal(initial.navigations[0].path, '/professor/sets/101')
   assert.equal(initial.navigations[0].options.replace, true)
-  const next = editorHarness('101', client, initial.navigations[0].options.state)
+  const routeState = initial.navigations[0].options.state
+  recovery.forgetInterruptedDraft(routeState.recoveryUserId, '101')
+  const next = editorHarness('101', client, routeState, routeState.recoveryUserId)
   let state = await next.settle()
   assert(state.recovery)
   assert.equal(state.recoveryResolved, false)
@@ -358,6 +367,59 @@ test('실제 훅: 후속 실패 후 신규 ID 주소로 이동하고 재마운�
   assert.equal(next.finished, 1)
   assert.equal(calls.filter(([method]) => method === 'createQuestionSet').length, 1)
   assert.equal(calls.filter(([method]) => method === 'addQuestion').length, 1)
+})
+
+test('실제 훅: 새 세트의 이미지 업로드가 실패하면 새 ID 주소로 재마운트한 뒤에도 오류 안내와 첨부 초안이 남는다', async () => {
+  const { client, calls } = fakeApi()
+  client.getQuestionSet = async () => detailOf([])
+  client.uploadQuestionImage = async () => { throw Object.assign(new Error('Not Found'), { status: 404 }) }
+  client.imageErrorMessage = (_error, fallback) => fallback
+  const initial = editorHarness('new', client)
+  const pending = draft()
+  pending.questions[0].imageChange = { kind: 'attach', file: new File(['image'], 'upload.png', { type: 'image/png' }) }
+  initial.render().setDraft(pending)
+  await initial.render().save()
+  assert.equal(initial.navigations[0].path, '/professor/sets/101')
+  const routeState = initial.navigations[0].options.state
+  assert.equal(routeState.recoveryError, '이미지를 업로드하지 못했습니다. 초안을 복원한 뒤 다시 저장해 주세요.')
+
+  const resumed = editorHarness('101', client, routeState, routeState.recoveryUserId)
+  let state = await resumed.settle()
+  assert.equal(state.error, routeState.recoveryError)
+  assert.equal(state.recovery.draft.questions[0].imageChange.file.name, 'upload.png')
+  assert.equal(calls.filter(([method]) => method === 'addQuestion').length, 0)
+
+  state.restore()
+  state = resumed.render()
+  assert.equal(state.draft.questions[0].imageChange.file.name, 'upload.png')
+  state.setDraft({ ...state.draft, questions: state.draft.questions.map((item) => ({ ...item, imageChange: undefined })) })
+  await resumed.render().save()
+  assert.equal(resumed.finished, 1)
+  assert.equal(calls.filter(([method]) => method === 'createQuestionSet').length, 1)
+  assert.equal(calls.filter(([method]) => method === 'addQuestion').length, 1)
+})
+
+test('실제 훅: 재마운트 뒤 재조회가 실패하면 저장 실패 사유와 재조회 실패를 함께 알린다', async () => {
+  const { client } = fakeApi()
+  client.getQuestionSet = async () => { throw Object.assign(new Error('서버 연결 실패'), { status: 0 }) }
+  const userId = ++harnessUserId
+  const routeState = { recoveryUserId: userId, recoveryError: '이미지를 업로드하지 못했습니다.', questionSetRecovery: {
+    version: 1, setId: 101, draft: draft(), originalQuestionIds: [], createdIds: {}, creationUnknown: false } }
+  const editor = editorHarness('101', client, routeState, userId)
+  let state = await editor.settle()
+  assert.equal(state.error, '이미지를 업로드하지 못했습니다. 서버 연결 실패')
+  client.getQuestionSet = async () => detailOf([])
+  editor.render().reload()
+  state = await editor.settle()
+  assert.equal(state.error, '이미지를 업로드하지 못했습니다.')
+})
+
+test('복구 주소의 저장 실패 안내는 같은 계정의 문자열만 읽는다', () => {
+  assert.equal(recovery.recoveryErrorFromRoute({ recoveryUserId: 7, recoveryError: '실패' }, 7), '실패')
+  assert.equal(recovery.recoveryErrorFromRoute({ recoveryUserId: 8, recoveryError: '실패' }, 7), '')
+  assert.equal(recovery.recoveryErrorFromRoute({ recoveryUserId: 7, recoveryError: 1 }, 7), '')
+  assert.equal(recovery.recoveryErrorFromRoute(null, 7), '')
+  assert.equal(recovery.recoveryErrorFromRoute({ recoveryUserId: 7, recoveryError: '실패' }, undefined), '')
 })
 
 test('실제 훅: 복구 GET 실패에도 초안을 보존하고 재조회 후 명시적으로 복원한다', async () => {
@@ -387,7 +449,9 @@ test('실제 훅: 생성 결과 불명은 초안과 함께 route state에 보존
   editor.render().setDraft(draft())
   await editor.render().save()
   assert.equal(editor.render().creationUnknown, true)
-  const next = editorHarness('new', client, editor.navigations[0].options.state)
+  const routeState = editor.navigations[0].options.state
+  recovery.forgetInterruptedDraft(routeState.recoveryUserId, 'new')
+  const next = editorHarness('new', client, routeState, routeState.recoveryUserId)
   assert.equal(next.render().creationUnknown, true)
   assert.equal(next.render().recovery.draft.name, '세트')
   await next.render().save()
@@ -813,4 +877,22 @@ test('세트 500 검증 GET의 401은 로그인 이동을 덮어쓰지 않고 �
   await editor.render().save()
   assert.equal(editor.navigations.length, 0)
   assert.equal(recovery.interruptedDraft(userId, 'new').draft.name, '세트')
+})
+
+test('첫 저장 전 인증이 만료되어도 이미지 파일과 공개 선택을 보관한다', async () => {
+  const { client, calls } = fakeApi()
+  const userId = ++harnessUserId
+  const editor = editorHarness('new', client, null, userId)
+  const pending = draft()
+  pending.isPublic = true
+  pending.questions[0].imageChange = { kind: 'attach', file: new File(['image'], 'draft.png', { type: 'image/png' }) }
+  editor.render().setDraft(pending)
+  editor.render()
+  editor.expireSession()
+  editor.unmount()
+  const signedInAgain = editorHarness('new', client, null, userId).render()
+  assert.equal(signedInAgain.draft.questions[0].imageChange.file.name, 'draft.png')
+  assert.equal(signedInAgain.recovery.visibilityChange, 'PUBLIC')
+  assert.equal(signedInAgain.draft.isPublic, true)
+  assert.deepEqual(calls, [])
 })

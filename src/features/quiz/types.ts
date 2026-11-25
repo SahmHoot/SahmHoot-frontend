@@ -4,6 +4,8 @@
  * 시각은 모두 ISO-8601 UTC 문자열이다.
  */
 
+import type { ImageMetadata } from '../../shared/api/image'
+
 export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE'
 
 /** POST /api/rooms/{roomId}/quiz-runs 응답. 문제 내용은 QUESTION_OPENED로 받는다. */
@@ -34,6 +36,7 @@ export interface QuestionResult {
   correctCount: number
   incorrectCount: number
   choices: ChoiceResult[]
+  image?: ImageMetadata | null
 }
 
 export interface QuizResult {
@@ -52,6 +55,7 @@ export interface QuestionOpenedMessage {
   timeLimitSeconds: number
   closesAt: string
   choices: RunChoice[]
+  image?: ImageMetadata | null
 }
 
 /** 정답(correctChoiceId)이 담겨 오지만 교수 화면에는 표시하지 않는다(QZ-05). */

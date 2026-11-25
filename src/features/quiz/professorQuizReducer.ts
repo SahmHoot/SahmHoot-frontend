@@ -14,6 +14,7 @@ export interface ActiveQuestion {
   questionNo: number
   totalQuestions: number
   content: string
+  image?: QuestionOpenedMessage['image']
   choices: RunChoice[]
   closesAt: string
   timeLimitSeconds: number
@@ -88,6 +89,7 @@ export function professorQuizReducer(
             questionNo: message.questionNo,
             totalQuestions: message.totalQuestions,
             content: message.content,
+            image: message.image,
             choices: message.choices,
             closesAt: message.closesAt,
             timeLimitSeconds: message.timeLimitSeconds,
@@ -176,6 +178,7 @@ function fromSnapshot(snapshot: RoomStateResponse, receivedAt: number): Professo
     questionNo: question.questionNo,
     totalQuestions: quiz.totalQuestions,
     content: question.content,
+    image: question.image,
     choices: question.choices,
     closesAt: question.closesAt,
     timeLimitSeconds: question.timeLimitSeconds,
