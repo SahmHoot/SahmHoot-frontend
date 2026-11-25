@@ -12,6 +12,7 @@ export async function getImageBlob(url: string, signal: AbortSignal): Promise<Bl
   if (!imagePath.test(url)) throw new Error('올바른 이미지 주소가 아닙니다.')
   const { data, headers } = await apiClient.get<ArrayBuffer>(url.slice('/api'.length), {
     signal,
+    timeout: 30_000,
     responseType: 'arraybuffer',
     // JSON 인증 오류를 기존 Axios 인터셉터가 인식하도록 복원한다.
     transformResponse: [(body: ArrayBuffer, headers, status) => {
