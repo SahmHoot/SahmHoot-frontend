@@ -8,8 +8,8 @@ import pinIcon from '../../../assets/student/pin.svg'
 import replyIcon from '../../../assets/student/reply.svg'
 import './StudentChat.css'
 
-export default function StudentChat({ nickname, expanded, chat, onlineCount, reactions, onReact, notices, realtimeNotice }: {
-  nickname: string; expanded: boolean; chat: RoomChat; onlineCount: number; reactions: FloatingReaction[]
+export default function StudentChat({ expanded, chat, onlineCount, reactions, onReact, notices, realtimeNotice }: {
+  expanded: boolean; chat: RoomChat; onlineCount: number; reactions: FloatingReaction[]
   onReact: (reaction: Reaction) => void; notices: { id: number; content: string }[]; realtimeNotice?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -38,7 +38,7 @@ export default function StudentChat({ nickname, expanded, chat, onlineCount, rea
     {!expanded && <button ref={toggle} className="student-chat__toggle" type="button" aria-controls={bodyId} aria-expanded={open}
       onClick={() => setOpen(!open)}>{open ? '채팅 닫기' : '채팅 열기'}{unread > 0 && <span className="student-chat__unread" aria-label={`${unread}개의 새 메시지`}>{unread}</span>}</button>}
     <div id={bodyId} className="student-chat__body">
-      <div className="student-chat__heading"><h2>실시간 채팅</h2><span>{expanded ? `내 메시지는 ${nickname}으로 표시됩니다` : `접속 ${onlineCount}명`}</span></div>
+      <div className="student-chat__heading"><h2>실시간 채팅</h2><span>접속 {onlineCount}명</span></div>
       <div role="status" className="student-chat__realtime-notice">{realtimeNotice}</div>
       {notices.length > 0 && <div className="student-chat__notices">{notices.map((notice) => <div key={notice.id} className="student-chat__notice"><img src={pinIcon} alt="" /><p>{notice.content}{expanded && <span className="student-muted"> · 교수 공지</span>}</p></div>)}</div>}
       <div className="chat-messages-area">

@@ -64,7 +64,9 @@ test('학생 화면은 교수 답글 위에 원본 인용을 보여 주고 원�
   const replies = Array.from(markup.matchAll(/class="student-chat__reply"><img[^>]*\/>([^<]*)</g), ([, text]) => text)
   assert.deepEqual(replies, ['시험 범위요?'])
   assert.match(markup, /alt="답장"/)
-  assert.match(markup, /내 메시지는 학생으로 표시됩니다/)
+  // 대기 중에도 채팅 제목 옆에 접속 인원을 보여 주고, 안내 문구는 두지 않는다.
+  assert.match(markup, /<h2>실시간 채팅<\/h2><span>접속 2명<\/span>/)
+  assert.doesNotMatch(markup, /내 메시지는|다음 안내를 기다려/)
   assert.ok(markup.indexOf('시험 범위요?') < markup.indexOf('3장까지입니다'))
 })
 
