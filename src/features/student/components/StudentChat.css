@@ -1,5 +1,4 @@
 .student-chat { display: flex; flex-direction: column; position: relative; overflow: hidden; height: calc(100dvh - 113px); min-height: 540px; }
-.student-chat--expanded { height: calc(100dvh - 179px); }
 .student-chat__heading { padding: 14px 20px; min-height: 49px; border-bottom: 1px solid var(--student-border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
 .student-chat h2 { font-size: 14px; font-weight: 700; }
 .student-chat__heading > span { font-size: 12px; color: var(--student-muted); }

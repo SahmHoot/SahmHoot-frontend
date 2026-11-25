@@ -26,7 +26,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
       layout={waiting ? 'waiting' : undefined} />
     {ended ? <RoomEndedNotice onHome={home} /> : !snapshot || error ? <ClassroomStatus error={error} onHome={home} /> :
       <main className={`student-room ${waiting ? 'student-room--waiting' : ''}`}>
-        {waiting ? <div className="student-room__waiting-banner"><p><strong>대기 중</strong></p></div> :
+        {!waiting &&
           <div className="student-room__quiz">
             {quiz.phase === 'results' ? <StudentQuizResults key={quiz.runId} result={quiz.result} answerOf={classroom.answerOf} /> :
               <LiveQuestion quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}

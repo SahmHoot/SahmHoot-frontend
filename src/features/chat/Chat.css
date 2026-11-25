@@ -66,13 +66,13 @@
 .room-chat-moderation > p { margin: 4px 0; }
 
 .room-chat-moderation__trigger {
-  min-height: 32px;
-  padding-inline: 10px;
+  min-height: 24px;
+  padding-inline: 7px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-brand);
-  font-weight: 600;
+  font-size: 12px;
   cursor: pointer;
 }
 
