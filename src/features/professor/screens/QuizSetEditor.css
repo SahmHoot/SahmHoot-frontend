@@ -175,8 +175,46 @@
   @apply mt-5 mb-2 block text-xs text-hoot-muted;
 }
 
+/* 문제 글과 이미지를 한 상자에 둔다. 이미지는 학생 화면(QuestionImage)과 같은 규칙: 가운데, 최대 높이 224px.
+   버튼은 이미지를 가리지 않도록 상자 아래 줄에 둔다. */
+.quiz-set-editor__prompt-box {
+  @apply rounded-md border border-[#dbe2ee] bg-[#f4f6fb]/40;
+}
+
+.quiz-set-editor__prompt-box:focus-within {
+  @apply border-hoot-primary;
+}
+
 .quiz-set-editor__prompt-input {
-  @apply h-28 w-full resize-y rounded-md border border-[#dbe2ee] bg-[#f4f6fb]/40 p-5 pt-9 text-center text-base font-semibold;
+  @apply block h-28 w-full resize-y rounded-md border-0 bg-transparent p-5 pt-9 text-center text-base font-semibold;
+}
+
+.quiz-set-editor__prompt-error {
+  @apply px-4 pb-2 text-center;
+}
+
+.question-image-field {
+  @apply space-y-3 px-4 pb-4;
+}
+
+.question-image-field__figure {
+  @apply m-0 min-w-0;
+}
+
+.question-image-field__image {
+  @apply mx-auto block h-auto max-h-56 w-auto max-w-full rounded-md border border-hoot-border bg-white object-contain;
+}
+
+.question-image-field__state {
+  @apply flex flex-wrap items-center justify-center gap-2 text-center text-xs text-hoot-muted;
+}
+
+.question-image-field__footer {
+  @apply flex flex-wrap items-center justify-end gap-2;
+}
+
+.question-image-field__messages {
+  @apply mr-auto min-w-0 space-y-1 text-xs text-hoot-muted;
 }
 
 .quiz-set-editor__type-row {
@@ -301,4 +339,14 @@
 
 .quiz-set-editor__question-button--selected .quiz-set-editor__question-error-icon {
   color: color-mix(in srgb, var(--color-danger) 20%, var(--color-surface));
+}
+
+/* 문제 상자 안의 입력란은 테두리가 없으므로 오류 표시를 상자에 옮긴다(aria 속성은 textarea에 그대로) */
+.quiz-set-editor .quiz-set-editor__prompt-box > textarea[aria-invalid='true'] {
+  background: transparent;
+}
+
+.quiz-set-editor__prompt-box[data-invalid='true'] {
+  border-color: var(--editor-error-border);
+  background: var(--editor-error-surface);
 }

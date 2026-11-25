@@ -308,6 +308,7 @@ export function QuizSetEditor() {
           <label htmlFor="question-prompt" className="quiz-set-editor__prompt-label">
             문제 내용
           </label>
+          <div className="quiz-set-editor__prompt-box" data-invalid={messageFor('prompt') ? 'true' : undefined}>
           <textarea
             id="question-prompt"
             {...invalidProps('prompt')}
@@ -317,10 +318,11 @@ export function QuizSetEditor() {
             placeholder="문제 내용을 입력하세요"
             className="quiz-set-editor__prompt-input"
           />
-          {feedback('prompt')}
+          {feedback('prompt') && <div className="quiz-set-editor__prompt-error">{feedback('prompt')}</div>}
           {(imagesAvailable || question.imageChange) && <QuestionImageField key={question.id} question={question} canAttach={imagesAvailable}
             onChange={(imageChange) => update({ imageChange })}
             onChecking={setCheckingImageId} />}
+          </div>
           <div className="quiz-set-editor__type-row">
             <span className="quiz-set-editor__type-label">유형</span>
             <div className="quiz-set-editor__type-switch">
