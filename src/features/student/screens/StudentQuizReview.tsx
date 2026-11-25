@@ -6,6 +6,7 @@ import StudentHeader from '../components/StudentHeader'
 import { getReviewSet } from '../../review/api'
 import { useReviewResource } from '../../review/useReviewResource'
 import StudentAnswerOptions from '../components/StudentAnswerOptions'
+import { QuestionImage } from '../../../shared/components/QuestionImage'
 import type { QuestionSetDetailResponse } from '../../questionset/questionset.types'
 import './StudentQuizReview.css'
 
@@ -51,6 +52,7 @@ function ReviewContent({ quiz }: { quiz: QuestionSetDetailResponse }) {
       <section className="student-review__question student-card" aria-labelledby="review-question-title">
         <p className="student-review__hint">{question.type === 'TRUE_FALSE' ? 'O/X 문제' : '객관식 문제'}</p>
         <h2 id="review-question-title">{question.content}</h2>
+        <QuestionImage key={question.id} image={question.image} />
         <StudentAnswerOptions key={question.id}
           options={question.choices.map(choice => choice.content)}
           selected={selectedIndex < 0 ? null : selectedIndex}
