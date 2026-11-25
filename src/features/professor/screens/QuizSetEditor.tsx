@@ -51,9 +51,7 @@ export function QuizSetEditor() {
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
-  const imagesAvailable = import.meta.env.VITE_QUESTION_IMAGES_ENABLED === 'true'
   const checkingImage = checkingImageId !== undefined
-  const unavailableImageChange = !imagesAvailable && draft.questions.some((item) => item.imageChange)
   const [focusRequest, setFocusRequest] = useState(0)
   const handledFocusRequest = useRef(0)
   const messageFor = (field: DraftField) => fieldErrors.find((error) =>
@@ -81,7 +79,7 @@ export function QuizSetEditor() {
       className={field === 'options' ? 'quiz-set-editor__field-error quiz-set-editor__field-error--inline' : 'quiz-set-editor__field-error'}>{message}</span>
   }
   const submit = () => {
-    if (checkingImage || unavailableImageChange) return
+    if (checkingImage) return
     void save()
     setFocusRequest((request) => request + 1)
   }
@@ -179,7 +177,7 @@ export function QuizSetEditor() {
           >
             {draft.isPublic ? '비공개 전환' : '공개 전환'}
           </button>}
-          <button type="button" onClick={submit} disabled={checkingImage || unavailableImageChange} className="quiz-set-editor__save-button">
+          <button type="button" onClick={submit} disabled={checkingImage} className="quiz-set-editor__save-button">
             {saving ? '저장 중…' : '저장'}
           </button>
         </div>
@@ -308,6 +306,7 @@ export function QuizSetEditor() {
           <label htmlFor="question-prompt" className="quiz-set-editor__prompt-label">
             문제 내용
           </label>
+          <div className="quiz-set-editor__prompt-box" data-invalid={messageFor('prompt') ? 'true' : undefined}>
           <textarea
             id="question-prompt"
             {...invalidProps('prompt')}
@@ -317,10 +316,11 @@ export function QuizSetEditor() {
             placeholder="문제 내용을 입력하세요"
             className="quiz-set-editor__prompt-input"
           />
-          {feedback('prompt')}
-          {(imagesAvailable || question.imageChange) && <QuestionImageField key={question.id} question={question} canAttach={imagesAvailable}
+          {feedback('prompt') && <div className="quiz-set-editor__prompt-error">{feedback('prompt')}</div>}
+          <QuestionImageField key={question.id} question={question}
             onChange={(imageChange) => update({ imageChange })}
-            onChecking={setCheckingImageId} />}
+            onChecking={setCheckingImageId} />
+          </div>
           <div className="quiz-set-editor__type-row">
             <span className="quiz-set-editor__type-label">유형</span>
             <div className="quiz-set-editor__type-switch">

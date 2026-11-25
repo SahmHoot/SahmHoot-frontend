@@ -51,6 +51,13 @@ export function recoveryFromRoute(state: unknown, setId: number | undefined, use
   return recovery?.version === 1 && recovery.setId === setId ? recovery : null
 }
 
+/** 저장 실패 뒤 복구 주소로 이동할 때 넘긴 안내 문구. 다른 계정의 state는 무시한다. */
+export function recoveryErrorFromRoute(state: unknown, userId?: number): string {
+  if (userId === undefined || !state || typeof state !== 'object' || !('recoveryError' in state)
+    || !('recoveryUserId' in state) || state.recoveryUserId !== userId) return ''
+  return typeof state.recoveryError === 'string' ? state.recoveryError : ''
+}
+
 export function recoveryPath(recovery: EditorRecovery): string {
   return `/professor/sets/${recovery.setId ?? 'new'}`
 }
