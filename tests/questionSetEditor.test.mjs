@@ -205,10 +205,13 @@ function editorHarness(routeId, client, state = null, userId = ++harnessUserId, 
       }
     },
   }
+  react.useLayoutEffect = react.useEffect
+  let accessToken = 'test-session'
   let finished = 0
   const { useQuestionSetEditor } = load('useQuestionSetEditor', {
     react,
     '../auth/AuthProvider': { useAuth: () => ({ user: { id: userId } }) },
+    '../auth/session': { getAccessToken: () => accessToken },
     'react-router-dom': { useLocation: () => ({ state, search }), useNavigate: () => (path, options) => navigations.push({ path, options }) },
     './api': Object.assign(client, { toQuestionSetApiError: (error) => ({ status: error.status ?? 0, message: error.message, code: 'TEST' }) }),
     './editorDraft': model, './saveEditor': { saveEditor }, './editorRecovery': recovery,
@@ -222,7 +225,7 @@ function editorHarness(routeId, client, state = null, userId = ++harnessUserId, 
     return value
   }
   render()
-  return { render, navigations, get finished() { return finished },
+  return { expireSession: () => { accessToken = null }, render, navigations, get finished() { return finished },
     unmount() { slots.forEach((slot) => slot.cleanup?.()) },
     async settle() { for (let i = 0; i < 3; i++) { await new Promise(setImmediate); render() } return value } }
 }
@@ -264,7 +267,9 @@ test('실제 훅: 후속 실패 후 신규 ID 주소로 이동하고 재마운�
   assert.equal(initial.finished, 0)
   assert.equal(initial.navigations[0].path, '/professor/sets/101')
   assert.equal(initial.navigations[0].options.replace, true)
-  const next = editorHarness('101', client, initial.navigations[0].options.state)
+  const routeState = initial.navigations[0].options.state
+  recovery.forgetInterruptedDraft(routeState.recoveryUserId, '101')
+  const next = editorHarness('101', client, routeState, routeState.recoveryUserId)
   let state = await next.settle()
   assert(state.recovery)
   assert.equal(state.recoveryResolved, false)
@@ -308,7 +313,9 @@ test('실제 훅: 생성 결과 불명은 초안과 함께 route state에 보존
   editor.render().setDraft(draft())
   await editor.render().save()
   assert.equal(editor.render().creationUnknown, true)
-  const next = editorHarness('new', client, editor.navigations[0].options.state)
+  const routeState = editor.navigations[0].options.state
+  recovery.forgetInterruptedDraft(routeState.recoveryUserId, 'new')
+  const next = editorHarness('new', client, routeState, routeState.recoveryUserId)
   assert.equal(next.render().creationUnknown, true)
   assert.equal(next.render().recovery.draft.name, '세트')
   await next.render().save()
@@ -734,4 +741,19 @@ test('세트 500 검증 GET의 401은 로그인 이동을 덮어쓰지 않고 �
   await editor.render().save()
   assert.equal(editor.navigations.length, 0)
   assert.equal(recovery.interruptedDraft(userId, 'new').draft.name, '세트')
+})
+
+test('unsaved image draft survives session expiry before the first save', async () => {
+  const { client, calls } = fakeApi()
+  const userId = ++harnessUserId
+  const editor = editorHarness('new', client, null, userId)
+  const pending = draft()
+  pending.questions[0].imageChange = { kind: 'attach', file: new File(['image'], 'draft.png', { type: 'image/png' }) }
+  editor.render().setDraft(pending)
+  editor.render()
+  editor.expireSession()
+  editor.unmount()
+  const signedInAgain = editorHarness('new', client, null, userId).render()
+  assert.equal(signedInAgain.draft.questions[0].imageChange.file.name, 'draft.png')
+  assert.deepEqual(calls, [])
 })

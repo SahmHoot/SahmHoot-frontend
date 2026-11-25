@@ -7,8 +7,9 @@ import type { EditorQuestion } from './editorDraft'
 import { validateImageFile } from './questionImage'
 import type { ImageChange } from './questionImage'
 
-export function QuestionImageField({ question, onChange, onChecking }: {
+export function QuestionImageField({ question, onChange, onChecking, canAttach }: {
   question: EditorQuestion
+  canAttach: boolean
   onChange: (change: ImageChange | undefined) => void
   onChecking: Dispatch<SetStateAction<string | undefined>>
 }) {
@@ -51,12 +52,12 @@ export function QuestionImageField({ question, onChange, onChecking }: {
   }
   return (
     <div className="mt-3 space-y-2">
-      <input ref={input} type="file" accept="image/jpeg,image/png" aria-label="문항 이미지 파일" hidden
+      {canAttach && <input ref={input} type="file" accept="image/jpeg,image/png" aria-label="문항 이미지 파일" hidden
         onChange={(event) => {
           const file = event.currentTarget.files?.[0]
           event.currentTarget.value = ''
           if (file) void choose(file)
-        }} />
+        }} />}
       {preview && preview.status === 'ready' && (
         <img src={preview.url} alt="문항 이미지 미리보기"
           className="block max-h-40 max-w-full rounded-md border border-border object-contain" />
@@ -71,13 +72,14 @@ export function QuestionImageField({ question, onChange, onChecking }: {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => input.current?.click()}>
+        {canAttach && <Button size="sm" variant="outline" disabled={checking} onClick={() => input.current?.click()}>
           {source ? '이미지 교체' : '이미지 첨부'}
-        </Button>
-        {source && <Button size="sm" variant="danger" onClick={() => apply(question.image ? { kind: 'remove' } : undefined)}>이미지 제거</Button>}
-        {(change?.kind === 'remove' || (change?.kind === 'attach' && question.image)) &&
+        </Button>}
+        {canAttach && source && <Button size="sm" variant="danger" onClick={() => apply(question.image ? { kind: 'remove' } : undefined)}>이미지 제거</Button>}
+        {(change?.kind === 'remove' || (change?.kind === 'attach' && (question.image || !canAttach))) &&
           <Button size="sm" variant="outline" onClick={() => apply(undefined)}>이미지 변경 취소</Button>}
       </div>
+      {!canAttach && change && <p role="status">??? ??? ?? ????. ????? ??? ??? ??? ???.</p>}
       {checking && <p role="status" className="text-xs text-hoot-muted">선택한 이미지를 확인하는 중입니다.</p>}
       {change?.kind === 'remove' && <p role="status" className="text-xs text-hoot-muted">저장하면 이미지가 제거됩니다.</p>}
       {change?.kind === 'attach' && <p className="break-all text-xs text-hoot-muted">{change.file.name} · 저장 시 업로드</p>}

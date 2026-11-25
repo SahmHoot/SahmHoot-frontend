@@ -27,6 +27,7 @@ test('multipart에는 file 하나를 담고 413 HTML 오류를 용량 초과로 
       assert.deepEqual([...body.keys()], ['file'])
       assert.equal(body.get('file').name, file.name)
       assert.equal(config.headers['Content-Type'], undefined)
+      assert.equal(config.timeout, 30_000)
       return { data: upload }
     } } },
   })
@@ -43,6 +44,7 @@ test('인증 이미지 조회는 /api 접두사를 한 번만 적용하고 JSON 
     get: async (path, config) => {
       assert.equal(path, '/question-sets/11/questions/9/image')
       assert.equal(config.signal, signal)
+      assert.equal(config.timeout, 30_000)
       const unauthorized = config.transformResponse[0](new TextEncoder().encode('{"code":"UNAUTHORIZED"}'), { 'content-type': 'application/json' }, 401)
       assert.equal(unauthorized.code, 'UNAUTHORIZED')
       return { data: new ArrayBuffer(12), headers: { 'content-type': 'image/png' } }

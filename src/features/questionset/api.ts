@@ -47,6 +47,7 @@ export async function uploadQuestionImage(setId: number, file: File): Promise<Im
   form.append('file', file)
   const { data } = await apiClient.post<ImageUpload>(`/question-sets/${setId}/images`, form, {
     headers: { 'Content-Type': undefined },
+    timeout: 30_000,
   })
   return data
 }

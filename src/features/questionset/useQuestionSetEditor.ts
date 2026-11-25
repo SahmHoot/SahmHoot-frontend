@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { getAccessToken } from '../auth/session'
 import * as api from './api'
 import { fromDetail, newQuestion, validateDraftAll } from './editorDraft'
 import type { EditorDraft } from './editorDraft'
@@ -18,7 +19,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const navigate = useNavigate()
   const { user } = useAuth()
   const [initialRecovery] = useState(() => isNew || validId ? interruptedDraft(user?.id, routeId)
-    ?? recoveryFromRoute(location.state, validId ? Number(routeId) : undefined) : null)
+    ?? recoveryFromRoute(location.state, validId ? Number(routeId) : undefined, user?.id) : null)
   const [creationCandidates, setCreationCandidates] = useState<Awaited<ReturnType<typeof api.getMyQuestionSets>>>([])
   const existing = !isNew || initialRecovery?.setId !== undefined
   const [draft, setDraft] = useState<EditorDraft>(() => initialRecovery && !existing ? structuredClone(initialRecovery.draft) : ({ name: '', description: '', isPublic: false, questions: [newQuestion()] }))
@@ -83,6 +84,17 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     mounted.current = true
     return () => { mounted.current = false }
   }, [])
+
+  const rememberUnsaved = useRef<() => void>(() => {})
+  useLayoutEffect(() => {
+    rememberUnsaved.current = () => {
+      if (getAccessToken() || working.current || needsReload || (recovery && !recoveryResolved)
+          || JSON.stringify(draft) === originalDraft.current) return
+      const point = checkpoint.current
+      rememberInterruptedDraft(user?.id, routeId, preserveDraft(draft, point.questionIds, point))
+    }
+  }, [draft, needsReload, recovery, recoveryResolved, routeId, user?.id])
+  useLayoutEffect(() => () => rememberUnsaved.current(), [routeId, user?.id])
 
   const save = async () => {
     if (working.current || needsReload || creationUnknown || (recovery && !recoveryResolved)) return
@@ -202,7 +214,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     if (complete) onSaved()
     else if (recovered) {
       // 모든 요청과 재조회가 끝난 뒤 교체한다. pathname 키에 의한 재마운트에 초안을 전달한다.
-      navigate(recoveryPath(recovered) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered } })
+      navigate(recoveryPath(recovered) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered, recoveryUserId: user?.id } })
     }
   }
 
@@ -231,7 +243,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     const next = { ...recovery, setId: id, creationUnknown: false }
     rememberInterruptedDraft(user?.id, routeId, next)
     rememberInterruptedDraft(user?.id, String(id), next)
-    navigate(recoveryPath(next) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: next } })
+    navigate(recoveryPath(next) + (privateOnly ? location.search : ''), { replace: true, state: { questionSetRecovery: next, recoveryUserId: user?.id } })
   }
   const reload = () => {
     if (working.current) return

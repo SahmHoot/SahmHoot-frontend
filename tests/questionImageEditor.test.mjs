@@ -17,7 +17,7 @@ function load(path, dependencies = {}, globals = {}) {
 
 const model = load('features/questionset/editorDraft')
 const { saveEditor } = load('features/questionset/saveEditor', { './editorDraft': model })
-const { imageQuestionCandidates, planRecovery, preserveDraft } = load('features/questionset/editorRecovery', { './editorDraft': model })
+const { imageQuestionCandidates, planRecovery, preserveDraft, recoveryFromRoute } = load('features/questionset/editorRecovery', { './editorDraft': model })
 const file = new File(['image'], 'sample.png', { type: 'image/png' })
 const metadata = { url: '/api/question-sets/11/questions/9/image', width: 32, height: 16, mimeType: 'image/png' }
 const upload = { imageRef: 'image-reference', ...metadata, expiresAt: '2099-01-01T00:00:00Z', sizeBytes: 5 }
@@ -114,4 +114,13 @@ test('문항 POST 응답 유실은 재전송을 차단하고 재조회에서 일
   assert.equal(restored.restored.questions[0].serverId, 9)
   assert.equal(restored.restored.questions[0].imageChange.upload.imageRef, upload.imageRef)
   assert.equal(restored.restored.questions[1].serverId, 12)
+})
+
+test('image draft in browser history is restored only for the originating account', () => {
+  const saved = preserveDraft(draft(question(9, attach())), [9], { creating: false, setId: 11, questionIds: [9] })
+  const state = { questionSetRecovery: saved, recoveryUserId: 3 }
+  assert.equal(recoveryFromRoute(state, 11, 3).draft.questions[0].imageChange.file.name, file.name)
+  assert.equal(recoveryFromRoute(state, 11, 4), null)
+  assert.equal(recoveryFromRoute({ questionSetRecovery: saved }, 11, 3), null)
+  assert.equal(recoveryFromRoute(state, 12, 3), null)
 })

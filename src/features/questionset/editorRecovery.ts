@@ -44,8 +44,9 @@ export function preserveDraft(draft: EditorDraft, originalQuestionIds: number[],
 }
 
 /** route state만 사용한다. 목록/인증 저장소와 연결하지 않는다. */
-export function recoveryFromRoute(state: unknown, setId: number | undefined): EditorRecovery | null {
-  if (!state || typeof state !== 'object' || !('questionSetRecovery' in state)) return null
+export function recoveryFromRoute(state: unknown, setId: number | undefined, userId?: number): EditorRecovery | null {
+  if (userId === undefined || !state || typeof state !== 'object' || !('questionSetRecovery' in state)
+    || !('recoveryUserId' in state) || state.recoveryUserId !== userId) return null
   const recovery = state.questionSetRecovery as EditorRecovery | null
   return recovery?.version === 1 && recovery.setId === setId ? recovery : null
 }

@@ -51,8 +51,9 @@ export function QuizSetEditor() {
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
-  const serverQuestions = serverDraft?.questions.filter((item) => item.serverId !== undefined) ?? []
-  const imagesAvailable = serverQuestions.length === 0 || serverQuestions.some((item) => item.image !== undefined)
+  const imagesAvailable = import.meta.env.VITE_QUESTION_IMAGES_ENABLED === 'true'
+  const checkingImage = checkingImageId !== undefined
+  const unavailableImageChange = !imagesAvailable && draft.questions.some((item) => item.imageChange)
   const [focusRequest, setFocusRequest] = useState(0)
   const handledFocusRequest = useRef(0)
   const messageFor = (field: DraftField) => fieldErrors.find((error) =>
@@ -80,6 +81,7 @@ export function QuizSetEditor() {
       className={field === 'options' ? 'quiz-set-editor__field-error quiz-set-editor__field-error--inline' : 'quiz-set-editor__field-error'}>{message}</span>
   }
   const submit = () => {
+    if (checkingImage || unavailableImageChange) return
     void save()
     setFocusRequest((request) => request + 1)
   }
@@ -177,7 +179,7 @@ export function QuizSetEditor() {
           >
             {draft.isPublic ? '비공개 전환' : '공개 전환'}
           </button>}
-          <button type="button" onClick={submit} disabled={checkingImageId !== undefined && checkingImageId === question?.id} className="quiz-set-editor__save-button">
+          <button type="button" onClick={submit} disabled={checkingImage || unavailableImageChange} className="quiz-set-editor__save-button">
             {saving ? '저장 중…' : '저장'}
           </button>
         </div>
@@ -227,6 +229,7 @@ export function QuizSetEditor() {
               >
                 <button
                   type="button"
+                  disabled={checkingImage}
                   onClick={() => setSelectedId(item.id)}
                   aria-pressed={selectedId === item.id}
                   aria-description={hasError ? '필수 입력 오류가 있는 문항' : undefined}
@@ -252,6 +255,7 @@ export function QuizSetEditor() {
           })}
           <button
             type="button"
+            disabled={checkingImage}
             onClick={() => {
               const item = newQuestion()
               setDraft({ ...draft, questions: [...draft.questions, item] })
@@ -300,7 +304,7 @@ export function QuizSetEditor() {
         </aside>
         {question ? <section className="quiz-set-editor__question-panel">
           <h2 className="quiz-set-editor__question-title">{selectedIndex + 1}번 문항 편집</h2>
-          <button type="button" className="quiz-set-editor__delete-button" onClick={() => setRemoving(question.id)}>문항 삭제</button>
+          <button type="button" className="quiz-set-editor__delete-button" disabled={checkingImage} onClick={() => setRemoving(question.id)}>문항 삭제</button>
           <label htmlFor="question-prompt" className="quiz-set-editor__prompt-label">
             문제 내용
           </label>
@@ -314,7 +318,7 @@ export function QuizSetEditor() {
             className="quiz-set-editor__prompt-input"
           />
           {feedback('prompt')}
-          {(imagesAvailable || question.imageChange) && <QuestionImageField key={question.id} question={question}
+          {(imagesAvailable || question.imageChange) && <QuestionImageField key={question.id} question={question} canAttach={imagesAvailable}
             onChange={(imageChange) => update({ imageChange })}
             onChecking={setCheckingImageId} />}
           <div className="quiz-set-editor__type-row">
