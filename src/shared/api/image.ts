@@ -8,7 +8,8 @@ export interface ImageMetadata {
 }
 
 export async function getImageBlob(url: string, signal: AbortSignal): Promise<Blob> {
-  if (!/^\/api\/[\w/-]+$/.test(url)) throw new Error('올바른 이미지 주소가 아닙니다.')
+  const imagePath = /^\/api\/(?:question-sets\/\d+|rooms\/\d+\/quiz-runs\/\d+)\/questions\/\d+\/image$/
+  if (!imagePath.test(url)) throw new Error('올바른 이미지 주소가 아닙니다.')
   const { data, headers } = await apiClient.get<ArrayBuffer>(url.slice('/api'.length), {
     signal,
     responseType: 'arraybuffer',

@@ -52,6 +52,24 @@ test('인증 이미지 조회는 /api 접두사를 한 번만 적용하고 JSON 
   assert.equal(blob.type, 'image/png')
   assert.equal(blob.size, 12)
   await assert.rejects(getImageBlob('https://external.example/api/file', signal), /주소/)
+  await assert.rejects(getImageBlob('/api//external.example/questions/9/image', signal), /주소/)
+  await assert.rejects(getImageBlob('/api/api/question-sets/11/questions/9/image', signal), /주소/)
+})
+
+test('실행 문항 이미지는 같은 주소를 다시 열 때도 API에 새로 요청한다', async () => {
+  let count = 0
+  const { getImageBlob } = load('shared/api/image', { './client': { apiClient: {
+    get: async (path) => {
+      assert.equal(path, '/rooms/2/quiz-runs/7/questions/101/image')
+      return { data: Uint8Array.of(++count), headers: { 'content-type': 'image/jpeg' } }
+    },
+  } } })
+  const url = '/api/rooms/2/quiz-runs/7/questions/101/image'
+  const signal = new AbortController().signal
+  for (const version of [1, 2]) {
+    const blob = await getImageBlob(url, signal)
+    assert.deepEqual([...new Uint8Array(await blob.arrayBuffer())], [version])
+  }
 })
 
 test('파일 검사에는 5 MiB 및 양변·총 픽셀 제한을 적용한다', async () => {
