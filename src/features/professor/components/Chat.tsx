@@ -50,10 +50,10 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin, parti
                 <button type="button" disabled={!chat.ready} onClick={() => setReply(message)}
                   aria-label={`${message.nickname}의 메시지에 답글: ${message.content}`}
                   className={`professor-chat__bubble ${message.isOwner ? 'professor-chat__bubble--professor' : 'professor-chat__bubble--student'}`}>{message.content}</button>
+                {chat.roomId !== null && <ChatModeration roomId={chat.roomId} message={message} />}
                 {index === group.length - 1 && <time className="chat-time" dateTime={message.createdAt}>{chatTime(message.createdAt)}</time>}
               </div>
             </div>)}
-            {chat.roomId !== null && <ChatModeration roomId={chat.roomId} messages={group} />}
           </article>
         })}
       </div>

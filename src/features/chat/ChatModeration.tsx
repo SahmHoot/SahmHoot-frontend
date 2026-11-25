@@ -17,9 +17,7 @@ const actionIcons = {
   delete: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
 }
 
-/** 같은 사람이 이어 보낸 메시지 묶음의 관리 메뉴. 고정·삭제는 메시지마다, 작성자 확인·채팅 제한은 보낸 사람에게 한 번만 둔다. */
-export function ChatModeration({ roomId, messages }: { roomId: number; messages: RoomChatMessage[] }) {
-  const sender = messages[messages.length - 1]
+export function ChatModeration({ roomId, message }: { roomId: number; message: RoomChatMessage }) {
   const menuId = useId()
   const trigger = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
@@ -27,14 +25,14 @@ export function ChatModeration({ roomId, messages }: { roomId: number; messages:
   const [error, setError] = useState('')
   const [author, setAuthor] = useState<ChatAuthorResponse | null>(null)
   const [status, setStatus] = useState('')
-  const [deleting, setDeleting] = useState<RoomChatMessage | null>(null)
+  const [deleting, setDeleting] = useState(false)
   async function run(action: () => Promise<void>) {
     if (pending) return
     setPending(true); setError(''); setStatus('')
     try { await action() } catch (failure) { setError(toApiError(failure).message) } finally { setPending(false) }
   }
   function action(icon: keyof typeof actionIcons, label: string, onSelect: () => void) {
-    return <button type="button" key={label} disabled={pending}
+    return <button type="button" key={icon} disabled={pending}
       onClick={() => {
         menu.current?.hidePopover()
         trigger.current?.focus()
@@ -49,26 +47,25 @@ export function ChatModeration({ roomId, messages }: { roomId: number; messages:
   }
   return <div className="room-chat-moderation">
     <button type="button" ref={trigger} className="room-chat-moderation__trigger" popoverTarget={menuId}
-      aria-label={`${sender.nickname} 메시지 관리`}>관리</button>
+      aria-label={`${message.nickname} 메시지 관리: ${message.content}`}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+    </button>
     <div id={menuId} ref={menu} popover="auto" role="group" aria-label="메시지 관리"
       className="room-chat-moderation__menu">
-      {messages.map((message) => <div key={message.id} role={messages.length > 1 ? 'group' : undefined} aria-label={messages.length > 1 ? message.content : undefined}
-        className="room-chat-moderation__target">
-        {messages.length > 1 && <p aria-hidden="true">{message.content}</p>}
-        {action('pin', '공지 고정', () => void run(async () => { await pinMessage(roomId, message.id); setStatus('공지를 고정했습니다.') }))}
-        {action('delete', '메시지 삭제', () => setDeleting(message))}
-      </div>)}
-      {!sender.isOwner && action('author', '작성자 확인', () => void run(async () => { setAuthor(await getChatAuthor(roomId, sender.id)) }))}
-      {!sender.isOwner && [true, false].map((blocked) => action(blocked ? 'block' : 'unblock', blocked ? '채팅 제한' : '채팅 제한 해제',
+      {action('pin', '공지 고정', () => void run(async () => { await pinMessage(roomId, message.id); setStatus('공지를 고정했습니다.') }))}
+      {!message.isOwner && action('author', '작성자 확인', () => void run(async () => { setAuthor(await getChatAuthor(roomId, message.id)) }))}
+      {!message.isOwner && [true, false].map((blocked) => action(blocked ? 'block' : 'unblock', blocked ? '채팅 제한' : '채팅 제한 해제',
         () => void run(async () => {
-          const result = await setChatBlocked(roomId, sender.senderParticipantId, blocked)
+          const result = await setChatBlocked(roomId, message.senderParticipantId, blocked)
           setStatus(`${result.nickname} 채팅 ${result.chatBlocked ? '제한' : '제한 해제'} 완료`)
         })))}
+      {action('delete', '메시지 삭제', () => setDeleting(true))}
     </div>
     {error && <p role="alert">{error}</p>}{status && <p role="status">{status}</p>}
     {deleting && createPortal(<ConfirmDialog title="메시지를 삭제할까요?" message="삭제한 메시지는 모든 참가자에게서 사라지며 복구할 수 없습니다."
-      confirmLabel="삭제하기" cancelLabel="취소" onCancel={() => setDeleting(null)}
-      onConfirm={() => { setDeleting(null); void run(() => deleteChatMessage(roomId, deleting.id)) }} />, document.body)}
+      confirmLabel="삭제하기" cancelLabel="취소" onCancel={() => setDeleting(false)}
+      onConfirm={() => { setDeleting(false); void run(() => deleteChatMessage(roomId, message.id)) }} />, document.body)}
     {author && createPortal(<Modal title="메시지 작성자" onClose={() => setAuthor(null)}><p>{author.nickname}</p><p>{author.email}</p></Modal>, document.body)}
   </div>
 }

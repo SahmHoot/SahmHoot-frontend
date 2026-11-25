@@ -437,3 +437,23 @@ test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결�
     hook.unmount()
   }
 })
+
+test('교수 채팅은 이어 보낸 메시지의 이름을 한 번만 쓰고 말풍선마다 관리 버튼을 붙인다', () => {
+  const groups = {}
+  const { outputText } = ts.transpileModule(readFileSync(new URL('../src/features/chat/chatGroups.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS } })
+  runInNewContext(outputText, { exports: groups })
+  const ChatModeration = ({ message }) => jsxRuntime.jsx('i', { 'data-moderation': message.id })
+  const chat = harness('professor/components/Chat', 'Chat', {
+    'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
+    '../../room/ChatReactions': { ChatReactions: () => null }, '../../chat/ChatComposer': { ChatComposer: () => null },
+    '../../chat/ChatModeration': { ChatModeration }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': groups,
+  }, 'tsx')
+  const line = (id, second) => ({ id, senderParticipantId: 3, nickname: '학생', isOwner: false, content: `메시지 ${id}`, parentId: null,
+    createdAt: `2026-11-19T00:00:${String(second).padStart(2, '0')}Z` })
+  const markup = renderToStaticMarkup(chat.render({ screen: 'waiting', compact: false, participants: 1, notices: [], reactions: [], onUnpin() {},
+    chat: { ...roomChat, messages: [line(1, 0), line(2, 30)] } }))
+  assert.equal(markup.match(/class="professor-chat__author /g).length, 1)
+  assert.deepEqual(Array.from(markup.matchAll(/data-moderation="(\d+)"/g), ([, id]) => Number(id)), [1, 2])
+  assert.equal(markup.match(/<time /g).length, 1)
+})
