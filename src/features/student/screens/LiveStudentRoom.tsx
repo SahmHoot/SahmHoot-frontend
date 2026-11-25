@@ -29,7 +29,7 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
         {waiting ? <div className="student-room__waiting-banner"><p><strong>대기 중</strong><span>교수님의 다음 안내를 기다려 주세요.</span></p><span>접속 {onlineCount}명</span></div> :
           <div className="student-room__quiz">
             {quiz.phase === 'results' ? <StudentQuizResults key={quiz.runId} result={quiz.result} answerOf={classroom.answerOf} /> :
-              <LiveQuestion quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}
+              <LiveQuestion key={`${quiz.runId}:${quiz.runQuestionId}`} quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}
                 correctChoiceId={classroom.correctOf(quiz.runQuestionId)} notice={classroom.notice} onSelect={classroom.select} />}
           </div>}
         <StudentChat nickname={snapshot.me.nickname} expanded={waiting} chat={classroom.chat} onlineCount={onlineCount} reactions={classroom.reactions}
@@ -54,6 +54,7 @@ function LiveQuestion({ quiz, answer, correctChoiceId, notice, onSelect }: LiveQ
   const indexOf = (choiceId: number | null) => choiceId === null ? -1 : quiz.choices.findIndex((choice) => choice.id === choiceId)
   const selected = indexOf(answer)
   return <StudentQuizQuestion question={{ title: quiz.content, options: quiz.choices.map((choice) => choice.content), correctAnswer: indexOf(correctChoiceId) }}
+    image={quiz.image}
     index={quiz.questionNo - 1} total={quiz.totalQuestions} phase={quiz.phase === 'between' ? 'feedback' : seconds === 0 ? 'closing' : 'question'}
     secondsLeft={seconds} timeLimitSeconds={quiz.timeLimitSeconds} closesAt={quiz.closesAt} clockOffsetMs={quiz.clockOffsetMs} selected={selected < 0 ? null : selected} notice={notice} onSelect={(index) => onSelect(quiz.choices[index].id)} />
 }
