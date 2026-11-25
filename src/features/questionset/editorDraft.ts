@@ -1,4 +1,6 @@
 import type { QuestionSetDetailResponse, QuestionWriteRequest } from './questionset.types'
+import type { ImageMetadata } from '../../shared/api/image'
+import type { ImageChange } from './questionImage'
 
 export interface EditorQuestion {
   /** 화면용 키. 서버 ID와 혼용하지 않는다. */
@@ -9,6 +11,8 @@ export interface EditorQuestion {
   seconds: number
   options: string[]
   answer: number
+  image?: ImageMetadata | null
+  imageChange?: ImageChange
 }
 
 export interface EditorDraft {
@@ -32,7 +36,8 @@ export function fromDetail(detail: QuestionSetDetailResponse): EditorDraft {
       const choices = [...question.choices].sort((a, b) => a.orderNo - b.orderNo)
       return { id: `server:${question.id}`, serverId: question.id, prompt: question.content,
         type: question.type === 'TRUE_FALSE' ? 'ox' : 'multiple', seconds: question.timeLimitSeconds,
-        options: choices.map((choice) => choice.content), answer: choices.findIndex((choice) => choice.isCorrect) }
+        options: choices.map((choice) => choice.content), answer: choices.findIndex((choice) => choice.isCorrect),
+        image: question.image }
     }),
   }
 }
