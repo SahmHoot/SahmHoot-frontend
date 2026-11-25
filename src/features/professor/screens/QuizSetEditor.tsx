@@ -31,14 +31,14 @@ export function QuizSetEditor() {
     room.focus()
     window.close()
   }
-  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, privateOnly,
+  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, fromRoom,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
     serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => {
-    if (privateOnly) finish('saved')
+    if (fromRoom) finish('saved')
     else navigate('/professor/sets', { replace: true })
   })
   const cancel = () => {
-    if (privateOnly) finish('cancelled')
+    if (fromRoom) finish('cancelled')
     else navigate('/professor/sets')
   }
   const [cancelling, setCancelling] = useState(false)
@@ -128,6 +128,7 @@ export function QuizSetEditor() {
           <input
             id="set-name"
             {...invalidProps('name')}
+            aria-describedby={messageFor('name') ? 'set-name-help set-name-error' : 'set-name-help'}
             aria-label="세트 이름"
             maxLength={50}
             placeholder="세트 이름을 입력하세요"
@@ -135,6 +136,7 @@ export function QuizSetEditor() {
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
             className="quiz-set-editor__name-input"
           />
+          <p id="set-name-help" className="quiz-set-editor__name-help">문제 세트 이름을 50자 이내로 입력하세요.</p>
           {feedback('name')}
         </div>
         {question && <div className="quiz-set-editor__duration-field">
@@ -159,6 +161,17 @@ export function QuizSetEditor() {
         <div className="quiz-set-editor__actions">
           <button
             type="button"
+            role="switch"
+            aria-label="문제 세트 공개 여부"
+            aria-checked={draft.isPublic}
+            onClick={() => setDraft({ ...draft, isPublic: !draft.isPublic })}
+            className="quiz-set-editor__visibility-button"
+          >
+            <span className="quiz-set-editor__visibility-label">{draft.isPublic ? '공개' : '비공개'}</span>
+            <span aria-hidden="true" className="quiz-set-editor__visibility-track" />
+          </button>
+          <button
+            type="button"
             className="quiz-set-editor__cancel-button"
             onClick={() => JSON.stringify(draft) === originalDraft.current
               ? cancel()
@@ -166,13 +179,6 @@ export function QuizSetEditor() {
           >
             취소
           </button>
-          {!privateOnly && <button
-            type="button"
-            onClick={() => setDraft({ ...draft, isPublic: !draft.isPublic })}
-            className="quiz-set-editor__visibility-button"
-          >
-            {draft.isPublic ? '비공개 전환' : '공개 전환'}
-          </button>}
           <button type="button" onClick={submit} className="quiz-set-editor__save-button">
             {saving ? '저장 중…' : '저장'}
           </button>
@@ -185,8 +191,6 @@ export function QuizSetEditor() {
         className="quiz-set-editor__description-input" placeholder="세트 설명을 입력하세요 (선택)" />
       {feedback('description')}
       <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
-      {privateOnly && <p className="quiz-set-editor__public-help">수업에서 만든 문제 세트는 비공개로 저장됩니다.</p>}
-      {!privateOnly && draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
       {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
       {error && (
         <p role="alert" className="quiz-set-editor__error">

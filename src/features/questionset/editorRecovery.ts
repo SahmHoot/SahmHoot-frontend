@@ -1,8 +1,10 @@
 import type { EditorDraft } from './editorDraft'
 import { questionRequest } from './editorDraft'
 import type { SaveCheckpoint } from './saveEditor'
+import type { Visibility } from './questionset.types'
 
 export interface EditorRecovery {
+  visibilityChange?: Visibility
   confirmedQuestionFailure?: boolean
   creationBaseline?: number[]
   creationFailed?: boolean
@@ -37,8 +39,8 @@ export function forgetInterruptedDraft(userId: number | undefined, routeId: stri
   interruptedDrafts.delete(`${userId}:${routeId}`)
 }
 
-export function preserveDraft(draft: EditorDraft, originalQuestionIds: number[], checkpoint: SaveCheckpoint): EditorRecovery {
-  return structuredClone({ version: 1, setId: checkpoint.setId, draft, originalQuestionIds,
+export function preserveDraft(draft: EditorDraft, originalQuestionIds: number[], checkpoint: SaveCheckpoint, visibilityChange?: Visibility): EditorRecovery {
+  return structuredClone({ version: 1, setId: checkpoint.setId, draft, originalQuestionIds, visibilityChange,
     createdIds: checkpoint.createdIds ?? {}, uncertainQuestionId: checkpoint.pendingQuestionId,
     creationUnknown: checkpoint.creating && checkpoint.setId === undefined })
 }
@@ -74,5 +76,6 @@ export function planRecovery(recovery: EditorRecovery, server: EditorDraft) {
   const originalIds = new Set(recovery.originalQuestionIds)
   const extras = server.questions.filter((question) => question.serverId !== undefined
     && !desiredIds.has(question.serverId) && !originalIds.has(question.serverId))
-  return { statuses, restored: structuredClone({ ...recovery.draft, questions: [...questions, ...extras] }) }
+  const isPublic = recovery.visibilityChange === undefined ? server.isPublic : recovery.visibilityChange === 'PUBLIC'
+  return { statuses, restored: structuredClone({ ...recovery.draft, isPublic, questions: [...questions, ...extras] }) }
 }
