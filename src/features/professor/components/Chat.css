@@ -91,7 +91,11 @@
 }
 
 .professor-chat__message {
-  @apply space-y-1.5;
+  @apply space-y-1;
+}
+
+.professor-chat__line {
+  @apply space-y-1;
 }
 
 .professor-chat__author {

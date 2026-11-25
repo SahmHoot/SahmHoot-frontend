@@ -201,7 +201,7 @@ test('퀴즈 중단·세트 삭제 확인창은 닫기 버튼 없이 취소와 �
   function find(element, predicate) {
     if (!element || typeof element !== 'object') return undefined
     if (predicate(element)) return element
-    for (const child of [element.props?.children].flat()) { const found = find(child, predicate); if (found) return found }
+    for (const child of [element.props?.children].flat(Infinity)) { const found = find(child, predicate); if (found) return found }
   }
   const modal = harness('professor/components/Modal', 'Modal', {
     'react/jsx-runtime': jsxRuntime, './Modal.css': {},
@@ -375,7 +375,7 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
     './Icon': { Icon: () => null }, './Modal': { Modal: () => null },
     '../../room/reactions': { REACTION_EMOJIS: emojis },
     '../../room/ChatReactions': { ChatReactions: (props) => overlay.render(props) },
-    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/ChatAvatar': { ChatAvatar: () => null },
+    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': { groupChat: (messages) => messages.map((message) => [message]), chatTime: () => '' },
   }
   const reactions = harness('professor/components/Reactions', 'Reactions', dependencies, 'tsx')
   const waiting = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
@@ -401,12 +401,12 @@ test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결�
   const dependencies = {
     'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
     '../../room/ChatReactions': { ChatReactions: () => null },
-    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/ChatAvatar': { ChatAvatar: () => null },
+    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': { groupChat: (messages) => messages.map((message) => [message]), chatTime: () => '' },
   }
   function find(element, predicate) {
     if (!element || typeof element !== 'object') return undefined
     if (predicate(element)) return element
-    for (const child of [element.props?.children].flat()) { const found = find(child, predicate); if (found) return found }
+    for (const child of [element.props?.children].flat(Infinity)) { const found = find(child, predicate); if (found) return found }
   }
   for (const screen of ['waiting', 'quiz', 'results']) {
     const hook = harness('professor/components/Chat', 'Chat', dependencies, 'tsx')

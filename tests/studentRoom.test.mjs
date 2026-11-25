@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import ts from 'typescript'
 
 function load(file, dependencies) {
-  const source = readFileSync(new URL(`../src/features/${file}.tsx`, import.meta.url), 'utf8')
+  const source = readFileSync(new URL(`../src/features/${file.endsWith('.ts') ? file : `${file}.tsx`}`, import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } })
   const exports = {}
   const modules = { react: React, 'react/jsx-runtime': jsxRuntime, ...dependencies }
@@ -21,6 +21,7 @@ function load(file, dependencies) {
 
 const none = { __esModule: true, default: () => null }
 const avatar = load('chat/ChatAvatar', { './Chat.css': {} })
+const groups = load('chat/chatGroups.ts', {})
 const composer = load('chat/ChatComposer', { './Chat.css': {}, '../../assets/student/send.svg': { __esModule: true, default: 'send.svg' } })
 const StudentChat = load('student/components/StudentChat', {
   '../../../assets/student/pin.svg': { __esModule: true, default: 'pin.svg' },
@@ -28,6 +29,7 @@ const StudentChat = load('student/components/StudentChat', {
   '../../../assets/student/send.svg': { __esModule: true, default: 'send.svg' },
   '../../room/ChatReactions': { ChatReactions: () => null },
   '../../chat/ChatAvatar': avatar,
+  '../../chat/chatGroups': groups,
   '../../chat/ChatComposer': composer,
   './StudentReactionBar': none,
   './StudentChat.css': {},
@@ -109,4 +111,17 @@ test('수업 헤더는 「으로 참여 중」 없이 동그라미와 닉네임�
   const markup = renderToStaticMarkup(jsxRuntime.jsx(StudentHeader, { title: '실제 수업', nickname: '반짝이는 고래', participantId: 9 }))
   assert.match(markup, /<p class="student-header__me"><span class="student-header__avatar" aria-hidden="true" style="background:#9333ea;color:white">반<\/span><strong>반짝이는 고래<\/strong><\/p>/)
   assert.doesNotMatch(markup, /참여 중/)
+})
+
+test('같은 사람이 이어 보낸 메시지는 이름을 한 번만, 시간은 마지막 말풍선에만 붙인다', () => {
+  const markup = renderRoom(classroom([], [
+    message(3, '세 번째', { createdAt: '2026-11-19T00:00:40Z' }),
+    message(2, '두 번째', { createdAt: '2026-11-19T00:00:20Z' }),
+    message(1, '첫 번째'),
+  ]))
+  assert.equal(markup.match(/class="student-chat__author"/g).length, 1)
+  assert.equal(markup.match(/<time /g).length, 1)
+  assert.match(markup, /세 번째<\/p><time class="chat-time" dateTime="2026-11-19T00:00:40Z">(오전|오후) \d{1,2}:\d{2}<\/time>/)
+  // 이어 붙은 말풍선도 화면 낭독기에는 보낸 사람을 읽어 준다.
+  assert.match(markup, /<span class="chat-sr-only">익명: <\/span>두 번째/)
 })

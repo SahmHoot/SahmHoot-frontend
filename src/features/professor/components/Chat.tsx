@@ -2,6 +2,7 @@ import './Chat.css'
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChatAvatar } from '../../chat/ChatAvatar'
 import { ChatComposer } from '../../chat/ChatComposer'
+import { chatTime, groupChat } from '../../chat/chatGroups'
 import { ChatModeration } from '../../chat/ChatModeration'
 import type { RoomChat } from '../../chat/useRoomChat'
 import type { RoomChatMessage } from '../../../shared/types/roomState'
@@ -36,17 +37,25 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin, parti
     </div>)}</div>}
     <div className="chat-messages-area">
       <div ref={list} className="professor-chat__messages" role="log" aria-label="채팅 메시지" aria-live="polite" aria-relevant="additions">
-        {chat.messages.map((message) => <article key={message.id} className="professor-chat__message">
-          <p className={`professor-chat__author ${message.isOwner ? 'professor-chat__author--professor' : 'professor-chat__author--student'}`}>
-            <ChatAvatar name={message.nickname} participantId={message.senderParticipantId} isOwner={message.isOwner} />
-            {message.nickname}{message.isOwner && ' 교수'}
-          </p>
-          {message.parentId !== null && <p className="professor-chat__quote"><Icon screen={screen} name="imgFrame5" alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
-          <button type="button" disabled={!chat.ready} onClick={() => setReply(message)}
-            aria-label={`${message.nickname}의 메시지에 답글: ${message.content}`}
-            className={`professor-chat__bubble ${message.isOwner ? 'professor-chat__bubble--professor' : 'professor-chat__bubble--student'}`}>{message.content}</button>
-          {chat.roomId !== null && <ChatModeration roomId={chat.roomId} message={message} />}
-        </article>)}
+        {groupChat(chat.messages).map((group) => {
+          const [first] = group
+          return <article key={first.id} className="professor-chat__message">
+            <p className={`professor-chat__author ${first.isOwner ? 'professor-chat__author--professor' : 'professor-chat__author--student'}`}>
+              <ChatAvatar name={first.nickname} participantId={first.senderParticipantId} isOwner={first.isOwner} />
+              {first.nickname}{first.isOwner && ' 교수'}
+            </p>
+            {group.map((message, index) => <div key={message.id} className="professor-chat__line">
+              {message.parentId !== null && <p className="professor-chat__quote"><Icon screen={screen} name="imgFrame5" alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
+              <div className="chat-bubble-row">
+                <button type="button" disabled={!chat.ready} onClick={() => setReply(message)}
+                  aria-label={`${message.nickname}의 메시지에 답글: ${message.content}`}
+                  className={`professor-chat__bubble ${message.isOwner ? 'professor-chat__bubble--professor' : 'professor-chat__bubble--student'}`}>{message.content}</button>
+                {index === group.length - 1 && <time className="chat-time" dateTime={message.createdAt}>{chatTime(message.createdAt)}</time>}
+              </div>
+            </div>)}
+            {chat.roomId !== null && <ChatModeration roomId={chat.roomId} messages={group} />}
+          </article>
+        })}
       </div>
       <ChatReactions reactions={reactions} />
     </div>

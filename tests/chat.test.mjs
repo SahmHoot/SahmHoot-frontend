@@ -258,7 +258,7 @@ function component(file, dependencies = {}, globals = {}) {
 function find(element, predicate) {
   if (!element || typeof element !== 'object') return undefined
   if (predicate(element)) return element
-  for (const child of [element.props?.children].flat()) { const match = find(child, predicate); if (match) return match }
+  for (const child of [element.props?.children].flat(Infinity)) { const match = find(child, predicate); if (match) return match }
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await Promise.resolve() }
 
@@ -274,7 +274,7 @@ test('삭제 확인창은 포털로 목록 밖에 렌더링하고 취소 시 보
     './api': { deleteChatMessage: async (...args) => { calls.push(args) } },
     '../room/api': {},
   }, { document: { body } })
-  const props = { roomId: 40, message: message(8) }
+  const props = { roomId: 40, messages: [message(8)] }
   const view = () => { portal = undefined; return render(props) }
   const request = () => find(view(), element => element.type === 'button' && element.props.children?.at(-1) === '메시지 삭제').props.onClick()
   request()
@@ -299,11 +299,11 @@ test('작성자 확인은 참가자 메시지에만 표시하고 교수 메시�
     './api': { async getChatAuthor(...args) { calls.push(args); return null } },
   })
   const button = (tree, name) => find(tree, el => el.type === 'button' && el.props.children?.at(-1) === name)
-  const teacher = render({ roomId: 40, message: message(8) })
+  const teacher = render({ roomId: 40, messages: [message(8)] })
   assert.equal(button(teacher, '작성자 확인'), undefined)
   assert.ok(button(teacher, '공지 고정'))
   assert.ok(button(teacher, '메시지 삭제'))
-  const student = render({ roomId: 40, message: message(9, { isOwner: false }) })
+  const student = render({ roomId: 40, messages: [message(9, { isOwner: false })] })
   button(student, '작성자 확인').props.onClick()
   await flush()
   assert.deepEqual(calls, [[40, 9]])
@@ -317,7 +317,7 @@ test('공지 고정은 고른 메시지로 요청하고 삭제·종료 오류를
     '../../shared/components/ConfirmDialog': {}, './api': {},
     '../room/api': { async pinMessage(...args) { calls.push(args); if (code) throw { code, message: code === 'MESSAGE_DELETED' ? '삭제된 메시지입니다' : '종료된 방입니다' } } },
   })
-  const props = { roomId: 40, message: message(8) }
+  const props = { roomId: 40, messages: [message(8)] }
   const pin = async () => { find(render(props), element => element.type === 'button' && element.props.children?.at(-1) === '공지 고정').props.onClick(); await flush() }
   await pin()
   assert.deepEqual(calls, [[40, 8]])
@@ -376,4 +376,42 @@ test('교수 퀴즈는 채팅 STOMP 오류를 중복 구독하지 않고 REST �
   await quiz.start(2)
   await quiz.closeResults()
   assert.deepEqual(errors, ['시작 실패'])
+})
+
+test('같은 사람이 1분 안에 이어 보낸 메시지만 한 묶음이 된다', () => {
+  const { groupChat } = load('chatGroups')
+  const at = (id, second, overrides = {}) => message(id, { createdAt: new Date(Date.UTC(2026, 10, 19, 0, 0, second)).toISOString(), ...overrides })
+  const ids = (messages) => groupChat(messages).map((group) => group.map(({ id }) => id))
+  // 앞 메시지 기준 59초면 이어지고 60초면 끊긴다. 보낸 사람이 바뀌어도 끊긴다.
+  assert.deepEqual(plain(ids([at(1, 0), at(2, 59), at(3, 119), at(4, 120, { senderParticipantId: 11, isOwner: false }), at(5, 121)])), [[1, 2], [3], [4], [5]])
+  assert.equal(ids([]).length, 0)
+})
+
+test('묶음 관리 메뉴는 메시지마다 고정·삭제를 두고 작성자 확인은 한 번만 둔다', async () => {
+  const calls = []
+  let portal
+  const render = component('ChatModeration', {
+    'react-dom': { createPortal(dialog) { portal = dialog; return null } },
+    '../auth/api': { toApiError: error => error }, '../professor/components/Modal': {},
+    '../../shared/components/ConfirmDialog': {},
+    './api': { async getChatAuthor(...args) { calls.push(['author', ...args]); return null }, async deleteChatMessage(...args) { calls.push(['delete', ...args]) } },
+    '../room/api': { async pinMessage(...args) { calls.push(['pin', ...args]) } },
+  }, { document: { body: {} } })
+  const props = { roomId: 40, messages: [message(8, { isOwner: false }), message(9, { isOwner: false })] }
+  const all = (element, predicate, found = []) => {
+    if (!element || typeof element !== 'object') return found
+    if (predicate(element)) found.push(element)
+    for (const child of [element.props?.children].flat(Infinity)) all(child, predicate, found)
+    return found
+  }
+  const buttons = (name) => all(render(props), el => el.type === 'button' && el.props.children?.at?.(-1) === name)
+  assert.equal(buttons('공지 고정').length, 2)
+  assert.equal(buttons('메시지 삭제').length, 2)
+  assert.equal(buttons('작성자 확인').length, 1)
+  buttons('공지 고정')[1].props.onClick(); await flush()
+  buttons('작성자 확인')[0].props.onClick(); await flush()
+  buttons('메시지 삭제')[0].props.onClick()
+  render(props)
+  portal.props.onConfirm(); await flush()
+  assert.deepEqual(calls, [['pin', 40, 9], ['author', 40, 9], ['delete', 40, 8]])
 })
