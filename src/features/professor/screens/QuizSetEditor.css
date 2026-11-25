@@ -98,29 +98,37 @@
   @apply flex items-center gap-2;
 }
 
-.quiz-set-editor__visibility-control {
-  @apply -mr-1 flex w-28 shrink-0 justify-end;
+.quiz-set-editor__visibility-button {
+  @apply -mr-1 inline-flex h-12 w-28 shrink-0 items-center justify-center gap-1 rounded-sm text-xs font-medium whitespace-nowrap text-hoot-muted;
 }
 
 .quiz-set-editor .quiz-set-editor__visibility-button:focus-visible {
   outline-offset: -2px;
 }
 
-.quiz-set-editor__visibility-help {
-  @apply pointer-events-none absolute top-full left-1/2 mt-[3px] w-max -translate-x-1/2 whitespace-nowrap text-xs leading-4 text-hoot-muted;
+.quiz-set-editor__visibility-track {
+  @apply inline-flex h-[1.2rem] w-[1.8rem] shrink-0 items-center rounded-full bg-hoot-muted p-[0.15rem];
 }
 
-.quiz-set-editor__visibility-button,
-.quiz-set-editor__cancel-button {
-  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
+.quiz-set-editor__visibility-track::before {
+  @apply block size-[0.9rem] rounded-full bg-white content-[''];
 }
 
-.quiz-set-editor__visibility-button {
-  @apply relative whitespace-nowrap;
+.quiz-set-editor__visibility-button[aria-checked="true"] {
+  @apply text-hoot-primary;
+}
+
+.quiz-set-editor__visibility-button[aria-checked="true"] .quiz-set-editor__visibility-track {
+  @apply justify-end bg-hoot-primary;
 }
 
 .quiz-set-editor__visibility-label {
-  @apply absolute inset-0 flex items-center justify-center;
+  inline-size: 3em;
+  text-align: end;
+}
+
+.quiz-set-editor__cancel-button {
+  @apply inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md px-6 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 border border-[#dbe2ee] bg-white shadow-hoot-card hover:bg-hoot-soft;
 }
 
 .quiz-set-editor__save-button {

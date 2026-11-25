@@ -3,6 +3,7 @@ import { deleteQuestionSet, getMyQuestionSets, toQuestionSetApiError, updateQues
 import type { QuestionSetSummaryResponse, Visibility } from './questionset.types'
 
 type VisibilityFeedback = { status: 'pending' | 'success' | 'error' | 'unknown'; message: string }
+const SUCCESS_FEEDBACK_MS = 3000
 
 function errorMessage(error: unknown): string {
   const failure = toQuestionSetApiError(error)
@@ -26,6 +27,7 @@ export function useQuestionSetList() {
   const syncRequired = useRef(false)
   const revision = useRef(0)
   const session = useRef({ active: false })
+  const visibilityTimers = useRef(new Map<number, { timer: ReturnType<typeof setTimeout>; feedback: VisibilityFeedback }>())
 
   const loadList = useCallback(async () => {
     const request = ++revision.current
@@ -35,6 +37,10 @@ export function useQuestionSetList() {
     try {
       const data = await getMyQuestionSets()
       if (active.active && request === revision.current) {
+        const ids = new Set(data.map(({ id }) => id))
+        setVisibilityFeedback((current) => Object.fromEntries(
+          Object.entries(current).filter(([id]) => ids.has(Number(id))),
+        ))
         setSets(data)
         syncRequired.current = false
         return true
@@ -51,10 +57,40 @@ export function useQuestionSetList() {
 
   useEffect(() => {
     const active = { active: true }
+    const timers = visibilityTimers.current
     session.current = active
     void loadList()
-    return () => { active.active = false }
+    return () => {
+      active.active = false
+      timers.forEach(({ timer }) => clearTimeout(timer))
+      timers.clear()
+    }
   }, [loadList])
+
+  useEffect(() => {
+    const active = session.current
+    const timers = visibilityTimers.current
+    for (const [id, { timer, feedback }] of timers) {
+      if (visibilityFeedback[id] === feedback) continue
+      clearTimeout(timer)
+      timers.delete(id)
+    }
+    for (const [key, feedback] of Object.entries(visibilityFeedback)) {
+      const id = Number(key)
+      if (feedback.status !== 'success' || timers.has(id)) continue
+      const timer = setTimeout(() => {
+        if (!active.active || timers.get(id)?.timer !== timer) return
+        timers.delete(id)
+        setVisibilityFeedback((current) => {
+          if (current[id] !== feedback) return current
+          const next = { ...current }
+          delete next[id]
+          return next
+        })
+      }, SUCCESS_FEEDBACK_MS)
+      timers.set(id, { timer, feedback })
+    }
+  }, [visibilityFeedback])
 
   const reload = async () => {
     if (deleteInFlight.current || visibilityInFlight.current.size) return
@@ -126,6 +162,11 @@ export function useQuestionSetList() {
     try {
       await deleteQuestionSet(id)
       if (active.active) {
+        setVisibilityFeedback((current) => {
+          const next = { ...current }
+          delete next[id]
+          return next
+        })
         setSets((current) => current.filter((set) => set.id !== id))
         setDeleting(null)
       }

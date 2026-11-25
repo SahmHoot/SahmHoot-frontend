@@ -2,12 +2,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
+import * as jsx from 'react/jsx-runtime'
 import ts from 'typescript'
 
 // Node의 내장 테스트 러너와 기존 TypeScript만 사용한다. 앱 설정/의존성 변경 없음.
-function load(name, dependencies = {}, globals = {}) {
-  const source = readFileSync(new URL(`../src/features/questionset/${name}.ts`, import.meta.url), 'utf8')
-  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } })
+function load(name, dependencies = {}, globals = {}, extension = 'ts') {
+  const source = readFileSync(new URL(`../src/features/questionset/${name}.${extension}`, import.meta.url), 'utf8')
+  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } })
   const exports = {}
   runInNewContext(outputText, { exports, crypto: globalThis.crypto, structuredClone, ...globals, require: (id) => {
     if (!(id in dependencies)) throw new Error(`Unexpected dependency: ${id}`)
@@ -31,6 +33,67 @@ function fakeApi() {
   client.getMyQuestionSets = async () => []
   return { client, calls }
 }
+
+test('생성·편집 스위치는 초안과 문구만 바꾸고 저장·취소를 기존 동작에 맡긴다', () => {
+  const descendants = (node) => {
+    if (Array.isArray(node)) return node.flatMap(descendants)
+    if (!node?.props) return []
+    return [node, ...descendants(node.props.children)]
+  }
+  for (const initialPublic of [false, true]) {
+    let value = { ...draft([]), isPublic: initialPublic }
+    let cursor = 0
+    const slots = []
+    const saves = []
+    const navigations = []
+    const dialog = () => null
+    const originalDraft = { current: JSON.stringify(value) }
+    const { QuizSetEditor } = load('../professor/screens/QuizSetEditor', {
+      'react/jsx-runtime': jsx,
+      react: {
+        useLayoutEffect() {},
+        useRef: (current) => ({ current }),
+        useState(initial) {
+          const slot = cursor++
+          if (!(slot in slots)) slots[slot] = initial
+          return [slots[slot], (next) => { slots[slot] = typeof next === 'function' ? next(slots[slot]) : next }]
+        },
+      },
+      'react-router-dom': {
+        useParams: () => ({ setId: initialPublic ? '101' : undefined }),
+        useHref: (path) => path,
+        useNavigate: () => (path) => navigations.push(path),
+      },
+      '../../questionset/editorDraft': model,
+      '../../questionset/useQuestionSetEditor': { useQuestionSetEditor: () => ({
+        draft: value, setDraft: (next) => { value = next }, originalDraft, fieldErrors: [],
+        save: () => { saves.push(value.isPublic) },
+      }) },
+      '../../questionset/EditorRecoveryPanel': { EditorRecoveryPanel: () => null },
+      '../../../shared/components/ConfirmDialog': { ConfirmDialog: dialog },
+      '../roomSetReturn': {}, '../dashboard-quiz': {}, '../components/Icon': {}, './QuizSetEditor.css': {},
+    }, {}, 'tsx')
+    const render = () => { cursor = 0; return descendants(QuizSetEditor()) }
+    const switchControl = () => render().find(({ props }) => props.role === 'switch')
+    for (const checked of [initialPublic, !initialPublic, initialPublic]) {
+      const toggle = switchControl()
+      assert.equal(toggle.type, 'button')
+      assert.equal(toggle.props.type, 'button')
+      assert.equal(toggle.props['aria-checked'], checked)
+      assert.equal(toggle.props['aria-label'], '문제 세트 공개 여부')
+      assert.deepEqual([...descendants(toggle).map(({ props }) => props.children).filter((child) => typeof child === 'string')],
+        [checked ? '공개' : '비공개'])
+      toggle.props.onClick()
+    }
+    assert.equal(saves.length, 0)
+    render().find(({ props }) => props.className === 'quiz-set-editor__cancel-button').props.onClick()
+    render().find(({ type }) => type === dialog).props.onConfirm()
+    assert.deepEqual(navigations, ['/professor/sets'])
+    assert.equal(saves.length, 0)
+    render().find(({ props }) => props.className === 'quiz-set-editor__save-button').props.onClick()
+    assert.deepEqual(saves, [!initialPublic])
+  }
+})
 
 test('서버 계약: 제목, 문항 내용, 시간, 선택지, 단일 정답, OX 검증', () => {
   assert.equal(model.validateDraft(draft()), null)

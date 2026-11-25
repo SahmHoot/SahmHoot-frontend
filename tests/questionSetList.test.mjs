@@ -20,6 +20,8 @@ function harness(client = {}) {
   let value
   let reads = 0
   const deletes = []
+  let now = 0
+  const timers = new Map()
   const react = {
     useState(initial) {
       const slot = index++
@@ -54,7 +56,14 @@ function harness(client = {}) {
   const source = readFileSync(new URL('../src/features/questionset/useQuestionSetList.ts', import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } })
   const exports = {}
-  runInNewContext(outputText, { exports, require: (id) => {
+  runInNewContext(outputText, { exports,
+    setTimeout(callback, delay) {
+      const timer = { callback, expires: now + delay }
+      timers.set(timer, timer.expires)
+      return timer
+    },
+    clearTimeout(timer) { timers.delete(timer) },
+    require: (id) => {
     if (id === 'react') return react
     if (id === './api') return api
     throw new Error(`Unexpected dependency: ${id}`)
@@ -66,7 +75,16 @@ function harness(client = {}) {
     return value
   }
   render()
-  return { render, deletes, get reads() { return reads },
+  return { render, deletes, timers, get reads() { return reads },
+    advance(ms) {
+      now += ms
+      for (const [timer, expires] of timers) {
+        if (expires > now) continue
+        timers.delete(timer)
+        timer.callback()
+      }
+      return render()
+    },
     openDelete() { render().setDeleting(row); return render() },
     unmount() { slots.forEach((slot) => slot.cleanup?.()) },
     async settle() { for (let i = 0; i < 3; i++) { await new Promise(setImmediate); render() } return value },
@@ -269,6 +287,90 @@ test('명확한 공개 변경 거절은 실패를 안내하고 재조회하지 �
   assert.equal(list.reads, 1)
   assert.equal(list.render().sets[0].visibility, 'PRIVATE')
   assert.match(list.render().visibilityFeedback[63].message, /권한/)
+})
+
+test('성공 알림은 표시 후 3초에 세트별로 독립적으로 사라진다', async () => {
+  const other = { ...row, id: 64 }
+  const list = harness({
+    getMyQuestionSets: async () => [row, other],
+    updateQuestionSet: async (id, { visibility }) => ({ ...row, id, visibility }),
+  })
+  await (await list.settle()).toggleVisibility(row)
+  await list.advance(0).toggleVisibility(other)
+  // 두 번째 알림은 1초 뒤 화면에 표시된다.
+  list.advance(1000)
+  assert.equal(list.advance(1999).visibilityFeedback[63].status, 'success')
+  assert.equal(list.advance(1).visibilityFeedback[63], undefined)
+  assert.equal(list.render().visibilityFeedback[64].status, 'success')
+  assert.equal(list.advance(1000).visibilityFeedback[64], undefined)
+  assert.equal(list.timers.size, 0)
+})
+
+test('같은 세트 재변경은 이전 타이머를 취소하고 새 성공 알림의 3초를 센다', async () => {
+  const list = harness({ updateQuestionSet: async (id, { visibility }) => ({ ...row, id, visibility }) })
+  await (await list.settle()).toggleVisibility(row)
+  const published = list.advance(2000)
+  const [oldTimer] = list.timers.keys()
+  await published.toggleVisibility(published.sets[0])
+  assert.equal(list.render().visibilityFeedback[63].message, '비공개로 변경했습니다.')
+  assert.equal(list.timers.has(oldTimer), false)
+  oldTimer.callback()
+  assert.equal(list.advance(2999).visibilityFeedback[63].status, 'success')
+  assert.equal(list.advance(1).visibilityFeedback[63], undefined)
+})
+
+test('진행, 실패, 상태 확인 불가 알림은 이전 성공 타이머의 영향을 받지 않는다', async () => {
+  for (const [status, error] of [['error', failure(403, 'FORBIDDEN')], ['unknown', failure(0, 'NETWORK_ERROR')]]) {
+    const pending = deferred()
+    const list = harness({
+      getMyQuestionSets: async (reads) => { if (reads > 1) throw error; return [row] },
+      updateQuestionSet: (id, { visibility }) => visibility === 'PUBLIC'
+        ? Promise.resolve({ ...row, id, visibility }) : pending.promise,
+    })
+    await (await list.settle()).toggleVisibility(row)
+    list.render()
+    const [oldTimer] = list.timers.keys()
+    const state = list.advance(1000)
+    const changing = state.toggleVisibility(state.sets[0])
+    assert.equal(list.advance(4000).visibilityFeedback[63].status, 'pending')
+    pending.reject(error)
+    await changing
+    oldTimer.callback()
+    assert.equal(list.advance(4000).visibilityFeedback[63].status, status)
+    assert.equal(list.timers.size, 0)
+  }
+})
+
+test('PATCH 응답 유실 후 GET으로 확인된 성공도 3초 후 사라진다', async () => {
+  const list = harness({
+    getMyQuestionSets: async (reads) => [reads === 1 ? row : { ...row, visibility: 'PUBLIC' }],
+    updateQuestionSet: async () => { throw failure(0, 'NETWORK_ERROR') },
+  })
+  await (await list.settle()).toggleVisibility(row)
+  assert.equal(list.render().visibilityFeedback[63].status, 'success')
+  assert.equal(list.reads, 2)
+  assert.equal(list.advance(3000).visibilityFeedback[63], undefined)
+})
+
+test('삭제 성공, 삭제 재조회, 화면 이탈은 예약된 알림 타이머를 정리한다', async () => {
+  for (const action of ['delete', 'reconcile', 'unmount']) {
+    const list = harness({
+      getMyQuestionSets: async (reads) => reads === 1 ? [row] : [],
+      updateQuestionSet: async (id, { visibility }) => ({ ...row, id, visibility }),
+      deleteQuestionSet: async () => {
+        if (action === 'reconcile') throw failure(0, 'NETWORK_ERROR')
+      },
+    })
+    await (await list.settle()).toggleVisibility(row)
+    list.render()
+    assert.equal(list.timers.size, 1)
+    if (action === 'unmount') list.unmount()
+    else {
+      await list.openDelete().confirmDelete()
+      assert.equal(list.render().visibilityFeedback[63], undefined)
+    }
+    assert.equal(list.timers.size, 0)
+  }
 })
 
 test('응답 유실과 재조회 실패 뒤 첫 클릭은 GET만 하고 확인 결과에 따라 다음 클릭을 처리한다', async () => {

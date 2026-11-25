@@ -159,23 +159,17 @@ export function QuizSetEditor() {
           {feedback('seconds')}
         </div>}
         <div className="quiz-set-editor__actions">
-          <div className="quiz-set-editor__visibility-control">
-            <button
-              type="button"
-              aria-label="문제 세트 공개 여부"
-              aria-pressed={draft.isPublic}
-              aria-describedby="set-visibility-help"
-              onClick={() => setDraft({ ...draft, isPublic: !draft.isPublic })}
-              className="quiz-set-editor__visibility-button"
-            >
-              {/* Match the cancel button's intrinsic width with the same font and padding. */}
-              <span aria-hidden="true" className="invisible">취소</span>
-              <span className="quiz-set-editor__visibility-label">{draft.isPublic ? '공개' : '비공개'}</span>
-              <span id="set-visibility-help" className="quiz-set-editor__visibility-help">
-                {draft.isPublic ? '학생이 복습할 수 있습니다.' : '학생이 복습할 수 없습니다.'}
-              </span>
-            </button>
-          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-label="문제 세트 공개 여부"
+            aria-checked={draft.isPublic}
+            onClick={() => setDraft({ ...draft, isPublic: !draft.isPublic })}
+            className="quiz-set-editor__visibility-button"
+          >
+            <span className="quiz-set-editor__visibility-label">{draft.isPublic ? '공개' : '비공개'}</span>
+            <span aria-hidden="true" className="quiz-set-editor__visibility-track" />
+          </button>
           <button
             type="button"
             className="quiz-set-editor__cancel-button"
