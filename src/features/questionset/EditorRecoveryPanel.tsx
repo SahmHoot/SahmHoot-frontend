@@ -1,17 +1,20 @@
 import type { EditorDraft } from './editorDraft'
-import { planRecovery } from './editorRecovery'
+import { imageQuestionCandidates, planRecovery } from './editorRecovery'
+import { Button } from '../../shared/components/Button'
 import type { EditorRecovery } from './editorRecovery'
 
-export function EditorRecoveryPanel({ recovery, server, resolved, disabled, onRestore, onUseServer }: {
+export function EditorRecoveryPanel({ recovery, server, resolved, disabled, onRestore, onUseServer, onResolveImageQuestion }: {
   recovery: EditorRecovery | null
   server: EditorDraft | null
   resolved: boolean
   disabled: boolean
   onRestore: () => void
   onUseServer: () => void
+  onResolveImageQuestion: (id: number) => void
 }) {
   if (!recovery) return null
   const plan = server ? planRecovery(recovery, server) : null
+  const candidates = server ? imageQuestionCandidates(recovery, server) : []
   const labels = { saved: '서버 내용과 일치', unsaved: '미저장 변경', uncertain: '확인 필요' }
   return (
     <section className="quiz-set-editor__recovery" aria-label="저장 실패 복구">
@@ -29,6 +32,8 @@ export function EditorRecoveryPanel({ recovery, server, resolved, disabled, onRe
             <li key={question.id}>
               <p className="quiz-set-editor__recovery-text">{index + 1}. {question.prompt}</p>
               <p>{question.seconds}초 · {plan ? labels[plan.statuses[index]] : '서버 확인 전'}</p>
+              {question.imageChange?.kind === 'attach' && <p className="break-all">첨부 예정: {question.imageChange.file.name}</p>}
+              {question.imageChange?.kind === 'remove' && <p>첨부 이미지 제거 예정</p>}
               <ul>{question.options.map((option, optionIndex) => (
                 <li key={optionIndex} className="quiz-set-editor__recovery-text">
                   {optionIndex + 1}. {option}{question.answer === optionIndex ? ' (정답)' : ''}
@@ -41,6 +46,13 @@ export function EditorRecoveryPanel({ recovery, server, resolved, disabled, onRe
       {plan && !plan.restored && (
         <p>생성 결과가 불명확하거나 서버에서 사라진 문항이 있어 일괄 복원을 막았습니다. 서버 상태를 선택한 뒤 필요한 내용을 직접 수정해 주세요. 문항을 새로 추가하면 중복될 수 있습니다.</p>
       )}
+      {candidates.length > 0 && <div>
+        <p>서버에서 저장 후보를 찾았습니다. 같은 문항인지 확인한 뒤 초안을 연결해 주세요.</p>
+        <ul>{candidates.map(({ id, prompt }) => <li key={id}>
+          <p className="quiz-set-editor__recovery-text">{prompt} (#{id})</p>
+          <Button size="sm" variant="outline" disabled={disabled} onClick={() => onResolveImageQuestion(id)}>이 문항에 초안 연결</Button>
+        </li>)}</ul>
+      </div>}
       {server && (
         <div className="quiz-set-editor__actions">
           <button type="button" className="quiz-set-editor__cancel-button" disabled={disabled} onClick={onUseServer}>서버 상태로 편집</button>

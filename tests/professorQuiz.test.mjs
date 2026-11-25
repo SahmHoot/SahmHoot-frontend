@@ -106,6 +106,33 @@ test('모르는 메시지는 무시한다', () => {
   assert.ok(quiz.toProfessorQuizMessage(waiting))
 })
 
+test('현재 실행 이미지와 결과 스냅샷을 보존하고 다음 문항에서 이전 이미지를 지운다', () => {
+  const image = { url: '/api/rooms/2/quiz-runs/7/questions/101/image', mimeType: 'image/png', width: 800, height: 200 }
+  const opened = { ...open(1), image }
+  const first = run(quiz.initialProfessorQuiz, opened)
+  assert.equal(first.image, image)
+  assert.equal(run(first, closed(101)).image, image)
+  const second = run(first, { ...open(2), image: null })
+  assert.equal(second.image, null)
+  assert.equal(run(second, opened).image, null)
+  assert.equal(run(second, open(3)).image, undefined)
+
+  const question = { ...opened, correctChoiceId: 1 }
+  const result = { questions: [{ runQuestionId: 101, image }, { runQuestionId: 102, image: null }] }
+  const snapshot = (phase, currentQuestion, result = null) => quiz.professorQuizReducer(second, {
+    kind: 'snapshot', receivedAt: received, snapshot: {
+      serverTime: at, quiz: { runId: 7, totalQuestions: 3, phase, currentQuestion, result, nextOpensAt: at },
+    },
+  })
+  assert.equal(snapshot('QUESTION', question).image, image)
+  const feedback = snapshot('FEEDBACK', question)
+  assert.equal(feedback.phase, 'between')
+  assert.equal(feedback.image, image)
+  assert.equal(Object.hasOwn(feedback, 'correctChoiceId'), false)
+  assert.equal(snapshot('RESULT', null, result).result, result)
+  assert.equal(run(second, { ...finished(), result }).result, result)
+})
+
 test('결과 비율은 합이 100이고, 응답이 없으면 모두 0이다', () => {
   assert.deepEqual([...display.percentagesOf([0, 0, 0, 0])], [0, 0, 0, 0])
   assert.deepEqual([...display.percentagesOf([3, 0])], [100, 0])

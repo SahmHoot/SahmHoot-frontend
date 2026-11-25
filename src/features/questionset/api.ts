@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios'
 import { apiClient } from '../../shared/api/client'
+import type { ImageUpload } from './questionImage'
 import type {
   CreateQuestionSetRequest,
   QuestionResponse,
@@ -39,6 +40,29 @@ export async function updateQuestionSet(
 
 export async function deleteQuestionSet(setId: number): Promise<void> {
   await apiClient.delete(`/question-sets/${setId}`)
+}
+
+export async function uploadQuestionImage(setId: number, file: File): Promise<ImageUpload> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await apiClient.post<ImageUpload>(`/question-sets/${setId}/images`, form, {
+    headers: { 'Content-Type': undefined },
+  })
+  return data
+}
+
+export function imageErrorMessage(error: QuestionSetErrorResponse, fallback: string) {
+  if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') return '이미지 용량은 5 MiB 이하여야 합니다.'
+  if (error.status === 401) return '다시 로그인한 뒤 이미지 요청을 시도해 주세요.'
+  if (error.status === 403) return '이미지에 접근할 권한이 없습니다.'
+  switch (error.code) {
+    case 'VALIDATION_FAILED': return '이미지 파일 형식, 용량, 해상도를 확인해 주세요.'
+    case 'QUESTION_IMAGE_NOT_FOUND': return '서버에서 이미지를 찾을 수 없습니다.'
+    case 'QUESTION_IMAGE_NOT_AVAILABLE': return '이미지 연결을 완료하지 못했습니다. 다시 저장해 주세요.'
+    case 'UNSUPPORTED_IMAGE_FORMAT': return 'JPEG 또는 PNG 파일을 선택해 주세요.'
+    case 'IMAGE_STORAGE_UNAVAILABLE': return '이미지 저장소에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+    default: return fallback
+  }
 }
 
 export async function addQuestion(

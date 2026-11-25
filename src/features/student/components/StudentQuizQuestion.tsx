@@ -2,12 +2,15 @@ import timer from '../../../assets/student/timer.svg'
 import StudentAnswerOptions from './StudentAnswerOptions'
 import { CountdownBar } from '../../quiz/components/CountdownBar'
 import { AnswerRevealOverlay } from './AnswerRevealOverlay'
+import { QuestionImage } from '../../../shared/components/QuestionImage'
+import type { ImageMetadata } from '../../../shared/api/image'
 import type { QuizQuestion, RoomPhase } from '../types/student.types'
 import './StudentQuizQuestion.css'
 
 interface Props {
   /** correctAnswer는 마감 전이거나 아직 모르면 -1이다. */
   question: Pick<QuizQuestion, 'title' | 'options' | 'correctAnswer'>
+  image?: ImageMetadata | null
   index: number
   total: number
   phase: RoomPhase
@@ -21,7 +24,7 @@ interface Props {
   onSelect: (index: number) => void
 }
 
-export default function StudentQuizQuestion({ question, index, total, phase, secondsLeft, timeLimitSeconds, closesAt, clockOffsetMs, selected, notice = null, onSelect }: Props) {
+export default function StudentQuizQuestion({ question, image, index, total, phase, secondsLeft, timeLimitSeconds, closesAt, clockOffsetMs, selected, notice = null, onSelect }: Props) {
   const feedback = phase === 'feedback'
   const closing = phase === 'closing'
   const urgent = secondsLeft <= 5 && phase === 'question'
@@ -43,6 +46,7 @@ export default function StudentQuizQuestion({ question, index, total, phase, sec
       <div className="student-question__body">
         <p className={`student-question__timer ${urgent ? 'student-question__timer--urgent' : ''}`}><img src={timer} alt="" />{index + 1} / {total} 문항 · {closing ? '마감 중' : feedback ? '정답 확인' : `남은 시간 ${remaining}`}</p>
         <h2 id="live-question-title">{question.title}</h2>
+        <QuestionImage image={image} />
         <StudentAnswerOptions key={`${index}:${question.title}`} options={question.options} selected={selected} correctAnswer={question.correctAnswer} mode={revealed ? 'results' : 'answer'} disabled={phase !== 'question'} onSelect={onSelect} />
         {notice && <p className="student-question__notice" role="alert">{notice}</p>}
         <div className="student-question__footer">

@@ -1,3 +1,5 @@
+import type { ImageMetadata } from '../api/image'
+
 /**
  * GET /api/rooms/{roomId}/state 응답(05 #21). 백엔드 RoomStateResponse와 필드 이름을 맞춘다.
  * 시각은 ISO-8601 UTC 문자열이다.
@@ -68,6 +70,7 @@ export interface RoomStateQuestion {
   closedAt: string | null
   /** FEEDBACK 단계에서만 값이 있다. */
   correctChoiceId: number | null
+  image?: ImageMetadata | null
 }
 
 export interface RoomStateQuestionResult {
@@ -79,6 +82,7 @@ export interface RoomStateQuestionResult {
   correctCount: number
   incorrectCount: number
   choices: { id: number; orderNo: number; content: string; count: number }[]
+  image?: ImageMetadata | null
 }
 
 /** 채팅 메시지 형태(05 공통 규칙). state, 공지 고정, 06 MESSAGE가 같은 형태를 쓴다. */

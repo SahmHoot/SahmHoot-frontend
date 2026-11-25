@@ -54,6 +54,20 @@ export function recoveryPath(recovery: EditorRecovery): string {
   return `/professor/sets/${recovery.setId ?? 'new'}`
 }
 
+export function imageQuestionCandidates(recovery: EditorRecovery, server: EditorDraft) {
+  const pending = recovery.draft.questions.find((item) => item.id === recovery.uncertainQuestionId)
+  const upload = pending?.imageChange?.kind === 'attach' && pending.imageChange.upload
+  if (!pending || !upload) return []
+  const known = new Set([...recovery.originalQuestionIds, ...Object.values(recovery.createdIds)])
+  const request = JSON.stringify(questionRequest(pending))
+  return server.questions.flatMap((item) => {
+    const { serverId, image } = item
+    if (serverId === undefined || known.has(serverId) || !image) return []
+    if (image.width !== upload.width || image.height !== upload.height || image.mimeType !== upload.mimeType) return []
+    return JSON.stringify(questionRequest(item)) === request ? [{ id: serverId, prompt: item.prompt }] : []
+  })
+}
+
 export function planRecovery(recovery: EditorRecovery, server: EditorDraft) {
   const statuses = recovery.draft.questions.map((question) => {
     const id = question.serverId ?? recovery.createdIds[question.id]
@@ -61,13 +75,15 @@ export function planRecovery(recovery: EditorRecovery, server: EditorDraft) {
     if (id === undefined) return 'unsaved' as const
     const saved = server.questions.find((item) => item.serverId === id)
     if (!saved) return 'uncertain' as const
-    return JSON.stringify(questionRequest(question)) === JSON.stringify(questionRequest(saved))
+    const imagePending = question.imageChange?.kind === 'attach' || (question.imageChange?.kind === 'remove' && saved.image !== null)
+    return !imagePending && JSON.stringify(questionRequest(question)) === JSON.stringify(questionRequest(saved))
       ? 'saved' as const : 'unsaved' as const
   })
   if (statuses.includes('uncertain')) return { statuses, restored: null }
   const questions = recovery.draft.questions.map((question) => {
     const serverId = question.serverId ?? recovery.createdIds[question.id]
-    return serverId === undefined ? question : { ...question, id: `server:${serverId}`, serverId }
+    const image = server.questions.find((item) => item.serverId === serverId)?.image
+    return serverId === undefined ? question : { ...question, id: `server:${serverId}`, serverId, image }
   })
   // 다른 요청이 추가한 문항을 초안 복원으로 삭제하지 않는다.
   const desiredIds = new Set(questions.map((question) => question.serverId))

@@ -6,7 +6,7 @@ import { fromDetail, newQuestion, validateDraftAll } from './editorDraft'
 import type { EditorDraft } from './editorDraft'
 import { saveEditor } from './saveEditor'
 import type { SaveCheckpoint } from './saveEditor'
-import { forgetInterruptedDraft, interruptedDraft, planRecovery, preserveDraft, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
+import { forgetInterruptedDraft, imageQuestionCandidates, interruptedDraft, planRecovery, preserveDraft, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
 import type { EditorRecovery } from './editorRecovery'
 import { lockEditorNavigation } from './editorNavigation'
 
@@ -25,6 +25,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const [selectedId, setSelectedId] = useState(draft.questions[0]?.id ?? '')
   const [loading, setLoading] = useState(existing)
   const [saving, setSaving] = useState(false)
+  const [uploadingQuestionId, setUploadingQuestionId] = useState<string>()
   const [error, setError] = useState(initialRecovery?.creationUnknown
     ? '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.' : '')
   // 저장을 한 번 막은 뒤부터 입력할 때마다 모두 다시 검증해, 고친 칸의 오류는 바로 사라진다.
@@ -108,7 +109,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
       if (checkpoint.current.setId === undefined) {
         creationBaseline = (await api.getMyQuestionSets()).map((item) => item.id)
       }
-      const savedId = await saveEditor(submitted, checkpoint.current, api)
+      const savedId = await saveEditor(submitted, checkpoint.current, api, setUploadingQuestionId)
       // 최종 상세 조회까지 완료된 뒤 이동한다.
       install(await api.getQuestionSet(savedId))
       forgetInterruptedDraft(user?.id, routeId)
@@ -116,7 +117,10 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     } catch (cause: unknown) {
       const failure = api.toQuestionSetApiError(cause)
       const fields = failure.fieldErrors?.map((field) => field.message).join(' ') ?? ''
-      const message = `${failure.message} ${fields}`.trim()
+      const uploadFailed = checkpoint.current.uploadingQuestionId !== undefined
+      const message = uploadFailed || /^(QUESTION_IMAGE_|IMAGE_|UNSUPPORTED_IMAGE_FORMAT$)/.test(failure.code)
+        ? api.imageErrorMessage(failure, uploadFailed ? '이미지를 업로드하지 못했습니다. 초안을 복원한 뒤 다시 저장해 주세요.' : failure.message)
+        : `${failure.message} ${fields}`.trim()
       const rejected = failure.status >= 400 && failure.status < 500
       const confirmedFailure = rejected || failure.status === 500
       if (rejected) checkpoint.current.pendingQuestionId = undefined
@@ -250,6 +254,19 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setRecoveryResolved(true)
     forgetInterruptedDraft(user?.id, routeId)
   }
-  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, privateOnly,
-    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet }
+  const resolveImageQuestion = (id: number) => {
+    if (working.current || !recovery?.uncertainQuestionId || !serverDraft
+      || !imageQuestionCandidates(recovery, serverDraft).some((item) => item.id === id)) return
+    const next = { ...recovery, createdIds: { ...recovery.createdIds, [recovery.uncertainQuestionId]: id }, uncertainQuestionId: undefined }
+    const pending = next.draft.questions.find((item) => item.id === recovery.uncertainQuestionId)
+    // 서버 메타데이터에는 참조 식별자가 없다. 사용자가 연결한 문항에 보관 파일을 다시 적용한다.
+    const questions = next.draft.questions.map((item) => item === pending && item.imageChange?.kind === 'attach'
+      ? { ...item, imageChange: { kind: 'attach' as const, file: item.imageChange.file } } : item)
+    next.draft = { ...next.draft, questions }
+    setRecovery(next)
+    rememberInterruptedDraft(user?.id, routeId, next)
+    rememberInterruptedDraft(user?.id, String(next.setId ?? 'new'), next)
+  }
+  return { draft, setDraft, selectedId, setSelectedId, loading, saving, uploadingQuestionId, error, setError, fieldErrors, privateOnly,
+    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet, resolveImageQuestion }
 }

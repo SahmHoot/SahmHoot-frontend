@@ -5,6 +5,7 @@ import { isInvalidOption, newQuestion } from '../../questionset/editorDraft'
 import type { DraftField, EditorQuestion } from '../../questionset/editorDraft'
 import { useQuestionSetEditor } from '../../questionset/useQuestionSetEditor'
 import { EditorRecoveryPanel } from '../../questionset/EditorRecoveryPanel'
+import { QuestionImageField } from '../../questionset/QuestionImageField'
 import { getRoomTab, roomSetCancelled, roomSetSaved } from '../roomSetReturn'
 import { labels } from '../dashboard-quiz'
 import { Icon } from '../components/Icon'
@@ -31,9 +32,9 @@ export function QuizSetEditor() {
     room.focus()
     window.close()
   }
-  const { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, privateOnly,
+  const { draft, setDraft, selectedId, setSelectedId, loading, saving, uploadingQuestionId, error, setError, fieldErrors, privateOnly,
     needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved,
-    serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet } = useQuestionSetEditor(setId, () => {
+    serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet, resolveImageQuestion } = useQuestionSetEditor(setId, () => {
     if (privateOnly) finish('saved')
     else navigate('/professor/sets', { replace: true })
   })
@@ -43,12 +44,15 @@ export function QuizSetEditor() {
   }
   const [cancelling, setCancelling] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [checkingImageId, setCheckingImageId] = useState<string>()
   const dragId = useRef<string | null>(null)
   const selectedIndex = Math.max(
     0,
     draft.questions.findIndex((question) => question.id === selectedId),
   )
   const question = draft.questions[selectedIndex]
+  const serverQuestions = serverDraft?.questions.filter((item) => item.serverId !== undefined) ?? []
+  const imagesAvailable = serverQuestions.length === 0 || serverQuestions.some((item) => item.image !== undefined)
   const [focusRequest, setFocusRequest] = useState(0)
   const handledFocusRequest = useRef(0)
   const messageFor = (field: DraftField) => fieldErrors.find((error) =>
@@ -81,7 +85,7 @@ export function QuizSetEditor() {
   }
   const blocked = saving || Boolean(recovery && !recoveryResolved)
   const recoveryPanel = <EditorRecoveryPanel recovery={recovery} server={needsReload || creationUnknown ? null : serverDraft}
-    resolved={recoveryResolved} disabled={saving || loading} onRestore={restore} onUseServer={useServer} />
+    resolved={recoveryResolved} disabled={saving || loading} onRestore={restore} onUseServer={useServer} onResolveImageQuestion={resolveImageQuestion} />
   const update = (patch: Partial<EditorQuestion>) =>
     setDraft((current) => ({
       ...current,
@@ -173,7 +177,7 @@ export function QuizSetEditor() {
           >
             {draft.isPublic ? '비공개 전환' : '공개 전환'}
           </button>}
-          <button type="button" onClick={submit} className="quiz-set-editor__save-button">
+          <button type="button" onClick={submit} disabled={checkingImageId !== undefined && checkingImageId === question?.id} className="quiz-set-editor__save-button">
             {saving ? '저장 중…' : '저장'}
           </button>
         </div>
@@ -187,7 +191,9 @@ export function QuizSetEditor() {
       <p id="set-description-help" className="quiz-set-editor__public-help">설명은 공백 포함 최대 1000자입니다. ({draft.description.length}/1000)</p>
       {privateOnly && <p className="quiz-set-editor__public-help">수업에서 만든 문제 세트는 비공개로 저장됩니다.</p>}
       {!privateOnly && draft.isPublic && <p role="status" className="quiz-set-editor__public-help">공개하면 학생이 문제와 정답을 복습할 수 있습니다.</p>}
-      {saving && <p role="status" className="quiz-set-editor__public-help">변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.</p>}
+      {saving && <p role="status" className="quiz-set-editor__public-help">{uploadingQuestionId
+        ? `${draft.questions.findIndex((item) => item.id === uploadingQuestionId) + 1}번 문항 이미지를 업로드하는 중입니다.`
+        : '변경 내용을 저장하고 있습니다. 완료될 때까지 기다려 주세요.'}</p>}
       {error && (
         <p role="alert" className="quiz-set-editor__error">
           {error}
@@ -308,6 +314,9 @@ export function QuizSetEditor() {
             className="quiz-set-editor__prompt-input"
           />
           {feedback('prompt')}
+          {(imagesAvailable || question.imageChange) && <QuestionImageField key={question.id} question={question}
+            onChange={(imageChange) => update({ imageChange })}
+            onChecking={setCheckingImageId} />}
           <div className="quiz-set-editor__type-row">
             <span className="quiz-set-editor__type-label">유형</span>
             <div className="quiz-set-editor__type-switch">

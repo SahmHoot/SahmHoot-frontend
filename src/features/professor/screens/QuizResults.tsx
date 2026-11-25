@@ -8,6 +8,7 @@ import type { FloatingReaction } from '../../room/reactions'
 import { choiceLabel, percentagesOf } from '../dashboard-quiz'
 import { JoinCode } from '../components/JoinCode'
 import { Chat } from '../components/Chat'
+import { QuestionImage } from '../../../shared/components/QuestionImage'
 
 export function QuizResults({
   room,
@@ -71,6 +72,7 @@ export function QuizResults({
             </div>
           </div>
           <h2 className="quiz-results__question-title">{question.content}</h2>
+          <QuestionImage key={question.runQuestionId} image={question.image} />
         </section>
         <section className="quiz-results__distribution-panel">
           <p className="quiz-results__summary">

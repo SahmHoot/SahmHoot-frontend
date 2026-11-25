@@ -6,7 +6,7 @@ import * as jsx from 'react/jsx-runtime'
 import ts from 'typescript'
 
 const quiz = { title: '복습', ownerName: '교수', questions: [
-  { id: 10, type: 'MULTIPLE_CHOICE', content: '객관식', choices: ['가', '나', '다', '라'].map((content, i) => ({ id: 101 + i, content, isCorrect: i === 1 })) },
+  { id: 10, type: 'MULTIPLE_CHOICE', content: '객관식', image: { url: '/api/question-sets/1/questions/10/image' }, choices: ['가', '나', '다', '라'].map((content, i) => ({ id: 101 + i, content, isCorrect: i === 1 })) },
   { id: 20, type: 'TRUE_FALSE', content: 'OX 문제', choices: [{ id: 201, content: 'O', isCorrect: true }, { id: 202, content: 'X', isCorrect: false }] },
 ] }
 
@@ -40,6 +40,7 @@ function harness() {
     react, 'react/jsx-runtime': jsx, 'react-router-dom': { Link: 'a' },
     '../../../assets/student/chevron-left.svg': 'left.svg', '../../../assets/student/chevron-right.svg': 'right.svg',
     '../components/StudentHeader': {}, '../components/StudentAnswerOptions': options,
+    '../../../shared/components/QuestionImage': { QuestionImage: ({ image }) => image ? jsx.jsx('img', { src: image.url, alt: '문항 이미지' }) : null },
     '../../review/api': {}, '../../review/useReviewResource': {}, './StudentQuizReview.css': {},
   }, '\nexport { ReviewContent }\n')
   let tree
@@ -75,6 +76,16 @@ function content(value) {
   return typeof value === 'object' ? content(value.props?.children) : String(value)
 }
 const optionNodes = h => h.nodes().filter(n => n.props?.className?.split(' ').includes('student-answers__option'))
+
+test('복습에서 현재 원본 문항 이미지만 표시한다', () => {
+  const h = harness()
+  const images = () => h.nodes().filter(n => n.type === 'img' && n.props.alt === '문항 이미지').map(n => n.props.src)
+  assert.deepEqual(images(), [quiz.questions[0].image.url])
+  h.select(1); h.click('정답 확인'); h.click('다음 문항')
+  assert.deepEqual(images(), [])
+  h.click('이전 문항')
+  assert.deepEqual(images(), [quiz.questions[0].image.url])
+})
 
 test('선택지 내용만 표시하고 확인 전에는 선택을 변경할 수 있다', () => {
   const h = harness()
