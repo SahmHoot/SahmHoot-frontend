@@ -41,6 +41,14 @@
   @apply text-sm font-bold;
 }
 
+.professor-chat__heading {
+  @apply flex min-w-0 items-baseline gap-2;
+}
+
+.professor-chat__count {
+  @apply text-xs text-hoot-muted;
+}
+
 .professor-chat__layout-help {
   @apply hidden text-xs text-hoot-muted xl:block;
 }

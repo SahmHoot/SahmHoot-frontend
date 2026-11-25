@@ -8,8 +8,8 @@ import { ChatReactions } from '../../room/ChatReactions'
 import type { FloatingReaction } from '../../room/reactions'
 import { Icon } from './Icon'
 
-export function Chat({ compact, screen, chat, reactions, notices, onUnpin }: {
-  compact: boolean; screen: 'waiting' | 'quiz' | 'results'; chat: RoomChat; reactions: FloatingReaction[]
+export function Chat({ compact, screen, chat, reactions, notices, onUnpin, participants }: {
+  compact: boolean; participants: number; screen: 'waiting' | 'quiz' | 'results'; chat: RoomChat; reactions: FloatingReaction[]
   notices: { id: number; content: string }[]; onUnpin: (messageId: number) => void
 }) {
   const [open, setOpen] = useState(true)
@@ -20,7 +20,7 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin }: {
   useEffect(() => { if (open) list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' }) }, [last, open])
   const parent = reply && chat.messages.some(({ id }) => id === reply.id) ? reply : null
   return <section aria-label="수업 채팅" className={`professor-chat ${compact ? 'professor-chat--compact' : 'professor-chat--expanded'} ${open ? '' : 'professor-chat--closed'}`}>
-    <div className="professor-chat__header"><h2 className="professor-chat__title">실시간 채팅</h2>
+    <div className="professor-chat__header"><div className="professor-chat__heading"><h2 className="professor-chat__title">실시간 채팅</h2><span className="professor-chat__count">접속 {participants}명</span></div>
       <button type="button" className="professor-chat__toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}>{open ? '채팅 닫기' : '채팅 열기'}</button>
     </div>
     <div id={bodyId} className="professor-chat__body" hidden={!open}>

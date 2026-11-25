@@ -87,6 +87,7 @@ export function ProfessorRoom({
       <Chat
         screen={waiting ? 'waiting' : 'quiz'}
         compact={!waiting}
+        participants={room.participants}
         chat={chat}
         reactions={reactions}
         notices={notices}
