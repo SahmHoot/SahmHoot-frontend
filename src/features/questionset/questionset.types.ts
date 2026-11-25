@@ -1,3 +1,5 @@
+import type { ImageMetadata } from '../../shared/api/image'
+
 export type Visibility = 'PUBLIC' | 'PRIVATE'
 export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE'
 
@@ -46,6 +48,8 @@ export interface QuestionWriteRequest {
   timeLimitSeconds?: number | null
   /** MULTIPLE_CHOICE는 4개, TRUE_FALSE는 O/X 2개. 정답은 정확히 1개. */
   choices: ChoiceRequest[]
+  /** 수정 시 생략은 유지, null은 해제, UUID는 첨부 또는 교체. */
+  imageRef?: string | null
 }
 
 export interface ChoiceResponse {
@@ -62,6 +66,7 @@ export interface QuestionResponse {
   content: string
   timeLimitSeconds: number
   choices: ChoiceResponse[]
+  image?: ImageMetadata | null
 }
 
 export interface ReorderQuestionsRequest {
