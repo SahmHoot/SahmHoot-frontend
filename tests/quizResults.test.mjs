@@ -60,7 +60,7 @@ function screen(result, onClose = () => {}) {
       if (!node || typeof node !== 'object') return []
       return node.type === QuestionImage ? [node.props.image] : walk(node.props?.children)
     }
-    return walk(render())
+    return Array.from(walk(render()))
   }
   return { buttons, title, image }
 }
