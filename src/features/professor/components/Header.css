@@ -87,6 +87,8 @@
 
 .professor-header__avatar {
   @apply flex size-7 items-center justify-center rounded-(--radius-full) bg-hoot-selected text-xs font-bold text-hoot-primary;
+  /* 한글 첫 글자가 가운데보다 살짝 아래에 그려져 padding으로 올린다(chat/Chat.css의 .chat-avatar와 같은 값). */
+  padding-bottom: 0.07em;
 }
 
 .professor-header__menu {
