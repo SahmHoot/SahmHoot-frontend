@@ -46,14 +46,36 @@ export function preserveDraft(draft: EditorDraft, originalQuestionIds: number[],
 }
 
 /** route state만 사용한다. 목록/인증 저장소와 연결하지 않는다. */
-export function recoveryFromRoute(state: unknown, setId: number | undefined): EditorRecovery | null {
-  if (!state || typeof state !== 'object' || !('questionSetRecovery' in state)) return null
+export function recoveryFromRoute(state: unknown, setId: number | undefined, userId?: number): EditorRecovery | null {
+  if (userId === undefined || !state || typeof state !== 'object' || !('questionSetRecovery' in state)
+    || !('recoveryUserId' in state) || state.recoveryUserId !== userId) return null
   const recovery = state.questionSetRecovery as EditorRecovery | null
   return recovery?.version === 1 && recovery.setId === setId ? recovery : null
 }
 
+/** 저장 실패 뒤 복구 주소로 이동할 때 넘긴 안내 문구. 다른 계정의 state는 무시한다. */
+export function recoveryErrorFromRoute(state: unknown, userId?: number): string {
+  if (userId === undefined || !state || typeof state !== 'object' || !('recoveryError' in state)
+    || !('recoveryUserId' in state) || state.recoveryUserId !== userId) return ''
+  return typeof state.recoveryError === 'string' ? state.recoveryError : ''
+}
+
 export function recoveryPath(recovery: EditorRecovery): string {
   return `/professor/sets/${recovery.setId ?? 'new'}`
+}
+
+export function imageQuestionCandidates(recovery: EditorRecovery, server: EditorDraft) {
+  const pending = recovery.draft.questions.find((item) => item.id === recovery.uncertainQuestionId)
+  const upload = pending?.imageChange?.kind === 'attach' && pending.imageChange.upload
+  if (!pending || !upload) return []
+  const known = new Set([...recovery.originalQuestionIds, ...Object.values(recovery.createdIds)])
+  const request = JSON.stringify(questionRequest(pending))
+  return server.questions.flatMap((item) => {
+    const { serverId, image } = item
+    if (serverId === undefined || known.has(serverId) || !image) return []
+    if (image.width !== upload.width || image.height !== upload.height || image.mimeType !== upload.mimeType) return []
+    return JSON.stringify(questionRequest(item)) === request ? [{ id: serverId, prompt: item.prompt }] : []
+  })
 }
 
 export function planRecovery(recovery: EditorRecovery, server: EditorDraft) {
@@ -63,13 +85,15 @@ export function planRecovery(recovery: EditorRecovery, server: EditorDraft) {
     if (id === undefined) return 'unsaved' as const
     const saved = server.questions.find((item) => item.serverId === id)
     if (!saved) return 'uncertain' as const
-    return JSON.stringify(questionRequest(question)) === JSON.stringify(questionRequest(saved))
+    const imagePending = question.imageChange?.kind === 'attach' || (question.imageChange?.kind === 'remove' && saved.image !== null)
+    return !imagePending && JSON.stringify(questionRequest(question)) === JSON.stringify(questionRequest(saved))
       ? 'saved' as const : 'unsaved' as const
   })
   if (statuses.includes('uncertain')) return { statuses, restored: null }
   const questions = recovery.draft.questions.map((question) => {
     const serverId = question.serverId ?? recovery.createdIds[question.id]
-    return serverId === undefined ? question : { ...question, id: `server:${serverId}`, serverId }
+    const image = server.questions.find((item) => item.serverId === serverId)?.image
+    return serverId === undefined ? question : { ...question, id: `server:${serverId}`, serverId, image }
   })
   // 다른 요청이 추가한 문항을 초안 복원으로 삭제하지 않는다.
   const desiredIds = new Set(questions.map((question) => question.serverId))

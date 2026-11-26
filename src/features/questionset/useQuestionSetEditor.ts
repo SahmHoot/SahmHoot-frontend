@@ -1,14 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { getAccessToken } from '../auth/session'
 import * as api from './api'
 import { fromDetail, newQuestion, validateDraftAll } from './editorDraft'
 import type { EditorDraft } from './editorDraft'
 import { saveEditor } from './saveEditor'
 import type { SaveCheckpoint } from './saveEditor'
-import { forgetInterruptedDraft, interruptedDraft, planRecovery, preserveDraft, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
+import { forgetInterruptedDraft, imageQuestionCandidates, interruptedDraft, planRecovery, preserveDraft, recoveryErrorFromRoute, recoveryFromRoute, recoveryPath, rememberInterruptedDraft } from './editorRecovery'
 import type { EditorRecovery } from './editorRecovery'
 import { lockEditorNavigation } from './editorNavigation'
+import type { Visibility } from './questionset.types'
+
+function requestedVisibility(isPublic: boolean, previousPublic: boolean | undefined): Visibility | undefined {
+  if (isPublic === previousPublic) return undefined
+  return isPublic ? 'PUBLIC' : 'PRIVATE'
+}
 
 export function useQuestionSetEditor(routeId: string | undefined, onSaved: () => void) {
   const isNew = routeId === 'new'
@@ -18,15 +25,21 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
   const navigate = useNavigate()
   const { user } = useAuth()
   const [initialRecovery] = useState(() => isNew || validId ? interruptedDraft(user?.id, routeId)
-    ?? recoveryFromRoute(location.state, validId ? Number(routeId) : undefined) : null)
+    ?? recoveryFromRoute(location.state, validId ? Number(routeId) : undefined, user?.id) : null)
   const [creationCandidates, setCreationCandidates] = useState<Awaited<ReturnType<typeof api.getMyQuestionSets>>>([])
   const existing = !isNew || initialRecovery?.setId !== undefined
   const [draft, setDraft] = useState<EditorDraft>(() => initialRecovery && !existing ? structuredClone(initialRecovery.draft) : ({ name: '', description: '', isPublic: false, questions: [newQuestion()] }))
   const [selectedId, setSelectedId] = useState(draft.questions[0]?.id ?? '')
   const [loading, setLoading] = useState(existing)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(initialRecovery?.creationUnknown
-    ? '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.' : '')
+  const [uploadingQuestionId, setUploadingQuestionId] = useState<string>()
+  // 마지막 저장 실패 사유. 재조회 상태 안내와 따로 두어 재조회를 다시 해도 사라지지 않게 한다.
+  const saveFailure = useRef('')
+  const [error, setError] = useState(() => {
+    if (initialRecovery?.creationUnknown) return '세트 생성 결과를 확인할 수 없습니다. 목록에서 생성 여부를 확인해 주세요. 다른 탭이나 새 주소에서 다시 생성하면 중복될 수 있습니다.'
+    saveFailure.current = initialRecovery ? recoveryErrorFromRoute(location.state, user?.id) : ''
+    return saveFailure.current
+  })
   // 저장을 한 번 막은 뒤부터 입력할 때마다 모두 다시 검증해, 고친 칸의 오류는 바로 사라진다.
   const [showInvalid, setShowInvalid] = useState(false)
   const fieldErrors = showInvalid ? validateDraftAll(draft) : []
@@ -70,7 +83,7 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     api.getQuestionSet(id).then((detail) => {
       if (active) install(detail)
     }).catch((cause: unknown) => {
-      if (active) setError(api.toQuestionSetApiError(cause).message)
+      if (active) setError(`${saveFailure.current} ${api.toQuestionSetApiError(cause).message}`.trim())
     }).finally(() => {
       if (active) setLoading(false)
     })
@@ -81,6 +94,19 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     mounted.current = true
     return () => { mounted.current = false }
   }, [])
+
+  const rememberUnsaved = useRef<() => void>(() => {})
+  useLayoutEffect(() => {
+    rememberUnsaved.current = () => {
+      if (getAccessToken() || working.current || needsReload || (recovery && !recoveryResolved)
+          || JSON.stringify(draft) === originalDraft.current) return
+      const point = checkpoint.current
+      const previousPublic = point.setId === undefined ? false : serverDraft?.isPublic
+      const visibilityChange = requestedVisibility(draft.isPublic, previousPublic)
+      rememberInterruptedDraft(user?.id, routeId, preserveDraft(draft, point.questionIds, point, visibilityChange))
+    }
+  }, [draft, needsReload, recovery, recoveryResolved, routeId, serverDraft, user?.id])
+  useLayoutEffect(() => () => rememberUnsaved.current(), [routeId, user?.id])
 
   const save = async () => {
     if (working.current || needsReload || creationUnknown || (recovery && !recoveryResolved)) return
@@ -97,18 +123,22 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     const unlock = lockEditorNavigation()
     const submitted = structuredClone(draft)
     const previousPublic = checkpoint.current.setId === undefined ? false : serverDraft?.isPublic
-    const visibilityChange = submitted.isPublic === previousPublic ? undefined : submitted.isPublic ? 'PUBLIC' : 'PRIVATE'
+    const visibilityChange = requestedVisibility(submitted.isPublic, previousPublic)
     const originalQuestionIds = [...checkpoint.current.questionIds]
     let recovered: EditorRecovery | undefined
     let complete = false
     let creationBaseline: number[] | undefined
+    // 새 세트 주소로 재마운트되면 화면 상태가 초기화되므로 저장 실패 사유만 이동 state로 넘긴다.
+    // 재조회 결과는 새 화면이 직접 조회해 알린다.
+    let failureMessage = ''
+    saveFailure.current = ''
     setSaving(true)
     setError('')
     try {
       if (checkpoint.current.setId === undefined) {
         creationBaseline = (await api.getMyQuestionSets()).map((item) => item.id)
       }
-      const savedId = await saveEditor(submitted, checkpoint.current, api, visibilityChange)
+      const savedId = await saveEditor(submitted, checkpoint.current, api, visibilityChange, setUploadingQuestionId)
       // 최종 상세 조회까지 완료된 뒤 이동한다.
       install(await api.getQuestionSet(savedId))
       forgetInterruptedDraft(user?.id, routeId)
@@ -116,7 +146,12 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     } catch (cause: unknown) {
       const failure = api.toQuestionSetApiError(cause)
       const fields = failure.fieldErrors?.map((field) => field.message).join(' ') ?? ''
-      const message = `${failure.message} ${fields}`.trim()
+      const uploadFailed = checkpoint.current.uploadingQuestionId !== undefined
+      const message = uploadFailed || /^(QUESTION_IMAGE_|IMAGE_|UNSUPPORTED_IMAGE_FORMAT$)/.test(failure.code)
+        ? api.imageErrorMessage(failure, uploadFailed ? '이미지를 업로드하지 못했습니다. 초안을 복원한 뒤 다시 저장해 주세요.' : failure.message)
+        : `${failure.message} ${fields}`.trim()
+      failureMessage = message
+      saveFailure.current = message
       const rejected = failure.status >= 400 && failure.status < 500
       const confirmedFailure = rejected || failure.status === 500
       if (rejected) checkpoint.current.pendingQuestionId = undefined
@@ -198,7 +233,9 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     if (complete) onSaved()
     else if (recovered) {
       // 모든 요청과 재조회가 끝난 뒤 교체한다. pathname 키에 의한 재마운트에 초안을 전달한다.
-      navigate(recoveryPath(recovered) + (fromRoom ? location.search : ''), { replace: true, state: { questionSetRecovery: recovered } })
+      navigate(recoveryPath(recovered) + (fromRoom ? location.search : ''), {
+        replace: true, state: { questionSetRecovery: recovered, recoveryUserId: user?.id, recoveryError: failureMessage },
+      })
     }
   }
 
@@ -227,12 +264,14 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     const next = { ...recovery, setId: id, creationUnknown: false }
     rememberInterruptedDraft(user?.id, routeId, next)
     rememberInterruptedDraft(user?.id, String(id), next)
-    navigate(recoveryPath(next) + (fromRoom ? location.search : ''), { replace: true, state: { questionSetRecovery: next } })
+    navigate(recoveryPath(next) + (fromRoom ? location.search : ''), {
+      replace: true, state: { questionSetRecovery: next, recoveryUserId: user?.id },
+    })
   }
   const reload = () => {
     if (working.current) return
     setLoading(true)
-    setError('')
+    setError(saveFailure.current)
     setLoadAttempt((attempt) => attempt + 1)
   }
   const restore = () => {
@@ -250,6 +289,19 @@ export function useQuestionSetEditor(routeId: string | undefined, onSaved: () =>
     setRecoveryResolved(true)
     forgetInterruptedDraft(user?.id, routeId)
   }
-  return { draft, setDraft, selectedId, setSelectedId, loading, saving, error, setError, fieldErrors, fromRoom,
-    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet }
+  const resolveImageQuestion = (id: number) => {
+    if (working.current || !recovery?.uncertainQuestionId || !serverDraft
+      || !imageQuestionCandidates(recovery, serverDraft).some((item) => item.id === id)) return
+    const next = { ...recovery, createdIds: { ...recovery.createdIds, [recovery.uncertainQuestionId]: id }, uncertainQuestionId: undefined }
+    const pending = next.draft.questions.find((item) => item.id === recovery.uncertainQuestionId)
+    // 서버 메타데이터에는 참조 식별자가 없다. 사용자가 연결한 문항에 보관 파일을 다시 적용한다.
+    const questions = next.draft.questions.map((item) => item === pending && item.imageChange?.kind === 'attach'
+      ? { ...item, imageChange: { kind: 'attach' as const, file: item.imageChange.file } } : item)
+    next.draft = { ...next.draft, questions }
+    setRecovery(next)
+    rememberInterruptedDraft(user?.id, routeId, next)
+    rememberInterruptedDraft(user?.id, String(next.setId ?? 'new'), next)
+  }
+  return { draft, setDraft, selectedId, setSelectedId, loading, saving, uploadingQuestionId, error, setError, fieldErrors, fromRoom,
+    needsReload, creationUnknown, save, reload, originalDraft, recovery, recoveryResolved, serverDraft, restore, useServer, creationCandidates, checkCreation, selectCreatedSet, resolveImageQuestion }
 }

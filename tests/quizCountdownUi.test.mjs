@@ -21,15 +21,18 @@ function load(path, dependencies = {}) {
   return exports
 }
 const countdown = load('quiz/components/CountdownBar.tsx')
+const image = { QuestionImage: () => null }
 let seconds = 0
 const professor = load('professor/components/QuizQuestion.tsx', {
   '../../quiz/hooks/useServerCountdown': { useServerCountdown: () => seconds },
   '../../quiz/components/CountdownBar': countdown, './Icon': { Icon: () => null },
+  '../../../shared/components/QuestionImage': image,
 })
 const student = load('student/components/StudentQuizQuestion.tsx', {
   '../../../assets/student/timer.svg': { __esModule: true, default: 'timer.svg' },
   './AnswerRevealOverlay': { AnswerRevealOverlay: props => jsxRuntime.jsx('div', { 'data-testid': 'answer-overlay', 'data-correct': props.correct, children: props.answer }) },
   './StudentAnswerOptions': { __esModule: true, default: () => null }, '../../quiz/components/CountdownBar': countdown,
+  '../../../shared/components/QuestionImage': image,
 })
 const question = { phase: 'question', runId: 1, runQuestionId: 10, questionNo: 3, totalQuestions: 4,
   content: '문제', choices: [], timeLimitSeconds: 60, closesAt: '', clockOffsetMs: 0, answeredCount: 0 }

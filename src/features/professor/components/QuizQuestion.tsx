@@ -3,6 +3,7 @@ import { useServerCountdown } from "../../quiz/hooks/useServerCountdown";
 import type { ProfessorQuizState } from "../../quiz/professorQuizReducer";
 import { CountdownBar } from "../../quiz/components/CountdownBar";
 import { Icon } from "./Icon";
+import { QuestionImage } from "../../../shared/components/QuestionImage";
 
 /** 남은 시간 문구. 0초가 돼도 자기 시계로 넘어가지 않고 서버의 마감 메시지를 기다린다(06 4절). */
 function timerText(
@@ -57,6 +58,7 @@ export function QuizQuestion({
             </button>
           </div>
           <h2 className="quiz-question__title">{quiz.content}</h2>
+          <QuestionImage key={`${quiz.runId}:${quiz.runQuestionId}`} image={quiz.image} />
           <ul className={`quiz-question__options ${quiz.choices.length === 2 ? "quiz-question__options--true-false" : ""}`}>
             {quiz.choices.map((choice) => (
               <li key={choice.id} className="quiz-question__option">
