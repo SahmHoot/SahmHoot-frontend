@@ -4,6 +4,7 @@ import { ChatAvatar } from '../../chat/ChatAvatar'
 import { ChatComposer } from '../../chat/ChatComposer'
 import { chatTime, groupChat } from '../../chat/chatGroups'
 import { ChatModeration } from '../../chat/ChatModeration'
+import { createLongPress } from '../../chat/longPress'
 import type { RoomChat } from '../../chat/useRoomChat'
 import type { RoomChatMessage } from '../../../shared/types/roomState'
 import { ChatReactions } from '../../room/ChatReactions'
@@ -18,6 +19,8 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin, parti
   const bodyId = useId()
   const [reply, setReply] = useState<RoomChatMessage | null>(null)
   const list = useRef<HTMLDivElement>(null)
+  // 휴대폰은 말풍선을 꾹 누르면 옆의 숨은 ▾(관리)를 눌러 그 메시지 메뉴를 연다.
+  const press = useRef(createLongPress((bubble) => bubble.parentElement?.querySelector<HTMLButtonElement>('.room-chat-moderation__trigger')?.click())).current
   const last = chat.messages[chat.messages.length - 1]?.id
   useEffect(() => { if (open) list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' }) }, [last, open])
   const parent = reply && chat.messages.some(({ id }) => id === reply.id) ? reply : null
@@ -47,7 +50,9 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin, parti
             {group.map((message, index) => <div key={message.id} className="professor-chat__line">
               {message.parentId !== null && <p className="professor-chat__quote"><Icon screen={screen} name="imgFrame5" alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
               <div className="chat-bubble-row">
-                <button type="button" disabled={!chat.ready} onClick={() => setReply(message)}
+                <button type="button" disabled={!chat.ready} onClick={() => { if (!press.handled()) setReply(message) }}
+                  onPointerDown={press.onPointerDown} onPointerUp={press.onPointerUp} onPointerCancel={press.onPointerCancel}
+                  onPointerLeave={press.onPointerLeave} onContextMenu={press.onContextMenu}
                   aria-label={`${message.nickname}의 메시지에 답글: ${message.content}`}
                   className={`professor-chat__bubble ${message.isOwner ? 'professor-chat__bubble--professor' : 'professor-chat__bubble--student'}`}>{message.content}</button>
                 {chat.roomId !== null && <ChatModeration roomId={chat.roomId} message={message} />}

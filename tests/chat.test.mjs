@@ -386,3 +386,36 @@ test('같은 사람이 1분 안에 이어 보낸 메시지만 한 묶음이 된�
   assert.deepEqual(plain(ids([at(1, 0), at(2, 59), at(3, 119), at(4, 120, { senderParticipantId: 11, isOwner: false }), at(5, 121)])), [[1, 2], [3], [4], [5]])
   assert.equal(ids([]).length, 0)
 })
+
+test('터치로 0.5초 이상 눌렀다 떼면 관리 메뉴를 열고 짧은 터치·마우스는 그대로 둔다', () => {
+  const timers = []
+  const { createLongPress } = load('longPress', {}, 'ts', {
+    setTimeout: (run, ms) => timers.push({ run, ms }) - 1, clearTimeout: (id) => { if (timers[id]) timers[id].run = () => {} },
+  })
+  const opened = []
+  const bubble = { id: 'bubble' }
+  const press = createLongPress((target) => opened.push(target))
+  const at = (pointerType) => ({ pointerType, currentTarget: bubble })
+  const elapse = (ms) => timers.filter((timer) => timer.ms === ms).forEach((timer) => { const { run } = timer; timer.run = () => {}; run() })
+  // 짧은 터치: 0.5초 전에 떼면 답글 동작을 그대로 둔다.
+  press.onPointerDown(at('touch')); press.onPointerUp(at('touch')); elapse(500); elapse(0)
+  assert.equal(press.handled(), false)
+  assert.equal(opened.length, 0)
+  // 꾹 누르기: 누르는 동안은 열지 않고, 뗀 다음 차례에 연다.
+  press.onPointerDown(at('touch')); elapse(500)
+  assert.equal(press.handled(), true)
+  press.onPointerUp(at('touch'))
+  assert.equal(opened.length, 0)
+  elapse(0)
+  assert.deepEqual(opened, [bubble])
+  let prevented = false
+  press.onContextMenu({ preventDefault() { prevented = true } })
+  assert.ok(prevented)
+  // 마우스는 길게 눌러도 열지 않고 기본 우클릭 메뉴도 막지 않는다.
+  press.onPointerDown(at('mouse')); elapse(500); press.onPointerUp(at('mouse')); elapse(0)
+  assert.equal(press.handled(), false)
+  assert.equal(opened.length, 1)
+  prevented = false
+  press.onContextMenu({ preventDefault() { prevented = true } })
+  assert.equal(prevented, false)
+})

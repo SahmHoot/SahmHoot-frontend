@@ -205,3 +205,39 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* 마우스: 메시지에 커서를 올리거나 키보드로 들어오면 ▾를 보인다. 자리는 그대로 두어 시간이 움직이지 않는다. */
+@media (hover: hover) {
+  .chat-bubble-row .room-chat-moderation__trigger {
+    opacity: 0;
+  }
+
+  .professor-chat__line:hover .room-chat-moderation__trigger,
+  .chat-bubble-row .room-chat-moderation__trigger:focus-visible,
+  .chat-bubble-row .room-chat-moderation:has(:popover-open) .room-chat-moderation__trigger {
+    opacity: 1;
+  }
+}
+
+/* 터치: ▾ 대신 말풍선을 꾹 눌러 연다. ▾는 화면 낭독기용으로만 남기고 메뉴는 화면 아래에 띄운다. */
+@media (hover: none) {
+  .chat-bubble-row .room-chat-moderation__trigger {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .chat-bubble-row .room-chat-moderation__menu {
+    inset: auto 12px 12px;
+    width: auto;
+    margin: 0;
+    position-area: none;
+  }
+
+  .professor-chat__bubble {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
