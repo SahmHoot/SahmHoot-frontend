@@ -22,17 +22,17 @@ export default function LiveStudentRoom({ roomId }: { roomId: number }) {
   const waiting = quiz.phase === 'waiting'
 
   return <div className="student-app">
-    <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} onLeave={() => setLeaving(true)}
+    <StudentHeader title={snapshot?.room.title} nickname={snapshot?.me.nickname} participantId={snapshot?.me.participantId} onLeave={() => setLeaving(true)}
       layout={waiting ? 'waiting' : undefined} />
     {ended ? <RoomEndedNotice onHome={home} /> : !snapshot || error ? <ClassroomStatus error={error} onHome={home} /> :
       <main className={`student-room ${waiting ? 'student-room--waiting' : ''}`}>
-        {waiting ? <div className="student-room__waiting-banner"><p><strong>대기 중</strong><span>교수님의 다음 안내를 기다려 주세요.</span></p><span>접속 {onlineCount}명</span></div> :
+        {!waiting &&
           <div className="student-room__quiz">
             {quiz.phase === 'results' ? <StudentQuizResults key={quiz.runId} result={quiz.result} answerOf={classroom.answerOf} /> :
               <LiveQuestion quiz={quiz} answer={classroom.answerOf(quiz.runQuestionId)}
                 correctChoiceId={classroom.correctOf(quiz.runQuestionId)} notice={classroom.notice} onSelect={classroom.select} />}
           </div>}
-        <StudentChat nickname={snapshot.me.nickname} expanded={waiting} chat={classroom.chat} onlineCount={onlineCount} reactions={classroom.reactions}
+        <StudentChat expanded={waiting} chat={classroom.chat} onlineCount={onlineCount} reactions={classroom.reactions}
           onReact={classroom.sendReaction} notices={classroom.pinned} realtimeNotice={classroom.realtimeNotice} />
       </main>}
     {leaving && !ended && <ConfirmDialog title="수업에서 나갈까요?" message="수업에서 나가 홈으로 이동합니다."

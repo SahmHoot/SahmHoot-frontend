@@ -51,7 +51,7 @@ function AuthLayout({
             <span className="auth-logo-mark">
               <img src={logoMark} alt="" width={32} height={32} />
             </span>
-            <span className="auth-logo-text">SahmHoot</span>
+            <span className="auth-logo-text">Sahm<span className="auth-logo-hoot">Hoot</span></span>
           </Link>
         </header>
 

@@ -97,13 +97,21 @@
   justify-content: center;
 }
 
+/* 로고 글자: Sahm 검정 + Hoot 파랑 투톤 */
 .auth-logo-text {
-  color: var(--auth-brand);
+  color: var(--auth-ink);
   font-family: "Poppins", "Noto Sans KR", sans-serif;
   font-size: 18px;
   font-weight: 700;
   line-height: 28px;
   letter-spacing: -0.45px;
+  /* Poppins는 글자가 줄 가운데보다 0.035em쯤 위에 그려져 아이콘 세로 가운데에 맞게 그만큼 내린다. */
+  position: relative;
+  top: 0.035em;
+}
+
+.auth-logo-hoot {
+  color: var(--auth-brand);
 }
 
 .auth-content {
