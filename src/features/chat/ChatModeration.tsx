@@ -47,7 +47,10 @@ export function ChatModeration({ roomId, message }: { roomId: number; message: R
   }
   return <div className="room-chat-moderation">
     <button type="button" ref={trigger} className="room-chat-moderation__trigger" popoverTarget={menuId}
-      aria-label={`${message.nickname} 메시지 관리`}>관리</button>
+      aria-label={`${message.nickname} 메시지 관리: ${message.content}`}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+    </button>
     <div id={menuId} ref={menu} popover="auto" role="group" aria-label="메시지 관리"
       className="room-chat-moderation__menu">
       {action('pin', '공지 고정', () => void run(async () => { await pinMessage(roomId, message.id); setStatus('공지를 고정했습니다.') }))}

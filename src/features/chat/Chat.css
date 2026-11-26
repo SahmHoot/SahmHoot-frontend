@@ -66,14 +66,44 @@
 .room-chat-moderation > p { margin: 4px 0; }
 
 .room-chat-moderation__trigger {
-  min-height: 32px;
-  padding-inline: 8px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
   border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
 .room-chat-moderation__trigger:hover {
   background: var(--color-muted);
+  color: var(--color-brand);
+}
+
+/* 말풍선 줄 안에서는 ▾ 버튼만 말풍선 옆에 두고, 고정·오류 안내는 줄 아래로 내린다.
+   줄바꿈을 켜면 긴 말풍선이 ▾·시간을 밀어내므로 말풍선 폭을 그만큼 남긴다. */
+.chat-bubble-row:has(> .room-chat-moderation) {
+  flex-wrap: wrap;
+}
+
+.chat-bubble-row:has(> .room-chat-moderation) > :first-child {
+  max-width: calc(100% - 100px);
+}
+
+.chat-bubble-row .room-chat-moderation {
+  display: contents;
+}
+
+/* 시간은 말풍선 아래쪽에 맞추고 ▾는 말풍선 세로 가운데에 둔다. */
+.chat-bubble-row .room-chat-moderation__trigger {
+  align-self: center;
+}
+
+.chat-bubble-row .room-chat-moderation > p {
+  flex-basis: 100%;
+  order: 1;
 }
 
 .room-chat-moderation__menu {
@@ -134,8 +164,100 @@
 }
 
 @media (pointer: coarse) {
-  .room-chat-moderation__trigger,
   .room-chat-moderation__menu button {
     min-height: 44px;
   }
+}
+
+.chat-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  /* Noto Sans KR 한글은 글자 칸 가운데보다 0.035em쯤 아래에 그려져서 그만큼 올린다. */
+  padding-bottom: 0.07em;
+}
+
+/* 같은 사람 묶음의 마지막 말풍선 옆 시간 */
+.chat-bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.chat-time {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.chat-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 평소에는 ▾를 숨기되 자리는 남겨 메뉴가 늘 말풍선 옆에 뜨게 한다. 키보드로 들어오거나 메뉴가 열린 동안은 보인다. */
+.chat-bubble-row .room-chat-moderation__trigger {
+  opacity: 0;
+}
+
+.chat-bubble-row .room-chat-moderation__trigger:focus-visible,
+.chat-bubble-row .room-chat-moderation:has(:popover-open) .room-chat-moderation__trigger {
+  opacity: 1;
+}
+
+/* 마우스: 메시지에 커서를 올리면 ▾를 보인다. */
+@media (hover: hover) {
+  .professor-chat__line:hover .room-chat-moderation__trigger {
+    opacity: 1;
+  }
+}
+
+/* 터치: 말풍선을 꾹 눌러 연다(longPress.ts). 휴대폰 기본 길게 누르기 메뉴·글자 선택은 막는다. */
+@media (hover: none) {
+  .professor-chat__bubble {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+/* 카카오톡 답장처럼 말풍선 안 위쪽에 받는 사람과 원문 한 줄을 두고 선으로 나눈다. */
+.chat-reply-quote {
+  display: block;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgb(17 26 51 / 12%);
+  font-size: 12px;
+  line-height: 17px;
+  white-space: normal;
+}
+
+.chat-reply-quote__to {
+  display: block;
+  font-weight: 700;
+}
+
+.chat-reply-quote__text {
+  display: block;
+  overflow: hidden;
+  opacity: 0.7;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-chat__bubble--professor .chat-reply-quote,
+.student-chat__message--professor .chat-reply-quote {
+  border-bottom-color: rgb(255 255 255 / 35%);
 }

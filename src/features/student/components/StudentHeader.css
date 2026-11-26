@@ -10,22 +10,26 @@
 .student-header__logo { width: 32px; height: 32px; display: grid; flex-shrink: 0; }
 .student-header__logo img { width: 100%; height: 100%; }
 .student-header--room .student-header__logo { width: 28px; height: 28px; }
-.student-header__wordmark { font-size: 18px; font-weight: 900; letter-spacing: -.45px; white-space: nowrap; }
-.student-header__wordmark b { font-family: 'Poppins', sans-serif; color: var(--student-primary); font-weight: 700; }
+/* 로고 글자: Sahm 검정 + Hoot 파랑 투톤. Poppins는 글자가 줄 가운데보다 0.035em쯤 위에 그려져 아이콘 세로 가운데에 맞게 그만큼 내린다. */
+.student-header__wordmark { font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -.45px; white-space: nowrap; color: var(--student-ink); position: relative; top: .035em; }
+.student-header__wordmark b { color: var(--student-primary); font-weight: 700; }
 .student-header h1 { font-size: 18px; font-weight: 700; }
 .student-header__participation { display: flex; align-items: center; gap: 12px; }
+.student-header__me { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 15px; }
+.student-header__me strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .student-header__account { position: relative; }
 .student-header__account summary { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; background: white; border: 1px solid var(--student-border); border-radius: var(--radius-md); box-shadow: var(--student-shadow); cursor: pointer; font-weight: 500; }
 .student-header__account summary::-webkit-details-marker { display: none; }
-.student-header__avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-full); background: var(--student-soft); color: var(--student-primary); font-weight: 700; font-size: 12px; }
+/* 한글 첫 글자가 가운데보다 살짝 아래에 그려져 padding으로 올린다(chat/Chat.css의 .chat-avatar와 같은 값). */
+.student-header__avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-full); background: var(--student-soft); color: var(--student-primary); font-weight: 700; font-size: 12px; padding-bottom: .07em; }
 .student-header__account-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 160px; padding: 16px; background: white; border: 1px solid var(--student-border); border-radius: var(--radius-lg); box-shadow: var(--student-shadow); font-size: 12px; }
 .student-header__account-menu a, .student-header__account-menu button { display: block; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--student-border); color: var(--student-primary); }
 .student-header__account-menu button { width: 100%; text-align: left; cursor: pointer; }
 @media (max-width: 600px) {
   .student-header__inner { padding: 0 16px; }
   .student-header h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .student-header__participation p { max-width: 100px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .student-header__participation .student-muted { display: none; }
+  .student-header__me { max-width: 140px; font-size: 13px; gap: 6px; }
+  .student-header__me .student-header__avatar { width: 24px; height: 24px; font-size: 11px; flex-shrink: 0; }
   .student-header__participation { gap: 8px; flex-shrink: 0; }
   .student-header__participation .student-button { flex-shrink: 0; }
 }

@@ -128,6 +128,7 @@ export function QuizResults({
       <Chat
         screen="results"
         compact
+        participants={room.participants}
         chat={chat}
         reactions={reactions}
         notices={notices}

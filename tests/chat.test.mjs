@@ -258,7 +258,7 @@ function component(file, dependencies = {}, globals = {}) {
 function find(element, predicate) {
   if (!element || typeof element !== 'object') return undefined
   if (predicate(element)) return element
-  for (const child of [element.props?.children].flat()) { const match = find(child, predicate); if (match) return match }
+  for (const child of [element.props?.children].flat(Infinity)) { const match = find(child, predicate); if (match) return match }
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await Promise.resolve() }
 
@@ -276,7 +276,7 @@ test('삭제 확인창은 포털로 목록 밖에 렌더링하고 취소 시 보
   }, { document: { body } })
   const props = { roomId: 40, message: message(8) }
   const view = () => { portal = undefined; return render(props) }
-  const request = () => find(view(), element => element.type === 'button' && element.props.children?.at(-1) === '메시지 삭제').props.onClick()
+  const request = () => find(view(), element => element.type === 'button' && [element.props.children].flat().at(-1) === '메시지 삭제').props.onClick()
   request()
   assert.equal(calls.length, 0)
   assert.equal(find(view(), element => element.type === ConfirmDialog), undefined)
@@ -298,7 +298,7 @@ test('작성자 확인은 참가자 메시지에만 표시하고 교수 메시�
     '../../shared/components/ConfirmDialog': {}, '../room/api': {},
     './api': { async getChatAuthor(...args) { calls.push(args); return null } },
   })
-  const button = (tree, name) => find(tree, el => el.type === 'button' && el.props.children?.at(-1) === name)
+  const button = (tree, name) => find(tree, el => el.type === 'button' && [el.props.children].flat().at(-1) === name)
   const teacher = render({ roomId: 40, message: message(8) })
   assert.equal(button(teacher, '작성자 확인'), undefined)
   assert.ok(button(teacher, '공지 고정'))
@@ -318,7 +318,7 @@ test('공지 고정은 고른 메시지로 요청하고 삭제·종료 오류를
     '../room/api': { async pinMessage(...args) { calls.push(args); if (code) throw { code, message: code === 'MESSAGE_DELETED' ? '삭제된 메시지입니다' : '종료된 방입니다' } } },
   })
   const props = { roomId: 40, message: message(8) }
-  const pin = async () => { find(render(props), element => element.type === 'button' && element.props.children?.at(-1) === '공지 고정').props.onClick(); await flush() }
+  const pin = async () => { find(render(props), element => element.type === 'button' && [element.props.children].flat().at(-1) === '공지 고정').props.onClick(); await flush() }
   await pin()
   assert.deepEqual(calls, [[40, 8]])
   assert.match(find(render(props), element => element.props.role === 'status').props.children, /고정했습니다/)
@@ -376,4 +376,46 @@ test('교수 퀴즈는 채팅 STOMP 오류를 중복 구독하지 않고 REST �
   await quiz.start(2)
   await quiz.closeResults()
   assert.deepEqual(errors, ['시작 실패'])
+})
+
+test('같은 사람이 1분 안에 이어 보낸 메시지만 한 묶음이 된다', () => {
+  const { groupChat } = load('chatGroups')
+  const at = (id, second, overrides = {}) => message(id, { createdAt: new Date(Date.UTC(2026, 10, 19, 0, 0, second)).toISOString(), ...overrides })
+  const ids = (messages) => groupChat(messages).map((group) => group.map(({ id }) => id))
+  // 앞 메시지 기준 59초면 이어지고 60초면 끊긴다. 보낸 사람이 바뀌어도 끊긴다.
+  assert.deepEqual(plain(ids([at(1, 0), at(2, 59), at(3, 119), at(4, 120, { senderParticipantId: 11, isOwner: false }), at(5, 121)])), [[1, 2], [3], [4], [5]])
+  assert.equal(ids([]).length, 0)
+})
+
+test('터치로 0.5초 이상 눌렀다 떼면 관리 메뉴를 열고 짧은 터치·마우스는 그대로 둔다', () => {
+  const timers = []
+  const { createLongPress } = load('longPress', {}, 'ts', {
+    setTimeout: (run, ms) => timers.push({ run, ms }) - 1, clearTimeout: (id) => { if (timers[id]) timers[id].run = () => {} },
+  })
+  const opened = []
+  const bubble = { id: 'bubble' }
+  const press = createLongPress((target) => opened.push(target))
+  const at = (pointerType) => ({ pointerType, currentTarget: bubble })
+  const elapse = (ms) => timers.filter((timer) => timer.ms === ms).forEach((timer) => { const { run } = timer; timer.run = () => {}; run() })
+  // 짧은 터치: 0.5초 전에 떼면 답글 동작을 그대로 둔다.
+  press.onPointerDown(at('touch')); press.onPointerUp(at('touch')); elapse(500); elapse(0)
+  assert.equal(press.handled(), false)
+  assert.equal(opened.length, 0)
+  // 꾹 누르기: 누르는 동안은 열지 않고, 뗀 다음 차례에 연다.
+  press.onPointerDown(at('touch')); elapse(500)
+  assert.equal(press.handled(), true)
+  press.onPointerUp(at('touch'))
+  assert.equal(opened.length, 0)
+  elapse(0)
+  assert.deepEqual(opened, [bubble])
+  let prevented = false
+  press.onContextMenu({ preventDefault() { prevented = true } })
+  assert.ok(prevented)
+  // 마우스는 길게 눌러도 열지 않고 기본 우클릭 메뉴도 막지 않는다.
+  press.onPointerDown(at('mouse')); elapse(500); press.onPointerUp(at('mouse')); elapse(0)
+  assert.equal(press.handled(), false)
+  assert.equal(opened.length, 1)
+  prevented = false
+  press.onContextMenu({ preventDefault() { prevented = true } })
+  assert.equal(prevented, false)
 })

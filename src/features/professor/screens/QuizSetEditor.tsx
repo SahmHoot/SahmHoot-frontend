@@ -305,8 +305,10 @@ export function QuizSetEditor() {
           </p>
         </aside>
         {question ? <section className="quiz-set-editor__question-panel">
-          <h2 className="quiz-set-editor__question-title">{selectedIndex + 1}번 문항 편집</h2>
-          <button type="button" className="quiz-set-editor__delete-button" disabled={checkingImage} onClick={() => setRemoving(question.id)}>문항 삭제</button>
+          <div className="quiz-set-editor__question-head">
+            <h2 className="quiz-set-editor__question-title">{selectedIndex + 1}번 문항 편집</h2>
+            <button type="button" className="quiz-set-editor__delete-button" disabled={checkingImage} onClick={() => setRemoving(question.id)}>문항 삭제</button>
+          </div>
           <label htmlFor="question-prompt" className="quiz-set-editor__prompt-label">
             문제 내용
           </label>
