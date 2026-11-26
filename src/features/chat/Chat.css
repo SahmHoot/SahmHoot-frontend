@@ -96,6 +96,11 @@
   display: contents;
 }
 
+/* 시간은 말풍선 아래쪽에 맞추고 ▾는 말풍선 세로 가운데에 둔다. */
+.chat-bubble-row .room-chat-moderation__trigger {
+  align-self: center;
+}
+
 .chat-bubble-row .room-chat-moderation > p {
   flex-basis: 100%;
   order: 1;
