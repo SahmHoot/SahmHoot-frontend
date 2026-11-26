@@ -375,7 +375,7 @@ test('교수 대기 화면만 집계를 표시하고 세 화면 모두 반응과
     './Icon': { Icon: () => null }, './Modal': { Modal: () => null },
     '../../room/reactions': { REACTION_EMOJIS: emojis },
     '../../room/ChatReactions': { ChatReactions: (props) => overlay.render(props) },
-    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/longPress': { createLongPress: () => ({ handled: () => false }) }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': { groupChat: (messages) => messages.map((message) => [message]), chatTime: () => '' },
+    '../../chat/ChatComposer': { ChatComposer: () => null }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/longPress': { createLongPress: () => ({ handled: () => false }) }, '../../chat/ChatReplyQuote': { ChatReplyQuote: ({ nickname, preview }) => `${nickname ?? ''}님에게 답장 ${preview}` }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': { groupChat: (messages) => messages.map((message) => [message]), chatTime: () => '' },
   }
   const reactions = harness('professor/components/Reactions', 'Reactions', dependencies, 'tsx')
   const waiting = renderToStaticMarkup(reactions.render({ participants: 7, stats }))
@@ -401,7 +401,7 @@ test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결�
   const dependencies = {
     'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
     '../../room/ChatReactions': { ChatReactions: () => null },
-    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/longPress': { createLongPress: () => ({ handled: () => false }) }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': { groupChat: (messages) => messages.map((message) => [message]), chatTime: () => '' },
+    '../../chat/ChatComposer': { ChatComposer }, '../../chat/ChatModeration': { ChatModeration: () => null }, '../../chat/longPress': { createLongPress: () => ({ handled: () => false }) }, '../../chat/ChatReplyQuote': { ChatReplyQuote: ({ nickname, preview }) => `${nickname ?? ''}님에게 답장 ${preview}` }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': { groupChat: (messages) => messages.map((message) => [message]), chatTime: () => '' },
   }
   function find(element, predicate) {
     if (!element || typeof element !== 'object') return undefined
@@ -423,6 +423,9 @@ test('교수 채팅은 텍스트로 역할을 표시하고 대기·퀴즈·결�
     find(tree, el => el.props.className === 'professor-chat__bubble professor-chat__bubble--professor').props.onClick()
     tree = hook.render(props)
     assert.equal(composer(tree).props.parentId, 1)
+    // 입력창 위에는 카카오톡처럼 「OO님에게 답장」과 원문, ×(답장 취소)를 보여 준다.
+    assert.match(renderToStaticMarkup(tree), /<strong>김교원님에게 답장<\/strong><span class="professor-chat__reply-text">교수 안내<\/span>/)
+    assert.match(renderToStaticMarkup(tree), /aria-label="답장 취소"/)
     toggle(tree).props.onClick()
     tree = hook.render(props)
     assert.equal(body(tree).props.hidden, true)
@@ -447,7 +450,7 @@ test('교수 채팅은 이어 보낸 메시지의 이름을 한 번만 쓰고 �
   const chat = harness('professor/components/Chat', 'Chat', {
     'react/jsx-runtime': jsxRuntime, './Chat.css': {}, './Icon': { Icon: () => null },
     '../../room/ChatReactions': { ChatReactions: () => null }, '../../chat/ChatComposer': { ChatComposer: () => null },
-    '../../chat/ChatModeration': { ChatModeration }, '../../chat/longPress': { createLongPress: () => ({ handled: () => false }) }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': groups,
+    '../../chat/ChatModeration': { ChatModeration }, '../../chat/longPress': { createLongPress: () => ({ handled: () => false }) }, '../../chat/ChatReplyQuote': { ChatReplyQuote: ({ nickname, preview }) => `${nickname ?? ''}님에게 답장 ${preview}` }, '../../chat/ChatAvatar': { ChatAvatar: () => null }, '../../chat/chatGroups': groups,
   }, 'tsx')
   const line = (id, second) => ({ id, senderParticipantId: 3, nickname: '학생', isOwner: false, content: `메시지 ${id}`, parentId: null,
     createdAt: `2026-11-19T00:00:${String(second).padStart(2, '0')}Z` })

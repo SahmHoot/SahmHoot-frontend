@@ -13,8 +13,6 @@
 .student-chat__message--professor .student-chat__author { color: var(--student-primary); }
 .student-chat__message--professor .student-chat__bubble { background: var(--student-primary); color: white; box-shadow: var(--student-primary-shadow); }
 .student-chat__message--mine .student-chat__bubble { background: var(--student-soft); border: 1px solid rgb(37 56 210 / 20%); color: var(--student-primary-dark); }
-.student-chat__reply { display: flex; gap: 4px; align-items: center; padding: 5px 12px; margin-bottom: 4px !important; width: fit-content; max-width: 100%; border-radius: var(--radius-sm); background: #f4f6fb; color: var(--student-muted); font-size: 11px; overflow-wrap: anywhere; }
-.student-chat__reply img { flex-shrink: 0; }
 .student-chat__composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--student-border); background: white; flex-shrink: 0; }
 .student-chat__composer input { min-width: 0; width: 100%; height: 44px; padding: 11px 16px; border: 1px solid #dbe2ee; border-radius: var(--radius-md); background: rgb(244 246 251 / 50%); }
 .student-chat__composer input::placeholder { color: rgb(102 112 138 / 80%); }

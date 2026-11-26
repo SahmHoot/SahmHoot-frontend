@@ -110,14 +110,6 @@
   @apply text-hoot-foreground/70;
 }
 
-.professor-chat__quote {
-  @apply flex items-center gap-1 overflow-hidden rounded-sm bg-[#f4f6fb] px-3 py-1.5 text-[11px] text-hoot-muted;
-}
-
-.professor-chat__quote-text {
-  @apply truncate;
-}
-
 .professor-chat__bubble {
   @apply block w-fit max-w-full rounded-lg rounded-tl-md px-3.5 py-2 text-left text-sm leading-[22.75px] break-words;
 }
@@ -130,12 +122,25 @@
   @apply bg-[#f4f6fb] hover:bg-hoot-soft;
 }
 
+/* 입력창 위 답장 대상: 카카오톡처럼 「OO님에게 답장」과 원문 한 줄, 오른쪽 ×로 취소 */
 .professor-chat__reply {
-  @apply flex items-center justify-between gap-2 border-t border-hoot-border bg-hoot-soft px-3 py-2 text-xs;
+  @apply flex items-center justify-between gap-2 border-t border-hoot-border bg-hoot-soft px-4 py-2;
+}
+
+.professor-chat__reply-body {
+  @apply flex min-w-0 flex-col text-xs;
+}
+
+.professor-chat__reply-body strong {
+  @apply font-bold text-hoot-primary;
 }
 
 .professor-chat__reply-text {
-  @apply truncate;
+  @apply truncate text-hoot-muted;
+}
+
+.professor-chat__reply-cancel {
+  @apply grid size-7 shrink-0 cursor-pointer place-items-center rounded-sm text-hoot-muted hover:bg-white hover:text-hoot-foreground;
 }
 
 .professor-chat__cancel-reply {

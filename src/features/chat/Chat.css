@@ -232,3 +232,32 @@
     user-select: none;
   }
 }
+
+/* 카카오톡 답장처럼 말풍선 안 위쪽에 받는 사람과 원문 한 줄을 두고 선으로 나눈다. */
+.chat-reply-quote {
+  display: block;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgb(17 26 51 / 12%);
+  font-size: 12px;
+  line-height: 17px;
+  white-space: normal;
+}
+
+.chat-reply-quote__to {
+  display: block;
+  font-weight: 700;
+}
+
+.chat-reply-quote__text {
+  display: block;
+  overflow: hidden;
+  opacity: 0.7;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-chat__bubble--professor .chat-reply-quote,
+.student-chat__message--professor .chat-reply-quote {
+  border-bottom-color: rgb(255 255 255 / 35%);
+}

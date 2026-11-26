@@ -1,13 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChatAvatar } from '../../chat/ChatAvatar'
 import { ChatComposer } from '../../chat/ChatComposer'
+import { ChatReplyQuote } from '../../chat/ChatReplyQuote'
 import { chatTime, groupChat } from '../../chat/chatGroups'
 import type { RoomChat } from '../../chat/useRoomChat'
 import { ChatReactions } from '../../room/ChatReactions'
 import type { FloatingReaction, Reaction } from '../../room/reactions'
 import StudentReactionBar from './StudentReactionBar'
 import pinIcon from '../../../assets/student/pin.svg'
-import replyIcon from '../../../assets/student/reply.svg'
 import './StudentChat.css'
 
 export default function StudentChat({ expanded, chat, onlineCount, reactions, onReact, notices, realtimeNotice }: {
@@ -46,16 +46,18 @@ export default function StudentChat({ expanded, chat, onlineCount, reactions, on
       <div className="chat-messages-area">
         <div ref={list} className="student-chat__messages" role="log" aria-label="채팅 메시지" aria-live="polite" aria-relevant="additions">
           {groupChat(chat.messages).map((group) => {
+            const names = new Map(chat.messages.map(({ id, nickname }) => [id, nickname]))
             const [first] = group
             const mine = first.senderParticipantId === chat.meId
             const author = `${first.nickname}${first.isOwner ? ' 교수' : ''}${mine ? ' (나)' : ''}`
             return <div key={first.id} className={`student-chat__message ${first.isOwner ? 'student-chat__message--professor' : ''} ${mine ? 'student-chat__message--mine' : ''}`}>
               <p className="student-chat__author"><ChatAvatar name={first.nickname} participantId={first.senderParticipantId} isOwner={first.isOwner} />{author}</p>
               {group.map((message, index) => <div key={message.id} className="student-chat__line">
-                {message.parentId !== null && <p className="student-chat__reply"><img src={replyIcon} alt="답장" />{message.parentPreview ?? '삭제된 메시지'}</p>}
                 <div className="chat-bubble-row">
                   {/* 이어 붙은 말풍선도 화면 낭독기에는 누가 보냈는지 읽어 준다. */}
-                  <p className="student-chat__bubble">{index > 0 && <span className="chat-sr-only">{author}: </span>}{message.content}</p>
+                  <p className="student-chat__bubble">{index > 0 && <span className="chat-sr-only">{author}: </span>}
+                    {message.parentId !== null && <ChatReplyQuote nickname={names.get(message.parentId)} preview={message.parentPreview} />}
+                    {message.content}</p>
                   {index === group.length - 1 && <time className="chat-time" dateTime={message.createdAt}>{chatTime(message.createdAt)}</time>}
                 </div>
               </div>)}

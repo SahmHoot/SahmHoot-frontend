@@ -22,14 +22,15 @@ function load(file, dependencies) {
 const none = { __esModule: true, default: () => null }
 const avatar = load('chat/ChatAvatar', { './Chat.css': {} })
 const groups = load('chat/chatGroups.ts', {})
+const replyQuote = load('chat/ChatReplyQuote', { './Chat.css': {} })
 const composer = load('chat/ChatComposer', { './Chat.css': {}, '../../assets/student/send.svg': { __esModule: true, default: 'send.svg' } })
 const StudentChat = load('student/components/StudentChat', {
   '../../../assets/student/pin.svg': { __esModule: true, default: 'pin.svg' },
-  '../../../assets/student/reply.svg': { __esModule: true, default: 'reply.svg' },
   '../../../assets/student/send.svg': { __esModule: true, default: 'send.svg' },
   '../../room/ChatReactions': { ChatReactions: () => null },
   '../../chat/ChatAvatar': avatar,
   '../../chat/chatGroups': groups,
+  '../../chat/ChatReplyQuote': replyQuote,
   '../../chat/ChatComposer': composer,
   './StudentReactionBar': none,
   './StudentChat.css': {},
@@ -60,14 +61,14 @@ const classroom = (pinned, recentMessages = []) => ({ quiz: { phase: 'waiting' }
   pinned, reactions: [], realtimeNotice: undefined, sendReaction() {},
   chat: { messages: [...recentMessages].reverse(), received: 0, meId: 9, ready: true, blocked: false, sending: false, error: '' } })
 
-test('학생 화면은 교수 답글 위에 원본 인용을 보여 주고 원본이 없는 메시지에는 붙이지 않는다', () => {
+test('학생 화면은 교수 답글 말풍선 안에 받는 사람과 원문을 보여 주고 원본이 없는 메시지에는 붙이지 않는다', () => {
   const markup = renderRoom(classroom([], [
     message(2, '3장까지입니다', { senderParticipantId: 1, nickname: '교수', isOwner: true, parentId: 1, parentPreview: '시험 범위요?' }),
     message(1, '시험 범위요?'),
   ]))
-  const replies = Array.from(markup.matchAll(/class="student-chat__reply"><img[^>]*\/>([^<]*)</g), ([, text]) => text)
-  assert.deepEqual(replies, ['시험 범위요?'])
-  assert.match(markup, /alt="답장"/)
+  // 카카오톡처럼 말풍선 안 위쪽에 「원문 작성자님에게 답장」과 원문 한 줄을 붙인다.
+  const replies = Array.from(markup.matchAll(/class="chat-reply-quote__to">([^<]*)<\/span><span class="chat-reply-quote__text">([^<]*)</g), ([, to, text]) => [to, text])
+  assert.deepEqual(replies, [['익명님에게 답장', '시험 범위요?']])
   // 대기 중에도 채팅 제목 옆에 접속 인원을 보여 주고, 안내 문구는 두지 않는다.
   assert.match(markup, /<h2>실시간 채팅<\/h2><span>접속 2명<\/span>/)
   assert.doesNotMatch(markup, /내 메시지는|다음 안내를 기다려|대기 중/)
@@ -124,4 +125,11 @@ test('같은 사람이 이어 보낸 메시지는 이름을 한 번만, 시간�
   assert.match(markup, /세 번째<\/p><time class="chat-time" dateTime="2026-11-19T00:00:40Z">(오전|오후) \d{1,2}:\d{2}<\/time>/)
   // 이어 붙은 말풍선도 화면 낭독기에는 보낸 사람을 읽어 준다.
   assert.match(markup, /<span class="chat-sr-only">익명: <\/span>두 번째/)
+})
+
+test('원문이 지금 목록에 없으면 받는 사람 없이 「답장」만, 삭제된 원문은 「삭제된 메시지」로 보여 준다', () => {
+  const markup = renderRoom(classroom([], [
+    message(4, '다시 안내합니다', { senderParticipantId: 1, nickname: '교수', isOwner: true, parentId: 99, parentPreview: null }),
+  ]))
+  assert.match(markup, /class="chat-reply-quote__to">답장<\/span><span class="chat-reply-quote__text">삭제된 메시지</)
 })
