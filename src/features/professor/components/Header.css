@@ -41,8 +41,9 @@
   @apply size-full;
 }
 
+/* 한글과 Poppins는 글자 칸 높이가 달라 기준선을 맞춰야 SahmHoot이 위로 뜨지 않고 아이콘 가운데에 온다. */
 .professor-header__brand-name {
-  @apply flex gap-1 text-lg font-black tracking-[-0.45px];
+  @apply flex items-baseline gap-1 text-lg font-black tracking-[-0.45px];
 }
 
 .professor-header__brand-english {
