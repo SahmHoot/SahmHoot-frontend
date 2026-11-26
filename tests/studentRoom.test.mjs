@@ -66,9 +66,9 @@ test('학생 화면은 교수 답글 말풍선 안에 받는 사람과 원문을
     message(2, '3장까지입니다', { senderParticipantId: 1, nickname: '교수', isOwner: true, parentId: 1, parentPreview: '시험 범위요?' }),
     message(1, '시험 범위요?'),
   ]))
-  // 카카오톡처럼 말풍선 안 위쪽에 「원문 작성자님에게 답장」과 원문 한 줄을 붙인다.
+  // 카카오톡처럼 말풍선 안 위쪽에 「원문 작성자에게 답장」과 원문 한 줄을 붙인다.
   const replies = Array.from(markup.matchAll(/class="chat-reply-quote__to">([^<]*)<\/span><span class="chat-reply-quote__text">([^<]*)</g), ([, to, text]) => [to, text])
-  assert.deepEqual(replies, [['익명님에게 답장', '시험 범위요?']])
+  assert.deepEqual(replies, [['익명에게 답장', '시험 범위요?']])
   // 대기 중에도 채팅 제목 옆에 접속 인원을 보여 주고, 안내 문구는 두지 않는다.
   assert.match(markup, /<h2>실시간 채팅<\/h2><span>접속 2명<\/span>/)
   assert.doesNotMatch(markup, /내 메시지는|다음 안내를 기다려|대기 중/)

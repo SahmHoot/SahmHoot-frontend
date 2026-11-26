@@ -122,7 +122,7 @@
   @apply bg-[#f4f6fb] hover:bg-hoot-soft;
 }
 
-/* 입력창 위 답장 대상: 카카오톡처럼 「OO님에게 답장」과 원문 한 줄, 오른쪽 ×로 취소 */
+/* 입력창 위 답장 대상: 카카오톡처럼 「OO에게 답장」과 원문 한 줄, 오른쪽 ×로 취소 */
 .professor-chat__reply {
   @apply flex items-center justify-between gap-2 border-t border-hoot-border bg-hoot-soft px-4 py-2;
 }

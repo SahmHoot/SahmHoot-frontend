@@ -68,7 +68,7 @@ export function Chat({ compact, screen, chat, reactions, notices, onUnpin, parti
       <ChatReactions reactions={reactions} />
     </div>
     {parent && <div className="professor-chat__reply">
-      <p className="professor-chat__reply-body"><strong>{parent.nickname}님에게 답장</strong><span className="professor-chat__reply-text">{parent.content}</span></p>
+      <p className="professor-chat__reply-body"><strong>{parent.nickname}에게 답장</strong><span className="professor-chat__reply-text">{parent.content}</span></p>
       <button type="button" className="professor-chat__reply-cancel" aria-label="답장 취소" onClick={() => setReply(null)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
