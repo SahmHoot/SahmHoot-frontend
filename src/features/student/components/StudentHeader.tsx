@@ -22,14 +22,14 @@ export default function StudentHeader({ title, nickname, participantId, onLeave,
   return (
     <header className={`student-header ${title ? 'student-header--room' : ''} ${layout ? `student-header--${layout}` : ''}`}>
       <div className="student-header__inner">
-        <Link className="student-header__brand" to="/student" aria-label="삼훗 학생 홈" onClick={event => {
+        <Link className="student-header__brand" to="/student" aria-label="SahmHoot 학생 홈" onClick={event => {
           if (onLeave && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
             event.preventDefault()
             onLeave()
           }
         }}>
           <span className="student-header__logo"><img src={logo} alt="" /></span>
-          {title ? <h1>{title}</h1> : <span className="student-header__wordmark">삼훗 <b>SahmHoot</b></span>}
+          {title ? <h1>{title}</h1> : <span className="student-header__wordmark">Sahm<b>Hoot</b></span>}
         </Link>
         {title ? (
           <div className="student-header__participation">

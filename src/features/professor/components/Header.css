@@ -41,14 +41,17 @@
   @apply size-full;
 }
 
-/* 한글과 Poppins는 글자 칸 높이가 달라 기준선을 맞춰야 SahmHoot이 위로 뜨지 않고 아이콘 가운데에 온다. */
+/* 로고 글자: Sahm 검정 + Hoot 파랑 투톤 */
 .professor-header__brand-name {
-  @apply flex items-baseline gap-1 text-lg font-black tracking-[-0.45px];
+  @apply text-lg font-bold tracking-[-0.45px] whitespace-nowrap text-hoot-foreground;
+  font-family: "Poppins", "Noto Sans KR", sans-serif;
+  /* Poppins는 글자가 줄 가운데보다 0.035em쯤 위에 그려져 아이콘 세로 가운데에 맞게 그만큼 내린다. */
+  position: relative;
+  top: 0.035em;
 }
 
-.professor-header__brand-english {
-  @apply font-bold text-hoot-primary max-[360px]:hidden;
-  font-family: "Poppins", "Noto Sans KR", sans-serif;
+.professor-header__brand-hoot {
+  @apply text-hoot-primary;
 }
 
 .professor-header__room-title {

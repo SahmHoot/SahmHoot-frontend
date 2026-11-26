@@ -10,8 +10,9 @@
 .student-header__logo { width: 32px; height: 32px; display: grid; flex-shrink: 0; }
 .student-header__logo img { width: 100%; height: 100%; }
 .student-header--room .student-header__logo { width: 28px; height: 28px; }
-.student-header__wordmark { font-size: 18px; font-weight: 900; letter-spacing: -.45px; white-space: nowrap; }
-.student-header__wordmark b { font-family: 'Poppins', sans-serif; color: var(--student-primary); font-weight: 700; }
+/* 로고 글자: Sahm 검정 + Hoot 파랑 투톤. Poppins는 글자가 줄 가운데보다 0.035em쯤 위에 그려져 아이콘 세로 가운데에 맞게 그만큼 내린다. */
+.student-header__wordmark { font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -.45px; white-space: nowrap; color: var(--student-ink); position: relative; top: .035em; }
+.student-header__wordmark b { color: var(--student-primary); font-weight: 700; }
 .student-header h1 { font-size: 18px; font-weight: 700; }
 .student-header__participation { display: flex; align-items: center; gap: 12px; }
 .student-header__me { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 15px; }

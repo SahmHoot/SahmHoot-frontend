@@ -43,7 +43,7 @@ export function Header({
         <div className="professor-header__brand">
           <Link
             to="/professor"
-            aria-label="삼훗 교수 홈"
+            aria-label="SahmHoot 교수 홈"
             className="professor-header__home-link"
           >
             <span
@@ -53,10 +53,7 @@ export function Header({
             </span>
             {!live && (
               <span className="professor-header__brand-name">
-                삼훗{" "}
-                <span className="professor-header__brand-english">
-                  SahmHoot
-                </span>
+                Sahm<span className="professor-header__brand-hoot">Hoot</span>
               </span>
             )}
           </Link>
