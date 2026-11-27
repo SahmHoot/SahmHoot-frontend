@@ -1,0 +1,52 @@
+@reference "../../globals.css";
+
+.inline-image-zoom__frame {
+  @apply relative mx-auto w-fit max-w-full;
+}
+
+.inline-image-zoom__image {
+  @apply mx-auto block h-auto max-h-56 w-auto max-w-full rounded-md object-contain;
+}
+
+.inline-image-zoom--expanded .inline-image-zoom__frame {
+  width: min(100%, calc(var(--image-aspect-ratio) * var(--inline-image-zoom-height, min(42rem, 72svh))));
+}
+
+.inline-image-zoom--expanded .inline-image-zoom__image {
+  @apply max-h-none w-full;
+}
+
+.inline-image-zoom__frame > .inline-image-zoom__toggle {
+  @apply absolute top-1.5 right-1.5 size-9 min-h-9 border-border-input bg-surface/90 p-0 text-brand shadow-none;
+}
+
+.inline-image-zoom__frame > .inline-image-zoom__toggle:is(:hover, [aria-expanded="true"]) {
+  @apply bg-brand-subtle text-brand-strong;
+}
+
+@media (max-width: 600px), (pointer: coarse) {
+  .inline-image-zoom__frame > .inline-image-zoom__toggle {
+    @apply size-11;
+  }
+}
+
+/* Keep the touch target from hiding a preview that's smaller than the control. */
+.inline-image-zoom__frame--compact {
+  @apply grid gap-1;
+}
+
+.inline-image-zoom__frame--compact > .inline-image-zoom__image {
+  @apply row-start-2;
+}
+
+.inline-image-zoom__frame--compact > .inline-image-zoom__toggle {
+  @apply static row-start-1 justify-self-end;
+}
+
+/* Give wide images more room inside the card when the collapsed image already fills its content width. */
+@media (max-width: 600px) {
+  .inline-image-zoom--expanded {
+    --inline-image-zoom-height: 65svh;
+    margin-inline: -0.75rem;
+  }
+}
